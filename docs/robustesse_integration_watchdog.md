@@ -1,4 +1,4 @@
-# Fonctionnement, tests et limites — 1.0.0
+# Fonctionnement, tests et limites — 1.0.1
 
 **Français** · [English](robustesse_integration_watchdog.en.md) · [Guide d’installation](integration_watchdog.md)
 
@@ -46,7 +46,7 @@ Les actions personnalisées doivent rester courtes. Si elles ne se terminent pas
 
 ## Ce que vérifient les tests
 
-La suite contient **88 tests** exécutés sous Home Assistant officiel **2026.10.4**, avec Python **3.14**, dans des dossiers temporaires.
+La suite contient **89 tests** exécutés sous Home Assistant officiel **2026.10.4**, avec Python **3.14**, dans des dossiers temporaires.
 
 Les scripts, automatisations, assistants, modèles, événements et notifications sont réels. Seuls les appels aux fournisseurs sont remplacés par des réponses contrôlées ; les intégrations et entités utilisées sont fictives.
 

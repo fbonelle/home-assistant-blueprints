@@ -926,3 +926,17 @@ async def test_automation_disabled_during_finish_recovers_from_durable_result(en
     await env.hass.services.async_call('automation','trigger',{'entity_id':target},blocking=True)
     await env.hass.async_block_till_done()
     assert env.record()['p']==0 and env.record()['i']==1 and env.record()['s']=='verify'
+
+@pytest.mark.asyncio
+async def test_package_merge_preserves_all_script_field_selectors(env):
+    """Exercise HA's package merge, which drops empty mapping leaves."""
+    from homeassistant.config import merge_packages_config
+    from homeassistant.components.script.config import async_validate_config_item
+    package=load_package();errors=[]
+    base={'script':{'existing_example':{'alias':'Existing script','sequence':[{'delay':1}]}}}
+    merged=await merge_packages_config(env.hass,base,{'integration_watchdog':package},lambda *args:errors.append(args[-1]))
+    assert not errors
+    assert 'existing_example' in merged['script']
+    for key in package['script']:
+        result=await async_validate_config_item(env.hass,key,merged['script'][key])
+        assert result is not None and result.validation_error is None

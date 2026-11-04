@@ -1,4 +1,4 @@
-# Surveillance et relance des intégrations — 1.0.0
+# Surveillance et relance des intégrations — 1.0.1
 
 **Français** · [English](integration_watchdog.en.md) · [Accueil](../README.md)
 
@@ -49,7 +49,7 @@ L’automatisation remplit cet assistant. Il conserve le nombre de tentatives et
 
 ### Remplir le formulaire
 
-Créez une automatisation à partir du blueprint **Surveillance et relance des intégrations — 1.0.0**, puis renseignez :
+Créez une automatisation à partir du blueprint **Surveillance et relance des intégrations — 1.0.1**, puis renseignez :
 
 | Champ | Ce qu’il faut choisir |
 |---|---|

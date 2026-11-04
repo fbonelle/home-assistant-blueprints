@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# Version 1.0.0 — fichier de configuration commun à installer une seule fois.
+# Version 1.0.1 — fichier de configuration commun à installer une seule fois.
 script:
   surveillance_ecrire_memoire:
     alias: Surveillance — Enregistrer l’historique
@@ -19,15 +19,18 @@ script:
       expected:
         required: true
         selector:
-          text: {}
+          text:
+            multiline: false
       value:
         required: true
         selector:
-          text: {}
+          text:
+            multiline: false
       guard_off:
         default: ''
         selector:
-          text: {}
+          text:
+            multiline: false
     sequence:
     - variables:
         result:
@@ -57,19 +60,23 @@ script:
       entry_id:
         required: true
         selector:
-          text: {}
+          text:
+            multiline: false
       owner_id:
         required: true
         selector:
-          text: {}
+          text:
+            multiline: false
       entry_key:
         required: true
         selector:
-          text: {}
+          text:
+            multiline: false
       reservation:
         required: true
         selector:
-          text: {}
+          text:
+            multiline: false
     sequence:
     - variables:
         raw: '{{ states(memory_entity) }}'

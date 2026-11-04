@@ -2,6 +2,11 @@
 
 [Français](CHANGELOG.md) · **English**
 
+## 1.0.1 — 4 November 2026
+
+- Fix script loading from a Home Assistant package: field selectors now survive configuration merging.
+- Add a regression test that merges the package with an existing configuration and validates every script.
+
 ## 1.0.0 — 4 November 2026
 
 First published version of **Integration monitoring and reload**.

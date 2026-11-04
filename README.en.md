@@ -8,7 +8,7 @@ A collection of blueprints built with standard Home Assistant features. Each blu
 
 | Blueprint | Purpose | Version | Requirements |
 |---|---|---|---|
-| [Integration monitoring and reload](docs/integration_watchdog.en.md) | Detect a problem using selected entities, try reloading the integration and notify you when intervention is needed. | **1.0.0** | Home Assistant 2026.10 or later |
+| [Integration monitoring and reload](docs/integration_watchdog.en.md) | Detect a problem using selected entities, try reloading the integration and notify you when intervention is needed. | **1.0.1** | Home Assistant 2026.10 or later |
 
 **1.0.0 is the first published version.** Numbers used during development do not represent project releases.
 
@@ -39,6 +39,6 @@ python3.14 -m venv .venv
 .venv/bin/python -m pytest -q
 ```
 
-The suite contains **88 tests** using Home Assistant 2026.10.4. Provider calls are simulated and no production credentials are needed. GitHub Actions also checks that generated files are up to date.
+The suite contains **89 tests** using Home Assistant 2026.10.4. Provider calls are simulated and no production credentials are needed. GitHub Actions also checks that generated files are up to date.
 
 [Contributing](CONTRIBUTING.en.md) · [Changelog](CHANGELOG.en.md) · [Attribution and license](NOTICE.en.md)

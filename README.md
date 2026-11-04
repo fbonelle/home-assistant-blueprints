@@ -8,7 +8,7 @@ Une collection de blueprints pour automatiser Home Assistant avec ses fonctions 
 
 | Blueprint | Fonction | Version | Prérequis |
 |---|---|---|---|
-| [Surveillance et relance des intégrations](docs/integration_watchdog.md) | Détecter une panne à partir d’entités choisies, tenter une relance et prévenir si une intervention est nécessaire. | **1.0.0** | Home Assistant 2026.10 minimum |
+| [Surveillance et relance des intégrations](docs/integration_watchdog.md) | Détecter une panne à partir d’entités choisies, tenter une relance et prévenir si une intervention est nécessaire. | **1.0.1** | Home Assistant 2026.10 minimum |
 
 La version **1.0.0 est la première version publiée**. Les numéros utilisés pendant la préparation ne constituent pas des versions du projet.
 
@@ -39,6 +39,6 @@ python3.14 -m venv .venv
 .venv/bin/python -m pytest -q
 ```
 
-La suite comprend **88 tests** sous Home Assistant 2026.10.4. Les appels aux fournisseurs sont simulés ; aucun identifiant de production n’est nécessaire. GitHub Actions vérifie aussi que les fichiers générés sont à jour.
+La suite comprend **89 tests** sous Home Assistant 2026.10.4. Les appels aux fournisseurs sont simulés ; aucun identifiant de production n’est nécessaire. GitHub Actions vérifie aussi que les fichiers générés sont à jour.
 
 [Contribuer](CONTRIBUTING.md) · [Historique](CHANGELOG.md) · [Origine et licence](NOTICE.md)

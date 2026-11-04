@@ -28,9 +28,11 @@ def script_call(expected,value,response='write_result',guard_off=''):
 def template(n):return (BASE/n).read_text()
 inputs=yaml.safe_load((BASE/'inputs.yaml').read_text())
 si=inputs['surveillance']['input'];ri=inputs['recuperation']['input'];ni=inputs['notifications']['input']
+# Empty selector dictionaries are removed by Home Assistant package merging.
+# Keep an explicit default so the selector type survives that merge.
 common_fields={'memory_entity':{'name':'Assistant Texte de la surveillance','required':True,'selector':{'entity':{'filter':[{'domain':'input_text'}]}}}}
 # One writer serializes ALL memory updates and validates compare-and-set and readback.
-writer={'alias':'Surveillance — Enregistrer l’historique','description':'Service interne de comparaison-écriture. Ne pas appeler manuellement. Une écriture concurrente est refusée ; aucun écrasement d’un état plus récent.','mode':'queued','max':1000,'max_exceeded':'warning','fields':{**common_fields,'expected':{'required':True,'selector':{'text':{}}},'value':{'required':True,'selector':{'text':{}}},'guard_off':{'default':'','selector':{'text':{}}}},'sequence':[
+writer={'alias':'Surveillance — Enregistrer l’historique','description':'Service interne de comparaison-écriture. Ne pas appeler manuellement. Une écriture concurrente est refusée ; aucun écrasement d’un état plus récent.','mode':'queued','max':1000,'max_exceeded':'warning','fields':{**common_fields,'expected':{'required':True,'selector':{'text':{'multiline':False}}},'value':{'required':True,'selector':{'text':{'multiline':False}}},'guard_off':{'default':'','selector':{'text':{'multiline':False}}}},'sequence':[
  var(result={'ok':False,'conflict':True}),
  {'if':"{{ states(memory_entity) == expected and (guard_off | default('') == '' or is_state(guard_off,'off')) }}",'then':[
   {'action':'input_text.set_value','target':{'entity_id':'{{ memory_entity }}'},'data':{'value':'{{ value }}'}},
@@ -39,7 +41,7 @@ writer={'alias':'Surveillance — Enregistrer l’historique','description':'Ser
  {'stop':'Résultat de persistance','response_variable':'result'}]}
 # Worker claims f=1 -> f=2 with CAS before calling the backend, so replayed launches
 # of the same admitted reservation cannot execute the reload a second time.
-job_fields={**common_fields,**{k:{'required':True,'selector':{'text':{}}} for k in ['entry_id','owner_id','entry_key','reservation']}}
+job_fields={**common_fields,**{k:{'required':True,'selector':{'text':{'multiline':False}}} for k in ['entry_id','owner_id','entry_key','reservation']}}
 readjob="{{ states(memory_entity)[4:] | from_json({}) if states(memory_entity).startswith('iw3:') else {} }}"
 match="{{ record is mapping and record.get('o') == owner_id and record.get('e') == entry_key and record.get('p',0) == reservation and reservation | int(0) > 0 }}"
 worker={'alias':'Surveillance — Relancer une intégration','description':'Exécution interne après admission. Un seul lancement par réservation. La fin est persistée avant son événement de réveil ; une fin ne prouve pas le rétablissement.','mode':'parallel','max':50,'max_exceeded':'warning','fields':job_fields,'sequence':[

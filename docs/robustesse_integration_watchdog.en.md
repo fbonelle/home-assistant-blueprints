@@ -1,4 +1,4 @@
-# How it works, tests and limitations — 1.0.0
+# How it works, tests and limitations — 1.0.1
 
 [Français](robustesse_integration_watchdog.md) · **English** · [Installation guide](integration_watchdog.en.md)
 
@@ -46,7 +46,7 @@ Custom actions should remain short. If they never finish, they can block their o
 
 ## What the tests cover
 
-The suite contains **88 tests** using official Home Assistant **2026.10.4**, Python **3.14** and temporary directories.
+The suite contains **89 tests** using official Home Assistant **2026.10.4**, Python **3.14** and temporary directories.
 
 Scripts, automations, helpers, templates, events and notifications are real. Only provider calls are replaced with controlled responses; test integrations and entities are fictional.
 

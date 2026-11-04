@@ -2,6 +2,11 @@
 
 **Français** · [English](CHANGELOG.en.md)
 
+## 1.0.1 — 4 novembre 2026
+
+- Correction du chargement des scripts depuis un package Home Assistant : les sélecteurs restent présents après la fusion de configuration.
+- Ajout d’un test qui fusionne le package avec une configuration existante puis valide chaque script.
+
 ## 1.0.0 — 4 novembre 2026
 
 Première version publiée du blueprint **Surveillance et relance des intégrations**.
