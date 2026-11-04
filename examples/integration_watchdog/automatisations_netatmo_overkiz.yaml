@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Trois exemples ; autres instances ajoutées par le même formulaire.
+- id: surveillance_integration_netatmo
+  alias: Surveillance — Netatmo
+  use_blueprint:
+    path: local/surveillance_integrations.yaml
+    input:
+      name: Netatmo
+      entry_id: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1
+      entities:
+      - sensor.netatmo_temperature
+      - sensor.netatmo_co2
+      memory: input_text.surveillance_netatmo
+      policy: all
+      max_age: 1800
+      recovery_seconds: 900
+      stagger_seconds: 0
+      uptime_entity: sensor.uptime
+- id: surveillance_integration_tahoma
+  alias: Surveillance — Overkiz — TaHoma
+  use_blueprint:
+    path: local/surveillance_integrations.yaml
+    input:
+      name: Overkiz — TaHoma
+      entry_id: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2
+      entities:
+      - cover.tahoma_volet_1
+      - cover.tahoma_volet_2
+      - cover.tahoma_volet_3
+      memory: input_text.surveillance_tahoma
+      policy: all
+      max_age: 0
+      stagger_seconds: 60
+      uptime_entity: sensor.uptime
+- id: surveillance_integration_cozytouch
+  alias: Surveillance — Overkiz — Cozytouch
+  use_blueprint:
+    path: local/surveillance_integrations.yaml
+    input:
+      name: Overkiz — Cozytouch
+      entry_id: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3
+      entities:
+      - climate.cozytouch_radiateur
+      - water_heater.cozytouch_chauffe_eau
+      memory: input_text.surveillance_cozytouch
+      policy: all
+      max_age: 0
+      stagger_seconds: 120
+      uptime_entity: sensor.uptime

@@ -1,0 +1,131 @@
+{% set now_ts = clock_ts | int %}
+{% set boot = as_timestamp(states(uptime_entity),now_ts) | int %}
+{% set period = (scan_minutes[1:] | int) * 60 %}
+{% set history = memory.get('a',[]) | select('gt',now_ts - 86400) | list %}
+{% set old_status = memory.get('s','new') %}
+{% set old_notice = memory.get('k','') %}
+{% set ns = namespace(a=history,i=memory.get('i',0),n=memory.get('n',0),p=memory.get('p',0),f=memory.get('f',0),h=memory.get('h',0),s=old_status,reason='',reload=false,notice='none') %}
+{% if boot > memory.get('t',0) or now_ts - memory.get('t',0) > period * 2 + 30 %}
+  {% set ns.h = 0 %}
+{% endif %}
+{% set worker_on = ns.p > 0 %}
+{% if trigger is defined and trigger.id == 'availability' %}{% set ns.h = 0 %}{% endif %}
+{% set entry_state = config_entry_attr(row.entry_id,'state') %}
+{% set domain = config_entry_attr(row.entry_id,'domain') %}
+{% set auth = ('homeassistant','config_entry_reauth_' ~ domain ~ '_' ~ row.entry_id) in issues() %}
+{% set startup_ok = now_ts - boot >= startup_seconds %}
+{% set alarm = false %}
+{% if old_status == 'native' and entry_state == 'loaded' %}
+  {% set ns.n = 0 %}
+{% endif %}
+{% if worker_on %}
+  {% set ns.h = 0 %}
+  {% set ns.s = 'running' %}
+  {% set ns.reason = 'En attente d’une place pour relancer l’intégration.' if ns.f == 0 else 'La relance a été acceptée et va démarrer.' if ns.f == 1 else 'La relance est en cours.' %}
+  {% if now_ts - ns.p / 1000000 >= reload_timeout %}
+    {% set ns.s = 'timeout' %}
+    {% set ns.reason = 'La relance ne s’est pas terminée dans le délai prévu. Vérifier les traces avant de confirmer sa fin. Les nouvelles tentatives sont suspendues.' %}
+    {% set alarm = true %}
+  {% endif %}
+{% elif auth %}
+  {% set ns.h = 0 %}
+  {% set ns.s = 'auth' %}
+  {% set ns.reason = 'Une réauthentification est requise. Renouveler la connexion dans Home Assistant ; aucun rechargement automatique.' %}
+  {% set alarm = true %}
+{% elif config_entry_attr(row.entry_id,'disabled_by') is not none %}
+  {% set ns.h = 0 %}
+  {% set ns.s = 'disabled' %}
+  {% set ns.reason = 'Cette configuration d’intégration est désactivée.' %}
+{% elif not startup_ok %}
+  {% set ns.h = 0 %}
+  {% set ns.s = 'startup' %}
+  {% set ns.reason = 'Attente après le démarrage de Home Assistant.' %}
+{% elif entry_state in ['migration_error','failed_unload','setup_error','not_loaded'] %}
+  {% set ns.h = 0 %}
+  {% set ns.s = 'fatal' %}
+  {% set ns.reason = 'État ' ~ entry_state ~ ' : intervention manuelle nécessaire ; aucune relance forcée.' %}
+  {% set alarm = true %}
+{% elif config_entry_attr(row.entry_id,'pref_disable_polling') %}
+  {% set ns.h = 0 %}
+  {% set ns.n = 0 %}
+  {% set ns.s = 'native' %}
+  {% set ns.reason = 'Interrogation désactivée volontairement ; aucune relance forcée.' %}
+{% elif entry_state != 'loaded' %}
+  {% set ns.h = 0 %}
+  {% if old_status != 'native' or ns.n == 0 %}{% set ns.n = now_ts + native_timeout %}{% endif %}
+  {% set ns.s = 'native' %}
+  {% set ns.reason = 'Home Assistant essaie déjà de reconnecter l’intégration.' %}
+  {% if now_ts >= ns.n %}
+    {% set ns.reason = 'La reconnexion gérée par Home Assistant prend trop de temps. Vérifier les erreurs de l’intégration.' %}
+    {% set alarm = true %}
+  {% endif %}
+{% elif health.source_invalid %}
+  {% set ns.h = 0 %}
+  {% set ns.s = 'fatal' %}
+  {% set ns.reason = 'L’horodatage source est absent ou incohérent : vérifier sa provenance et l’horloge. Relances suspendues.' %}
+  {% set alarm = true %}
+{% elif health.recovered %}
+  {% if ns.h == 0 %}
+    {% set ns.h = now_ts %}
+  {% endif %}
+  {% if now_ts - ns.h >= stable_seconds %}
+    {% set ns.s = 'healthy' %}
+    {% set ns.reason = 'Toutes les entités surveillées fonctionnent depuis la durée de confirmation prévue.' %}
+    {% if old_notice != '' or (old_status != 'healthy' and ns.i > 0) %}
+      {% set ns.notice = 'success' %}
+    {% endif %}
+    {% if now_ts - ns.h >= incident_reset_seconds %}
+      {% set ns.i = 0 %}
+    {% endif %}
+    {% set ns.n = 0 %}
+  {% else %}
+    {% set ns.reason = 'Les entités sont à nouveau disponibles. Attente de confirmation du retour à la normale.' %}
+    {% if ns.s != 'verify' %}{% set ns.s = 'degraded' %}{% endif %}
+  {% endif %}
+{% else %}
+  {% set ns.h = 0 %}
+  {% if ns.s == 'verify' and now_ts < ns.n %}
+    {% set ns.reason = 'Attente du retour des données après la relance.' %}
+  {% elif ns.s == 'verify' %}
+    {% set ns.s = 'waiting' %}
+    {% set ns.n = now_ts + [retry_seconds * (2 ** ([ns.i - 1,0] | max)),max_backoff] | min + row.get('stagger_seconds',0) %}
+    {% set ns.reason = 'Les données attendues ne sont pas revenues. Une nouvelle tentative sera proposée après le délai prévu.' %}
+    {% if ns.i >= max_attempts %}
+      {% set ns.s = 'suspended' %}
+      {% set ns.reason = 'Le nombre maximal de tentatives pour cette panne est atteint. Les relances sont suspendues jusqu’au retour durable à la normale ou à une réinitialisation manuelle.' %}
+      {% set alarm = true %}
+    {% endif %}
+  {% elif not health.fault and not (ns.i > 0 and old_status in ['verify','waiting','running','limited','suspended','timeout']) %}
+    {% set ns.s = 'degraded' %}
+    {% set ns.reason = 'Certaines entités sont en erreur, mais les conditions de relance ne sont pas encore réunies.' %}
+  {% elif ns.i >= max_attempts %}
+    {% set ns.s = 'suspended' %}
+    {% set ns.reason = 'Le nombre maximal de tentatives pour cette panne est atteint. Les relances sont suspendues jusqu’au retour durable à la normale ou à une réinitialisation manuelle.' %}
+    {% set alarm = true %}
+  {% elif not interventions_allowed %}
+    {% set ns.s = 'observation' if observation_only else 'paused' %}
+    {% set ns.reason = 'Observation seule ; aucune nouvelle demande de rechargement.' if observation_only else 'Interventions suspendues par les conditions supplémentaires.' %}
+  {% elif ns.a | count >= max_daily %}
+    {% set ns.s = 'limited' %}
+    {% set ns.n = (ns.a | min) + 86400 %}
+    {% set ns.reason = 'Le nombre maximal de tentatives sur les dernières 24 heures est atteint. Les relances reprendront lorsque cette limite le permettra.' %}
+    {% set alarm = true %}
+  {% elif now_ts < ns.n %}
+    {% set ns.s = 'waiting' %}
+    {% set ns.reason = 'Pause avant la prochaine demande autorisée.' %}
+  {% elif old_status not in ['waiting','limited','suspended','verify'] and ns.i == 0 and row.get('stagger_seconds',0) > 0 %}
+    {% set ns.s = 'waiting' %}
+    {% set ns.n = now_ts + row.get('stagger_seconds',0) %}
+    {% set ns.reason = 'Décalage initial entre les intégrations.' %}
+  {% else %}
+    {% set ns.s = 'running' %}
+    {% set ns.p = reservation_ts %}
+    {% set ns.f = 0 %}
+    {% set ns.reload = true %}
+    {% set ns.reason = 'Demande de relance enregistrée. La tentative sera comptée au démarrage accepté.' %}
+  {% endif %}
+{% endif %}
+{% if alarm and old_notice != ns.s %}{% set ns.notice = 'failure' %}{% endif %}
+{% set data = {'v':3,'o':owner_id,'e':entry_key,'a':ns.a,'i':ns.i,'n':ns.n,'p':ns.p,'f':ns.f,'h':ns.h,'t':now_ts,'s':ns.s,'k':old_notice} %}
+{% set acknowledged = dict(data,k=(ns.s if ns.notice == 'failure' else '' if ns.notice == 'success' else old_notice)) %}
+{{ {'memory':data,'acknowledged':acknowledged,'reload':ns.reload,'notice':ns.notice,'reason':ns.reason,'status':ns.s,'bad':health.bad,'attempts':ns.i,'daily':ns.a | count} }}

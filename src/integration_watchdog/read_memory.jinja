@@ -1,0 +1,46 @@
+{# Only this validated record may be sent to the common compare-and-set writer. #}
+{% set ns = namespace(errors=[],data=none) %}
+{% set raw = states(memory_entity) if memory_entity is string else '' %}
+{% if memory_entity is not string or not memory_entity.startswith('input_text.') %}
+  {% set ns.errors = ns.errors + ['Choisir un assistant Texte réservé à cette surveillance.'] %}
+{% elif states[memory_entity] is none or raw == 'unavailable' or state_attr(memory_entity,'min') | int(-1) != 0 or state_attr(memory_entity,'max') | int(0) != 255 %}
+  {% set ns.errors = ns.errors + ['Assistant Texte absent ou mal configuré : longueur minimale 0 et maximale 255 requises.'] %}
+{% elif raw in ['', 'unknown'] %}
+  {% set ns.data = {'v':3,'o':owner_id,'e':entry_key,'a':[],'i':0,'n':0,'p':0,'f':0,'h':0,'t':0,'s':'new','k':''} %}
+{% else %}
+  {% set d = raw[4:] | from_json(none) if raw.startswith('iw3:') or raw.startswith('iw2:') else none %}
+  {% if d is not mapping %}
+    {% set ns.errors = ns.errors + ['L’historique contenu dans l’assistant Texte est illisible. Il n’a pas été effacé.'] %}
+  {% elif (d.get('v') == 3 and (not raw.startswith('iw3:') or d.get('o') != owner_id or d.get('e') != entry_key)) or (d.get('v') == 2 and (not raw.startswith('iw2:') or d.get('o') != legacy_owner)) or d.get('v') not in [2,3] %}
+    {% set ns.errors = ns.errors + ['L’assistant Texte contient l’historique d’une autre surveillance ou un format non reconnu.'] %}
+  {% elif d.get('s') not in ['new','startup','healthy','degraded','waiting','running','verify','limited','suspended','auth','fatal','timeout','paused','disabled','native','observation','deferred','duplicate'] or d.get('k') is not string %}
+    {% set ns.errors = ns.errors + ['L’état enregistré dans l’historique est incorrect.'] %}
+  {% else %}
+    {% for key in ['i','n','p','f','h','t'] %}
+      {% set value = d.get(key) %}
+      {% set upper = 4294967295000000 if key == 'p' and d.v == 3 else 4294967295 %}
+      {% if value is not number or value is boolean or not (0 <= value <= upper) %}
+        {% set ns.errors = ns.errors + ['Compteur ou horodatage invalide : ' ~ key] %}
+      {% elif value != value | int or (key == 'i' and value > 10) or (key in ['h','t'] and value > clock_ts + 60) or (key == 'f' and value > clock_ts + 60) or (key == 'p' and value > (clock_ts + 60) * (1000000 if d.v == 3 else 1)) %}
+        {% set ns.errors = ns.errors + ['Historique ou horloge incohérents : ' ~ key] %}
+      {% endif %}
+    {% endfor %}
+    {% if d.get('a') is not sequence or d.get('a') is string or d.get('a') is mapping or d.a | count > 6 %}
+      {% set ns.errors = ns.errors + ['Historique de demandes invalide.'] %}
+    {% else %}
+      {% for value in d.a %}
+        {% if value is not number or value is boolean or not (0 <= value <= clock_ts + 60) %}
+          {% set ns.errors = ns.errors + ['Historique ou horloge incohérente.'] %}
+        {% elif value != value | int %}
+          {% set ns.errors = ns.errors + ['Horodatage non entier.'] %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+    {% if ns.errors | count == 0 %}
+      {% if d.v == 2 %}
+        {% set ns.data = dict(d,v=3,o=owner_id,e=entry_key,p=d.p * 1000000,f=(2 if d.p > 0 else d.f + 1 if d.f > 0 else 0)) %}
+      {% else %}{% set ns.data = d %}{% endif %}
+    {% endif %}
+  {% endif %}
+{% endif %}
+{{ {'raw':raw,'data':ns.data,'errors':ns.errors} }}

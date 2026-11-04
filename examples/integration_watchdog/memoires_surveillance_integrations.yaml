@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-3.0-only
+input_text:
+  surveillance_netatmo:
+    name: Surveillance — Mémoire Netatmo
+    max: 255
+    mode: text
+    icon: mdi:clipboard-pulse
+  surveillance_tahoma:
+    name: Surveillance — Mémoire Overkiz — TaHoma
+    max: 255
+    mode: text
+    icon: mdi:clipboard-pulse
+  surveillance_cozytouch:
+    name: Surveillance — Mémoire Overkiz — Cozytouch
+    max: 255
+    mode: text
+    icon: mdi:clipboard-pulse
