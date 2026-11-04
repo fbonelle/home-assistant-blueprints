@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Internal clock only: this script never calls a light service.
+script:
+  styrbar_maintiens:
+    alias: STYRBAR maintiens
+    description: Horloge interne des maintiens STYRBAR ; ne pas appeler manuellement.
+    mode: parallel
+    max: 50
+    max_exceeded: warning
+    fields:
+      memory_entity:
+        required: true
+        selector: {text: {multiline: false}}
+      owner:
+        required: true
+        selector: {text: {multiline: false}}
+      started:
+        required: true
+        selector: {number: {min: 0, max: 7258118400, mode: box}}
+      expires:
+        required: true
+        selector: {number: {min: 0, max: 7258118400, mode: box}}
+      interval:
+        required: true
+        selector: {number: {min: 0.2, max: 5, step: 0.1, mode: box}}
+    sequence:
+    - if: >-
+        {{ memory_entity is not string or not memory_entity.startswith('input_text.') or
+           owner is not string or not owner|regex_match('^[a-f0-9]{16}$') or
+           started is not number or started is boolean or expires is not number or expires is boolean or
+           interval is not number or interval is boolean or not 0.2 <= interval <= 5 or
+           not 0 < started <= as_timestamp(now())+1 or not started < expires <= started+30 }}
+      then:
+      - stop: Paramètres de l’horloge invalides.
+    - repeat:
+        while:
+        - condition: template
+          value_template: >-
+            {% set raw=states(memory_entity) %}
+            {% set m=raw[4:]|from_json({}) if raw.startswith('sl1:') else {} %}
+            {{ m is mapping and m.get('o') == owner and m.get('s') == started and
+               m.get('c') in ['up_hold','down_hold','left_hold','right_hold'] and
+               started <= as_timestamp(now()) < expires }}
+        sequence:
+        - delay: {seconds: '{{ interval }}'}
+        - variables:
+            raw: '{{ states(memory_entity) }}'
+            stamp: '{{ as_timestamp(now()) }}'
+            m: "{{ raw[4:]|from_json({}) if raw.startswith('sl1:') else {} }}"
+        - if: >-
+            {{ m is not mapping or m.get('o') != owner or m.get('s') != started or
+               m.get('c') not in ['up_hold','down_hold','left_hold','right_hold'] or not started <= stamp < expires }}
+          then:
+          - stop: Maintien terminé, remplacé ou expiré.
+        - if: "{{ m.get('h') in ['up','down','left','right'] }}"
+          then:
+          - event: styrbar_hold_pulse
+            event_data:
+              memory_entity: '{{ memory_entity }}'
+              owner: '{{ owner }}'
+              started: '{{ started }}'

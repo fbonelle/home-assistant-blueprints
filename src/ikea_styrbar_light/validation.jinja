@@ -2,6 +2,9 @@
 {% if not lamp.startswith('light.') or not remote %}
  {% set ns.errors=ns.errors+['Choisir une lampe et une télécommande.'] %}
 {% endif %}
+{% if states('script.styrbar_maintiens') not in ['on','off'] %}
+ {% set ns.errors=ns.errors+['Installer le fichier commun packages/ikea_styrbar_light.yaml et recharger les scripts.'] %}
+{% endif %}
 {% if not memory_entity.startswith('input_text.') or states[memory_entity] is none or raw == 'unavailable'
  or state_attr(memory_entity,'min') != 0 or state_attr(memory_entity,'max') != 255 %}
  {% set ns.errors=ns.errors+['Créer un assistant Texte distinct, de longueur minimale 0 et maximale 255.'] %}
@@ -28,7 +31,8 @@
 {% endif %}
 {% for value,lower,upper in [(brightness_step,1,25),(min_brightness,1,100),(max_brightness,1,100),
  (on_brightness,0,100),(dim_interval,1,5),(hold_limit,2,30),(transition,0,2),
- (double_press_ms,250,1500),(debounce_ms,0,200)] %}
+ (double_press_ms,250,1500),(debounce_ms,0,200),(brightness_speed,0,100),
+ (brightness_interval,0.2,1),(color_hold_interval,0.2,3)] %}
  {% if value is not number or value is boolean or not lower <= value <= upper %}
   {% set ns.errors=ns.errors+['Un réglage numérique dépasse ses limites.'] %}
  {% endif %}
@@ -46,7 +50,7 @@
  {% else %}
   {% if m.keys()|reject('eq','f')|list|sort != ['c','h','i','k','o','p','s','t','u','v','x'] or
    m.get('c') not in ['','on','off','left','right','up_hold','down_hold','left_hold','right_hold','release','paired'] or
-   m.get('h') not in ['','up','down'] or m.get('i') is not integer or not -1 <= m.i < catalog|count or
+   m.get('h') not in ['','up','down','left','right'] or m.get('i') is not integer or not -1 <= m.i < catalog|count or
    m.get('k') is not string or m.k|length not in [0,8] or m.get('p') is not string or m.p|length not in [0,8] %}
    {% set ns.errors=ns.errors+['L’état des boutons est invalide ; vider cet assistant lorsque l’automatisation est arrêtée.'] %}
   {% endif %}

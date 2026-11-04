@@ -2,15 +2,16 @@
 
 [Français](ikea_styrbar_light.md) · **English** · [Home](../README.en.md)
 
-Version **1.1.0**. One blueprint per light replaces the controller + hook pair. It uses standard Home Assistant features, with no custom integration or shared scripts to install. The blueprint form uses French labels; key labels are included below.
+Version **1.2.0**. One blueprint per light replaces the controller + hook pair. Fast holds use a small shared script written in standard Home Assistant YAML, with no custom integration. The form uses French labels; key labels are included below.
 
 ## Installation
 
 1. Use Home Assistant **2026.10 or later**, a **ZHA** STYRBAR remote (`Remote Control N2`) and a color-capable light. This blueprint does not support Zigbee2MQTT or deCONZ.
-2. [Import the blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fikea_styrbar_light%2Flampe_styrbar.yaml).
-3. Under **Settings → Devices & services → Helpers**, create a **Text** helper with minimum length **0** and maximum **255**. Reserve it for this automation. Each additional remote requires a separate helper.
-4. Create an automation from the blueprint. Select the remote (**Télécommande STYRBAR**), light (**Lampe couleur à piloter**) and helper (**Assistant Texte réservé à cette télécommande**). Choose the palette and recall color.
-5. Before enabling the new automation, disable the old controller and hook automations for this remote. Also check for direct Zigbee bindings or other automations controlling the same light.
+2. Install [packages/ikea_styrbar_light.yaml](../packages/ikea_styrbar_light.yaml) once into the package folder already included by `homeassistant.packages`, then reload scripts. If packages are not configured yet, follow the [Home Assistant package documentation](https://www.home-assistant.io/docs/configuration/packages/). The expected script is `script.styrbar_maintiens`; missing it produces a diagnostic and blocks light commands.
+3. [Import the blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fikea_styrbar_light%2Flampe_styrbar.yaml).
+4. Under **Settings → Devices & services → Helpers**, create a **Text** helper with minimum length **0** and maximum **255**. Reserve it for this automation. Each additional remote requires a separate helper.
+5. Create an automation from the blueprint. Select the remote (**Télécommande STYRBAR**), light (**Lampe couleur à piloter**) and helper (**Assistant Texte réservé à cette télécommande**). Choose the palette and recall color.
+6. Before enabling the new automation, disable the old controller and hook automations for this remote. Also check for direct Zigbee bindings or other automations controlling the same light.
 
 The [automation examples](../examples/ikea_styrbar_light/automations.yaml) and [YAML helper examples](../examples/ikea_styrbar_light/helpers.yaml) contain fictional identifiers only. Helpers created in the UI are sufficient: the YAML helper file is optional. Adapt the blueprint path if Home Assistant offers a different filename during import.
 
@@ -34,12 +35,13 @@ These checks use integration metadata. They do not verify physical output or rad
 | Hold down | Decrease to the configured minimum without switching off. Does not wake an off light. |
 | Short left / right press | Previous / next palette entry, wrapping around the list. |
 | Double up press | Recall the configured color without imposing brightness. |
-| Hold right | Same recall by default. This additional gesture can be moved to the left or disabled. |
+| Hold left / right | Continuously cycle through the palette in that direction, at the configured interval. |
+| Additional recall gesture | Optionally replace one lateral hold with recall. Neither side is reserved for recall by default. |
 | Release or another recognized button | Stop the ongoing dimming gesture. |
 
 The first up press acts immediately. The second recalls the color if received within the configured window. With a fixed turn-on brightness, the first press applies it before the recall; the recall does not impose it again. **Les flèches de couleur peuvent allumer la lampe** and **Le rappel de couleur peut allumer la lampe** independently allow palette changes and recall to turn on an off light.
 
-**Double up depends on the remote firmware.** Some STYRBAR versions filter rapid ON/OFF presses before transmission. If ZHA receives only one `on` event, no blueprint can distinguish two presses. Hold right provides recall without that dependency. The [STYRBAR documentation](https://www.zigbee2mqtt.io/devices/E2001_E2002_E2313.html#action-mapping) describes this device-level filtering; this ZHA blueprint does not use its MQTT action names.
+**Double up depends on the remote firmware.** Some STYRBAR versions filter rapid ON/OFF presses before transmission. If ZHA receives only one `on` event, no blueprint can distinguish two presses. Reserve a lateral hold for recall using **Geste de rappel supplémentaire** if needed; that side then stops cycling colors. The [STYRBAR documentation](https://www.zigbee2mqtt.io/devices/E2001_E2002_E2313.html#action-mapping) describes device-level filtering; this ZHA blueprint does not use its MQTT action names.
 
 Some firmware also emits `on` during a lateral hold. This may turn the light on before the hold event arrives. Avoid that gesture if an off light must never be awakened: this radio command is indistinguishable from a real ON press.
 
@@ -63,9 +65,19 @@ The saved selection order defines cycling order. Reorder the `palette` list dire
 
 ## Settings and logging
 
-Brightness steps, dimming bounds, fixed turn-on brightness, step interval, maximum hold duration, transition, double-press window and duplicate filtering are configurable. Dimming bounds apply to dimming gestures; they do not restrict changes from the app or the fixed turn-on brightness.
+The two speeds have separate controls:
 
-**Lisser la variation pendant un maintien** enables smooth dimming by default. A target is sent at most once per second, or more slowly with a larger interval, while the bulb performs a native fade over that interval. The gesture starts immediately, then follows clock boundaries to avoid two-second pauses caused by the initial press offset. Speed is the step divided by the interval, approximately ten brightness percentage points per second by default. Fade duration is capped at the remaining hold time.
+| Setting | Initial value | Result |
+|---|---:|---|
+| Vitesse de variation de luminosité | 35 percentage points/second | Approximately 3 seconds across the full range. |
+| Cadence des commandes de luminosité | 0.3 seconds | Fade refresh rate, independent of speed. |
+| Intervalle entre les couleurs pendant un maintien | 0.4 seconds | A new preset approximately every 0.4 seconds. |
+
+Speed can be 1–100 points/second, brightness cadence 0.2–1 seconds, and color interval 0.2–3 seconds. Speed 0 re-enables the old step/interval controls in the advanced section. Dimming bounds do not restrict app changes or the fixed turn-on brightness.
+
+**Lisser la variation pendant un maintien** enables smoothing by default. The first step is immediate; the shared script then emits pulses at the configured cadence. Only the remote's automation sends light commands, in order. The bulb performs a native fade over each interval, capped at the remaining hold duration. Device and network latency may limit the actual cadence.
+
+Color holds also start immediately and stop on release. The final fade completes at the last selected preset without advancing again. Its transition is capped at the cycling interval. Short presses still change exactly one preset.
 
 At release or direction reversal, Home Assistant often already advertises the target while the bulb is still fading towards it. The blueprint estimates the intermediate level from the last fade and, on release, sends it with a zero transition. This assumes linear fading: it improves stopping but does not measure physical output. An identifiable external change invalidates that estimate to avoid overwriting it. Smoothing can be disabled. **Durée de transition des changements de couleur** controls color changes independently.
 
@@ -82,6 +94,7 @@ Configuration errors are reported on use or reload. Command failures remain repo
 ## Resilience and limitations
 
 - Each remote's commands are serialized (`queued`, maximum 30 runs). Different lights remain independent. At most one light call is in progress per automation.
+- The shared script never commands lights. Pulses carry the hold's owner and start timestamp; stale or foreign pulses are rejected. The clock stops after release, another gesture, corrupt memory or timeout. A once-per-second check remains as a fallback. Up to 50 hold clocks can run concurrently.
 - Release stops dimming. A maximum hold duration also stops it if the release packet is lost. Repeated hold packets do not accelerate steps or extend that deadline. If release is lost, briefly press another button before starting an identical hold again.
 - The hold is disarmed before every light call. A failed or interrupted call cannot leave further automatic steps armed.
 - An unavailable light cancels the gesture. Reconnection does not replay a command. Buttons queued for more than five seconds are discarded; a late release can still stop a gesture. Out-of-order events are ignored.
@@ -94,4 +107,4 @@ Configuration errors are reported on use or reload. Command failures remain repo
 
 Tests run this blueprint in an **isolated Home Assistant 2026.10.4**, with actual automations, native light services and Text helpers. Radio and rendering are simulated, using a linear fade model independent of blueprint memory. Coverage includes different capability modes, diagnostics without commands, mid-fade release, direction reversal, cadence, double presses, brightness bounds, repeated or delayed packets, missing release, command failures, external changes and independent remotes. These tests do not prove physical radio reception or bulb color output. Publishing this repository does not modify a real installation's automations.
 
-Updating from 1.0.0 preserves existing inputs and the Text helper. Last-fade information is added automatically. Reloading cancels the current gesture without changing the light.
+Updating from 1.0.0 or 1.1.0 preserves existing inputs and the Text helper. **Install the shared script file before reloading blueprint 1.2.0.** Set the additional recall gesture to **Aucun** (None) for cycling on both lateral holds. Reloading cancels the current gesture without changing the light.

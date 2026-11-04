@@ -82,7 +82,7 @@ class RadioLight(LightEntity):
         self.async_write_ha_state()
 
 class BedsideEnv:
-    async def setup(self, path, overrides=None):
+    async def setup(self, path, overrides=None, real_pulses=False):
         self.now = datetime.now(UTC).replace(microsecond=0) + timedelta(seconds=1)
         self.hass = core.HomeAssistant(str(path))
         self.hass.config_entries = ConfigEntries(self.hass, {})
@@ -101,12 +101,21 @@ class BedsideEnv:
         assert await async_setup_component(self.hass, 'light', {})
         self.lights = [RadioLight(i) for i in range(2)]
         await self.hass.data['light'].async_add_entities(self.lights)
+        self.pulse_calls=[]
+        if real_pulses:
+            assert await async_setup_component(self.hass,'script',load_yaml(str(ROOT/'packages/ikea_styrbar_light.yaml')))
+        else:
+            self.hass.states.async_set('script.styrbar_maintiens','off')
+            async def pulse_start(call):
+                self.pulse_calls.append(dict(call.data))
+            self.hass.services.async_register('script','turn_on',pulse_start)
         target = path / 'blueprints/automation/local/lampe_styrbar.yaml'
         target.parent.mkdir(parents=True)
         target.write_text(BP.read_text())
         self.configs = [dict(id=f'bedside_{i}', alias=f'Bedside {i}', use_blueprint=dict(
             path='local/lampe_styrbar.yaml', input=dict(remote=str(i+1)*32,
-            light=f'light.bedside_{i}', memory=f'input_text.bedside_{i}', **(overrides or {})))) for i in range(2)]
+            light=f'light.bedside_{i}', memory=f'input_text.bedside_{i}',
+            **(dict(brightness_speed=0,brightness_interval=1,recall_fallback='right_hold') | (overrides or {}))))) for i in range(2)]
         # Keep the production time_pattern configuration, but control its clock explicitly in tests.
         import homeassistant.components.homeassistant.triggers.time_pattern as pattern
         self.patch_timer = patch.object(pattern, 'async_track_time_change', lambda *a, **kw: lambda: None)
@@ -132,6 +141,13 @@ class BedsideEnv:
     async def tick(self, advance=1, index=0):
         self.now += timedelta(seconds=advance)
         await self.autos[index].async_trigger({'trigger': {'id': 'tick'}}, skip_condition=False)
+        await self.drain()
+
+    async def pulse(self, advance=.4, index=0, **overrides):
+        self.now+=timedelta(seconds=advance)
+        m=self.memory(index)
+        data=dict(memory_entity=f'input_text.bedside_{index}',owner=m['o'],started=m['s'])|overrides
+        self.hass.bus.async_fire('styrbar_hold_pulse',data,time_fired=self.now.timestamp())
         await self.drain()
 
     def memory(self, index=0):
@@ -461,7 +477,8 @@ async def test_selector_bounds_and_custom_color(tmp_path):
 @pytest.mark.parametrize('overrides', [dict(palette=[]),dict(palette=['ha_warm','ha_warm']),
     dict(palette=['missing']),dict(palette=[{}]),dict(min_brightness=80,max_brightness=10),
     dict(default_color=[255,-1,0]),dict(default_color=[255,True,0]),dict(default_color=[0,0,0]),
-    dict(dim_interval=0),dict(min_brightness='bad')])
+    dict(dim_interval=0),dict(min_brightness='bad'),dict(brightness_speed=101),
+    dict(brightness_interval=.1),dict(color_hold_interval=0)])
 async def test_bad_configuration_is_blocked(tmp_path,overrides,caplog):
     env=await BedsideEnv().setup(tmp_path,overrides)
     try:
@@ -490,9 +507,9 @@ async def test_single_item_palette_and_off_options(tmp_path):
 async def test_recall_fallback_can_be_moved_or_disabled(tmp_path):
     env=await BedsideEnv().setup(tmp_path,dict(recall_fallback='left_hold'))
     try:
-        await env.emit('hold',[3328,0]);assert not env.lights[0].calls
-        await env.emit('hold',[3329,0]);assert len(env.lights[0].calls)==1
-        await env.emit('hold',[3329,0],advance=.3);assert len(env.lights[0].calls)==1
+        await env.emit('hold',[3328,0]);assert len(env.lights[0].calls)==1 and env.memory()['h']=='right'
+        await env.emit('hold',[3329,0]);assert len(env.lights[0].calls)==2 and env.memory()['h']==''
+        await env.emit('hold',[3329,0],advance=.3);assert len(env.lights[0].calls)==2
     finally:
         await env.close()
 
@@ -705,5 +722,163 @@ async def test_smoothing_can_be_disabled(tmp_path):
         await env.emit('move_with_on_off',[0,83])
         assert env.lights[0].calls[-1][1]['transition']==0
         assert env.memory()['f']==[]
+    finally:
+        await env.close()
+
+@pytest.mark.asyncio
+async def test_new_speed_controls_have_explicit_fast_defaults(bedside):
+    bp=Blueprint(load_yaml(str(BP)),expected_domain='automation',schema=AUTOMATION_BLUEPRINT_SCHEMA)
+    args=BlueprintInputs(bp,{'use_blueprint':{'path':'local/test.yaml','input':dict(remote='a'*32,light='light.test',memory='input_text.test')}})
+    args.validate();v=args.async_substitute()['variables']
+    assert v['brightness_speed']==35 and v['brightness_interval']==.3 and v['color_hold_interval']==.4
+    assert v['recall_fallback']=='none'
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('speed,interval',[(20,.2),(35,.3),(70,.3),(100,.2)])
+async def test_brightness_speed_is_independent_of_command_interval(tmp_path,speed,interval):
+    env=await BedsideEnv().setup(tmp_path,dict(brightness_speed=speed,brightness_interval=interval))
+    try:
+        await env.emit('move_with_on_off',[0,83])
+        frame=env.memory()['f']
+        assert (frame[1]-frame[0])/frame[3]==pytest.approx(speed,abs=.01)
+        await env.pulse(advance=interval)
+        frame=env.memory()['f']
+        if frame:
+            assert (frame[1]-frame[0])/frame[3]==pytest.approx(speed,abs=1)
+        request=env.pulse_calls[0]['variables']
+        assert request['interval']==interval and request['started']==env.memory()['s']
+    finally:
+        await env.close()
+
+@pytest.mark.asyncio
+async def test_both_lateral_holds_cycle_and_release_stops(tmp_path):
+    env=await BedsideEnv().setup(tmp_path,dict(recall_fallback='none',color_hold_interval=.4))
+    try:
+        await env.emit('hold',[3328,0]);assert env.memory()['i']==1 and env.memory()['h']=='right'
+        await env.pulse();assert env.memory()['i']==2
+        await env.pulse();assert env.memory()['i']==3
+        await env.emit('release');count=len(env.lights[0].calls)
+        await env.pulse();assert len(env.lights[0].calls)==count and env.memory()['h']==''
+        await env.emit('hold',[3329,0]);assert env.memory()['i']==2 and env.memory()['h']=='left'
+        await env.pulse();assert env.memory()['i']==1
+    finally:
+        await env.close()
+
+@pytest.mark.asyncio
+async def test_color_interval_limits_repeats_and_fades(tmp_path):
+    env=await BedsideEnv().setup(tmp_path,dict(recall_fallback='none',color_hold_interval=.2,transition=2))
+    try:
+        await env.emit('hold',[3328,0]);assert env.lights[0].calls[-1][1]['transition']==.2
+        count=len(env.lights[0].calls)
+        await env.pulse(advance=.1);assert len(env.lights[0].calls)==count
+        await env.pulse(advance=.1);assert len(env.lights[0].calls)==count+1
+        await env.emit('hold',[3328,0],advance=.1)
+        assert len(env.lights[0].calls)==count+1 and len(env.pulse_calls)==1
+    finally:
+        await env.close()
+
+@pytest.mark.asyncio
+async def test_color_hold_deadline_and_external_off_cancel(tmp_path):
+    env=await BedsideEnv().setup(tmp_path,dict(recall_fallback='none',hold_limit=2))
+    try:
+        await env.emit('hold',[3328,0]);count=len(env.lights[0].calls)
+        await env.pulse(advance=2.1)
+        assert len(env.lights[0].calls)==count and env.memory()['h']==''
+        await env.emit('release');await env.emit('hold',[3329,0])
+        await env.hass.services.async_call('light','turn_off',dict(entity_id='light.bedside_0'),blocking=True)
+        count=len(env.lights[0].calls);await env.pulse()
+        assert len(env.lights[0].calls)==count and not env.lights[0].is_on and env.memory()['h']==''
+    finally:
+        await env.close()
+
+@pytest.mark.asyncio
+async def test_stale_or_foreign_pulse_cannot_advance_new_hold(tmp_path):
+    env=await BedsideEnv().setup(tmp_path,dict(recall_fallback='none'))
+    try:
+        await env.emit('hold',[3328,0]);old=env.memory()['s']
+        await env.emit('release');await env.emit('hold',[3329,0]);count=len(env.lights[0].calls)
+        await env.pulse(started=old);await env.pulse(owner='f'*16)
+        assert len(env.lights[0].calls)==count
+        await env.pulse();assert len(env.lights[0].calls)==count+1
+    finally:
+        await env.close()
+
+@pytest.mark.asyncio
+async def test_color_single_palette_does_not_launch_worker(tmp_path):
+    env=await BedsideEnv().setup(tmp_path,dict(recall_fallback='none',palette=['ha_warm']))
+    try:
+        await env.emit('hold',[3328,0])
+        assert len(env.lights[0].calls)==1 and env.memory()['h']=='' and not env.pulse_calls
+    finally:
+        await env.close()
+
+@pytest.mark.asyncio
+async def test_missing_shared_clock_blocks_with_actionable_error(bedside):
+    bedside.hass.states.async_remove('script.styrbar_maintiens')
+    await bedside.emit('on')
+    assert not bedside.lights[0].calls
+    assert 'packages/ikea_styrbar_light.yaml' in bedside.diagnostic()
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('gesture,args',[('move_with_on_off',[0,83]),('hold',[3328,0])])
+async def test_real_shared_script_emits_subsecond_pulses_and_stops(tmp_path,gesture,args):
+    env=await BedsideEnv().setup(tmp_path,dict(recall_fallback='none',brightness_speed=35,brightness_interval=.2,color_hold_interval=.2),real_pulses=True)
+    try:
+        await env.emit(gesture,args);assert len(env.lights[0].calls)==1
+        env.now+=timedelta(seconds=.2);await asyncio.sleep(.24);await env.drain()
+        assert len(env.lights[0].calls)>=2
+        await env.emit('stop' if gesture=='move_with_on_off' else 'release')
+        count=len(env.lights[0].calls)
+        env.now+=timedelta(seconds=.3);await asyncio.sleep(.24);await env.drain()
+        assert len(env.lights[0].calls)==count
+        assert env.hass.states.get('script.styrbar_maintiens').state=='off'
+    finally:
+        await env.close()
+
+@pytest.mark.asyncio
+async def test_shared_script_fields_survive_package_merge(bedside):
+    from homeassistant.config import _recursive_merge
+    from homeassistant.components.script.config import SCRIPT_ENTITY_SCHEMA
+    target={}
+    package=load_yaml(str(ROOT/'packages/ikea_styrbar_light.yaml'))
+    _recursive_merge(target,package)
+    script=target['script']['styrbar_maintiens'];SCRIPT_ENTITY_SCHEMA(script)
+    assert script['fields']['memory_entity']['selector']['text']=={'multiline':False}
+
+@pytest.mark.asyncio
+async def test_real_clock_expires_without_release_and_does_not_replay(tmp_path):
+    env=await BedsideEnv().setup(tmp_path,dict(recall_fallback='none',hold_limit=2,color_hold_interval=.2),real_pulses=True)
+    try:
+        await env.emit('hold',[3328,0]);count=len(env.lights[0].calls)
+        env.now+=timedelta(seconds=3);await asyncio.sleep(.24);await env.drain()
+        assert len(env.lights[0].calls)==count
+        assert env.hass.states.get('script.styrbar_maintiens').state=='off'
+        await env.tick(advance=0);assert env.memory()['h']==''
+    finally:
+        await env.close()
+
+@pytest.mark.asyncio
+async def test_real_clock_does_not_retry_failed_color_call(tmp_path):
+    env=await BedsideEnv().setup(tmp_path,dict(recall_fallback='none',hold_limit=2,color_hold_interval=.2),real_pulses=True)
+    try:
+        await env.emit('hold',[3328,0]);env.lights[0].fail=True
+        env.now+=timedelta(seconds=.2);await asyncio.sleep(.24);await env.drain()
+        count=len(env.lights[0].calls);assert count==2 and env.memory()['h']==''
+        env.now+=timedelta(seconds=.4);await asyncio.sleep(.24);await env.drain()
+        assert len(env.lights[0].calls)==count
+    finally:
+        await env.close()
+
+@pytest.mark.asyncio
+async def test_real_shared_clock_keeps_two_remotes_independent(tmp_path):
+    env=await BedsideEnv().setup(tmp_path,dict(recall_fallback='none',color_hold_interval=.2),real_pulses=True)
+    try:
+        await env.emit('hold',[3328,0]);await env.emit('hold',[3328,0],index=1)
+        env.now+=timedelta(seconds=.2);await asyncio.sleep(.24);await env.drain()
+        assert len(env.lights[0].calls)>=2 and len(env.lights[1].calls)>=2
+        await env.emit('release');first=len(env.lights[0].calls);second=len(env.lights[1].calls)
+        env.now+=timedelta(seconds=.2);await asyncio.sleep(.24);await env.drain()
+        assert len(env.lights[0].calls)==first and len(env.lights[1].calls)>second
+        await env.emit('release',index=1)
     finally:
         await env.close()

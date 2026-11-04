@@ -62,6 +62,8 @@ def build():
     examples.mkdir(parents=True, exist_ok=True)
     for name in ['automations.yaml', 'helpers.yaml']:
         (examples / name).write_text((BASE / name).read_text())
+    package=ROOT/'packages/ikea_styrbar_light.yaml'
+    package.write_text((BASE/'pulse.yaml').read_text())
 
 if __name__ == '__main__':
     build()

@@ -4,7 +4,8 @@ blueprint:
     Marche/arrêt, variation par maintien, palette de blancs Home Assistant et de couleurs IKEA,
     rappel d’une couleur configurable. Un assistant Texte distinct par automatisation (0 à 255 caractères).
     ZHA et STYRBAR uniquement ; lampe couleur requise. Le double appui en haut exige deux événements
-    réellement transmis par la télécommande. Le maintien à droite sert aussi de rappel par défaut.
+    réellement transmis par la télécommande. Les maintiens latéraux font défiler les couleurs.
+    Installer une fois packages/ikea_styrbar_light.yaml pour l’horloge rapide des maintiens.
     Les capacités déclarées sont contrôlées à l’activation. Menu → Exécuter les actions affiche
     un diagnostic sans allumer la lampe. Les blancs en mode couleur ne nécessitent pas de mode color_temp.
     Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/ikea_styrbar_light.md
@@ -60,7 +61,7 @@ blueprint:
       name: Délai maximal du double appui en haut
       description: >-
         Le premier appui allume immédiatement. Le second rappelle la couleur. Aucun logiciel ne peut détecter
-        un second appui filtré par le micrologiciel ; utiliser alors le maintien à droite.
+        un second appui filtré par le micrologiciel. Le rappel peut aussi remplacer un maintien latéral.
       default: 800
       selector:
         number:
@@ -71,18 +72,32 @@ blueprint:
           mode: box
     recall_fallback:
       name: Geste de rappel supplémentaire
-      default: right_hold
+      description: Le côté choisi rappelle la couleur au lieu de faire défiler la palette pendant le maintien.
+      default: none
       selector:
         select:
           options:
           - {value: right_hold, label: Maintien à droite}
           - {value: left_hold, label: Maintien à gauche}
           - {value: none, label: Aucun}
-    brightness_step:
-      name: Pas de variation de luminosité
-      default: 10
+    brightness_speed:
+      name: Vitesse de variation de luminosité
+      description: Points de luminosité par seconde. 35 traverse toute la plage en environ 3 secondes. 0 utilise les anciens réglages avancés.
+      default: 35
       selector:
-        number: {min: 1, max: 25, step: 1, unit_of_measurement: '%', mode: box}
+        number: {min: 0, max: 100, step: 1, unit_of_measurement: '%/s', mode: box}
+    brightness_interval:
+      name: Cadence des commandes de luminosité
+      description: Une cadence courte rend le maintien plus réactif ; la vitesse reste réglée séparément.
+      default: 0.3
+      selector:
+        number: {min: 0.2, max: 1, step: 0.1, unit_of_measurement: s, mode: box}
+    color_hold_interval:
+      name: Intervalle entre les couleurs pendant un maintien
+      description: 0,4 seconde parcourt environ deux à trois préréglages par seconde. L’appui court change toujours d’un seul préréglage.
+      default: 0.4
+      selector:
+        number: {min: 0.2, max: 3, step: 0.1, unit_of_measurement: s, mode: box}
     min_brightness:
       name: Luminosité minimale pendant la variation
       default: 1
@@ -99,11 +114,21 @@ blueprint:
       default: 0
       selector:
         number: {min: 0, max: 100, step: 1, unit_of_measurement: '%', mode: box}
-    dim_interval:
-      name: Intervalle entre les pas de variation
-      default: 1
-      selector:
-        number: {min: 1, max: 5, step: 1, unit_of_measurement: s, mode: box}
+    legacy_dimming:
+      name: Anciens réglages de luminosité
+      description: Pris en compte uniquement si la vitesse est réglée à 0.
+      collapsed: true
+      input:
+        brightness_step:
+          name: Ancien pas de luminosité
+          default: 10
+          selector:
+            number: {min: 1, max: 25, step: 1, unit_of_measurement: '%', mode: box}
+        dim_interval:
+          name: Ancien intervalle entre les pas
+          default: 1
+          selector:
+            number: {min: 1, max: 5, step: 1, unit_of_measurement: s, mode: box}
     hold_limit:
       name: Durée maximale d’un maintien
       description: Arrêt automatique si le relâchement radio est perdu. Un autre bouton arrête aussi la variation.
@@ -153,11 +178,21 @@ triggers:
 - trigger: time_pattern
   seconds: /1
   id: tick
+- trigger: event
+  event_type: styrbar_hold_pulse
+  event_data:
+    memory_entity: !input memory
+  id: pulse
 - trigger: homeassistant
   event: start
   id: reset
 - trigger: event
   event_type: automation_reloaded
+  id: reset
+- trigger: state
+  entity_id: script.styrbar_maintiens
+  from: unavailable
+  to: ['on','off']
   id: reset
 - trigger: state
   entity_id: !input light
@@ -180,6 +215,9 @@ variables:
   double_press_ms: !input double_press_ms
   recall_fallback: !input recall_fallback
   brightness_step: !input brightness_step
+  brightness_speed: !input brightness_speed
+  brightness_interval: !input brightness_interval
+  color_hold_interval: !input color_hold_interval
   min_brightness: !input min_brightness
   max_brightness: !input max_brightness
   on_brightness: !input on_brightness
@@ -195,10 +233,12 @@ conditions:
 - condition: template
   value_template: >-
     {% if trigger is not defined or trigger.id is not defined or trigger.id is none %}true
-    {% elif trigger.id == 'tick' %}
+    {% elif trigger.id in ['tick','pulse'] %}
       {% set raw=states(memory_entity) %}
       {% set m=raw[4:]|from_json({}) if raw.startswith('sl1:') else {} %}
-      {{ m is mapping and m.get('h') in ['up','down'] }}
+      {{ m is mapping and m.get('h') in ['up','down','left','right'] and
+         (trigger.id != 'pulse' or (trigger.event.data.get('owner') == m.get('o') and
+          trigger.event.data.get('started') == m.get('s'))) }}
     {% elif trigger.id in ['reset','capabilities'] %}true
     {% elif trigger.id == 'availability' %}
       {{ trigger.from_state is none or trigger.to_state is none or
@@ -215,6 +255,13 @@ actions:
     palette_key: '{{ sha256(palette | to_json)[:8] }}'
     raw: '{{ states(memory_entity) }}'
     command: '@template:normalize'
+- if: >-
+    {% set m=raw[4:]|from_json({}) if raw.startswith('sl1:') else {} %}
+    {{ trigger is defined and trigger.id is defined and trigger.id == 'pulse' and
+       (m is not mapping or trigger.event.data.get('owner') != m.get('o') or
+        trigger.event.data.get('started') != m.get('s')) }}
+  then:
+  - stop: Ancienne impulsion de maintien ignorée.
 - if: "{{ command == 'invalid' }}"
   then:
   - stop: Événement sans action reconnue.
@@ -305,17 +352,23 @@ actions:
          else state_attr(lamp,'brightness')|float(0)/255*100 }}
 - variables:
     operation: >-
-      {% if command == 'tick' %}dim
+      {% if command == 'tick' %}{{ 'previous' if m.h == 'left' else 'next' if m.h == 'right' else 'dim' }}
       {% elif command in ['up_hold','down_hold'] %}dim
       {% elif command == 'on' and m.c == 'on' and 0 < event_time - m.t <= double_press_ms / 1000 %}recall
       {% elif command == recall_fallback and command in ['left_hold','right_hold'] %}recall
+      {% elif command == 'left_hold' %}previous
+      {% elif command == 'right_hold' %}next
       {% elif command == 'left' %}previous
       {% elif command == 'right' %}next
       {% elif command == 'release' and frame_active %}freeze
       {% elif command in ['on','off'] %}{{ command }}
       {% else %}none{% endif %}
     direction: >-
-      {{ m.h if command == 'tick' else 'up' if command == 'up_hold' else 'down' if command == 'down_hold' else '' }}
+      {{ m.h if command == 'tick' else 'up' if command == 'up_hold' else 'down' if command == 'down_hold'
+         else 'left' if command == 'left_hold' else 'right' if command == 'right_hold' else '' }}
+    hold_interval: >-
+      {{ color_hold_interval if direction in ['left','right'] else brightness_interval if brightness_speed > 0 else dim_interval }}
+    brightness_rate: '{{ brightness_speed if brightness_speed > 0 else brightness_step / dim_interval }}'
     hold_started: >-
       {{ m.s if command == 'tick'
          else event_time if command in ['up_hold','down_hold','left_hold','right_hold'] else 0 }}
@@ -323,7 +376,7 @@ actions:
       {% set stamp=as_timestamp(this.last_changed,0) %}
       {{ stamp if stamp <= clock + 1 else 0 }}
 - if: >-
-    {{ command == 'tick' and direction not in ['up','down'] }}
+    {{ command == 'tick' and direction not in ['up','down','left','right'] }}
   then:
   - action: input_text.set_value
     target: {entity_id: '{{ memory_entity }}'}
@@ -346,6 +399,9 @@ actions:
     value: 'sl1:{{ updated | to_json }}'
 - if: >-
     {{ operation == 'none' or states(lamp) not in ['on','off'] or
+       (command == 'tick' and is_state(lamp,'off')) or
+       (direction in ['up','down','left','right'] and (hold_started < enabled_since or
+          clock - hold_started >= hold_limit or clock < hold_started)) or
        (operation == 'freeze' and not is_state(lamp,'on')) or
        (operation == 'dim' and (hold_started < enabled_since or clock - hold_started >= hold_limit or
                                clock < hold_started or (is_state(lamp,'off') and (command == 'tick' or direction == 'down')))) or
@@ -363,7 +419,8 @@ actions:
          'off' in (state_attr(lamp,'effect_list') or []) else {} }}
     color_options: >-
       {% set options=dict(stop_effect,brightness_pct=current_level) if frame_active else stop_effect %}
-      {{ dict(options,transition=transition) if capabilities.transition else options }}
+      {% set fade=[transition,color_hold_interval]|min if direction in ['left','right'] and operation != 'recall' else transition %}
+      {{ dict(options,transition=fade) if capabilities.transition else options }}
 - choose:
   - conditions: "{{ operation == 'freeze' }}"
     sequence:
@@ -391,6 +448,8 @@ actions:
     - variables:
         selected_index: '@template:cycle'
         color: '{{ catalog[palette[selected_index]] }}'
+        keep_hold: '{{ direction in ["left","right"] and palette|count > 1 }}'
+        next_deadline: '{{ clock + color_hold_interval if keep_hold else 0 }}'
     - action: light.turn_on
       target: {entity_id: '{{ lamp }}'}
       data: >-
@@ -404,15 +463,18 @@ actions:
     - variables:
         old_level: '{{ current_level }}'
         next_deadline: >-
-          {% set end=[clock|round(0,'floor')+dim_interval,hold_started+hold_limit]|min %}
-          {{ [end+dim_interval,hold_started+hold_limit]|min if end-clock < 0.05 else end }}
+          {% if brightness_speed > 0 %}{{ [clock+hold_interval,hold_started+hold_limit]|min }}
+          {% else %}
+            {% set end=[clock|round(0,'floor')+dim_interval,hold_started+hold_limit]|min %}
+            {{ [end+dim_interval,hold_started+hold_limit]|min if end-clock < 0.05 else end }}
+          {% endif %}
         fade_duration: >-
-          {{ ([0,([dim_interval,hold_started+hold_limit-clock]|min)]|max)|round(3) if smooth_dimming and capabilities.transition and
+          {{ ([0,([hold_interval,hold_started+hold_limit-clock]|min)]|max)|round(3) if smooth_dimming and capabilities.transition and
              is_state(lamp,'on') else 0 }}
         new_level: >-
           {{ min_brightness if is_state(lamp,'off') else
-             ([min_brightness, old_level + (brightness_step if direction == 'up' else -brightness_step)*
-               (fade_duration/dim_interval if fade_duration > 0 else 1), max_brightness] | sort)[1] | round(3) }}
+             ([min_brightness, old_level + (brightness_rate if direction == 'up' else -brightness_rate)*
+               (fade_duration if fade_duration > 0 else hold_interval), max_brightness] | sort)[1] | round(3) }}
         keep_hold: >-
           {{ fade_duration > 0 or (direction == 'up' and new_level < max_brightness) or
              (direction == 'down' and new_level > min_brightness) }}
@@ -441,6 +503,17 @@ actions:
   target: {entity_id: '{{ memory_entity }}'}
   data:
     value: 'sl1:{{ completed | to_json }}'
+- if: "{{ keep_hold and command in ['up_hold','down_hold','left_hold','right_hold'] }}"
+  then:
+  - action: script.turn_on
+    target: {entity_id: script.styrbar_maintiens}
+    data:
+      variables:
+        memory_entity: '{{ memory_entity }}'
+        owner: '{{ owner }}'
+        started: '{{ hold_started }}'
+        expires: '{{ hold_started+hold_limit }}'
+        interval: '{{ hold_interval }}'
 - if: '{{ logging and command != "tick" }}'
   then:
   - action: system_log.write

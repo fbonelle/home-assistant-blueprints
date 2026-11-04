@@ -9,7 +9,10 @@
       light: light.bedside_left
       memory: input_text.bedside_remote_left
       default_color: [255, 192, 140]
-      recall_fallback: right_hold
+      recall_fallback: none
+      brightness_speed: 35
+      brightness_interval: 0.3
+      color_hold_interval: 0.4
 - id: bedside_remote_right
   alias: Lampe de chevet — côté droit
   use_blueprint:
@@ -19,4 +22,7 @@
       light: light.bedside_right
       memory: input_text.bedside_remote_right
       default_color: [255, 192, 140]
-      recall_fallback: right_hold
+      recall_fallback: none
+      brightness_speed: 35
+      brightness_interval: 0.3
+      color_hold_interval: 0.4

@@ -2,6 +2,15 @@
 
 **Français** · [English](CHANGELOG.en.md)
 
+## Lampe STYRBAR — 1.2.0 — 4 novembre 2026
+
+- Vitesse de luminosité explicite en points par seconde, initialement 35 : environ 3 secondes sur toute la plage.
+- Défilement continu par maintien gauche/droite ; intervalle de couleur indépendant, initialement 0,4 seconde.
+- Petit script partagé en YAML natif pour les impulsions rapides. Installer `packages/ikea_styrbar_light.yaml` avant le blueprint ; aucun composant personnalisé.
+- Rejet des impulsions anciennes ou étrangères, arrêt au relâchement et expiration du maintien. Le script partagé ne commande aucune lampe.
+- Le double appui en haut conserve le rappel. Le rappel latéral devient facultatif, car il remplace le défilement de ce côté.
+- Anciens paramètres pas/intervalle conservés dans une section avancée pour la vitesse 0. Tests natifs des deux types de maintien et du script partagé réel.
+
 ## Lampe STYRBAR — 1.1.0 — 4 novembre 2026
 
 - Contrôle des capacités à l’activation, avant les commandes et lors d’un changement de disponibilité ou de capacités.

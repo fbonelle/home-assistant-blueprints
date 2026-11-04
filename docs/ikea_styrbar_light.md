@@ -2,15 +2,16 @@
 
 **Français** · [English](ikea_styrbar_light.en.md) · [Accueil](../README.md)
 
-Version **1.1.0**. Un seul blueprint par lampe remplace le couple « contrôleur + hook ». Il utilise les fonctions standard de Home Assistant, sans composant personnalisé ni script partagé à installer.
+Version **1.2.0**. Un seul blueprint par lampe remplace le couple « contrôleur + hook ». Les maintiens rapides utilisent un petit script partagé en YAML standard, sans composant personnalisé.
 
 ## Installation
 
 1. Utiliser Home Assistant **2026.10 ou plus récent**, une STYRBAR intégrée par **ZHA** (modèle `Remote Control N2`) et une lampe prenant en charge les couleurs. Zigbee2MQTT et deCONZ ne sont pas pris en charge par ce blueprint.
-2. [Importer le blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fikea_styrbar_light%2Flampe_styrbar.yaml).
-3. Dans **Paramètres → Appareils et services → Entrées**, créer un assistant **Texte**, longueur minimale **0**, maximale **255**. Le réserver à cette automatisation. Chaque autre télécommande doit avoir son propre assistant.
-4. Créer une automatisation depuis le blueprint, puis choisir la télécommande, la lampe et l’assistant. Régler la palette et la couleur de rappel.
-5. Avant d’activer le nouveau pilotage, désactiver les anciennes automatisations contrôleur et hook de cette télécommande. Vérifier aussi qu’aucune liaison Zigbee directe ou autre automatisation ne commande simultanément la lampe.
+2. Installer une seule fois [packages/ikea_styrbar_light.yaml](../packages/ikea_styrbar_light.yaml) dans le dossier des packages déjà inclus par `homeassistant.packages`. Recharger les scripts. Si aucun dossier de packages n’est configuré, suivre la [documentation Home Assistant](https://www.home-assistant.io/docs/configuration/packages/) pour l’activer. Le script attendu est `script.styrbar_maintiens` ; son absence est signalée et bloque les commandes.
+3. [Importer le blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fikea_styrbar_light%2Flampe_styrbar.yaml).
+4. Dans **Paramètres → Appareils et services → Entrées**, créer un assistant **Texte**, longueur minimale **0**, maximale **255**. Le réserver à cette automatisation. Chaque autre télécommande doit avoir son propre assistant.
+5. Créer une automatisation depuis le blueprint, puis choisir la télécommande, la lampe et l’assistant. Régler la palette et la couleur de rappel.
+6. Avant d’activer le nouveau pilotage, désactiver les anciennes automatisations contrôleur et hook de cette télécommande. Vérifier aussi qu’aucune liaison Zigbee directe ou autre automatisation ne commande simultanément la lampe.
 
 Les [exemples d’automatisations](../examples/ikea_styrbar_light/automations.yaml) et d’[assistants YAML](../examples/ikea_styrbar_light/helpers.yaml) utilisent uniquement des identifiants fictifs. Les assistants créés depuis l’interface suffisent : le fichier YAML d’assistants est facultatif. Adapter le chemin du blueprint si Home Assistant propose un autre nom lors de l’importation.
 
@@ -34,12 +35,13 @@ Ce contrôle repose sur les informations déclarées par l’intégration. Il ne
 | Maintien en bas | Diminuer la luminosité jusqu’au minimum, sans éteindre. Ne rallume pas une lampe éteinte. |
 | Appui court gauche / droite | Préréglage précédent / suivant, avec retour à l’autre extrémité de la liste. |
 | Double appui en haut | Rappeler la couleur configurée, sans imposer de luminosité. |
-| Maintien à droite | Même rappel, par défaut. Ce geste supplémentaire peut être placé à gauche ou désactivé. |
+| Maintien gauche / droite | Faire défiler continuellement la palette dans le sens choisi, à l’intervalle configuré. |
+| Geste de rappel supplémentaire | Facultatif : remplacer le défilement d’un côté par le rappel de la couleur par défaut. Aucun côté réservé au rappel par défaut. |
 | Relâchement ou autre bouton reconnu | Arrêter la variation en cours. |
 
 Le premier appui en haut est immédiat. Le second, s’il arrive dans le délai configuré, applique la couleur de rappel. Avec une luminosité imposée à l’allumage, le premier appui l’applique avant le rappel ; le rappel ne l’applique pas une seconde fois. Les options **Les flèches de couleur peuvent allumer la lampe** et **Le rappel de couleur peut allumer la lampe** règlent ces deux comportements lorsque la lampe est éteinte.
 
-**Le double appui dépend du micrologiciel de la télécommande.** Certaines STYRBAR filtrent les appuis rapprochés ON/OFF avant leur transmission : si ZHA reçoit un seul événement `on`, aucun blueprint ne peut identifier deux appuis. Le maintien à droite fournit un accès au rappel sans cette dépendance. La [documentation STYRBAR](https://www.zigbee2mqtt.io/devices/E2001_E2002_E2313.html#action-mapping) décrit ce filtrage au niveau de l’appareil ; ses noms d’actions MQTT ne sont pas utilisés par notre blueprint ZHA.
+**Le double appui dépend du micrologiciel de la télécommande.** Certaines STYRBAR filtrent les appuis rapprochés ON/OFF avant leur transmission : si ZHA reçoit un seul événement `on`, aucun blueprint ne peut identifier deux appuis. Réserver alors un maintien latéral au rappel via **Geste de rappel supplémentaire** ; ce côté ne fait plus défiler les couleurs. La [documentation STYRBAR](https://www.zigbee2mqtt.io/devices/E2001_E2002_E2313.html#action-mapping) décrit ce filtrage au niveau de l’appareil ; ses noms d’actions MQTT ne sont pas utilisés par notre blueprint ZHA.
 
 Des micrologiciels émettent aussi une commande `on` pendant un maintien latéral. Elle peut allumer la lampe avant l’événement de maintien. Ne pas utiliser ce geste si l’exigence est de ne jamais rallumer une lampe éteinte ; cette commande radio est indistinguable d’un véritable appui ON.
 
@@ -63,9 +65,19 @@ L’ordre enregistré dans la sélection est l’ordre de défilement. En YAML, 
 
 ## Réglages et journaux
 
-Les pas de luminosité, les bornes de variation, la luminosité imposée à l’allumage, l’intervalle entre les pas, la durée maximale du maintien, la transition, le délai de double appui et le filtrage des événements répétés sont réglables. Les bornes de luminosité concernent la variation ; elles ne limitent pas les changements faits depuis l’application ni la luminosité imposée à l’allumage.
+Les deux vitesses sont réglées séparément :
 
-**Lisser la variation pendant un maintien** est activé par défaut. Une nouvelle cible de luminosité est envoyée au plus une fois par seconde, ou plus lentement selon l’intervalle choisi. L’ampoule effectue un fondu natif pendant cet intervalle ; le geste commence immédiatement et la cadence suivante suit l’horloge pour éviter les pauses de deux secondes dues au décalage du premier appui. La vitesse correspond au pas divisé par l’intervalle, par défaut environ dix points de luminosité par seconde. La durée est plafonnée par le temps de maintien encore autorisé.
+| Réglage | Valeur initiale | Effet |
+|---|---:|---|
+| Vitesse de variation de luminosité | 35 points par seconde | Environ 3 secondes pour traverser toute la plage. |
+| Cadence des commandes de luminosité | 0,3 seconde | Fréquence de renouvellement du fondu, indépendante de la vitesse. |
+| Intervalle entre les couleurs pendant un maintien | 0,4 seconde | Un nouveau préréglage toutes les 0,4 seconde environ. |
+
+La vitesse peut aller de 1 à 100 points par seconde, la cadence de 0,2 à 1 seconde et l’intervalle des couleurs de 0,2 à 3 secondes. La valeur 0 pour la vitesse réactive les anciens paramètres **pas / intervalle**, rangés dans la section avancée. Les bornes de luminosité concernent la variation ; elles ne limitent pas les changements faits depuis l’application ni la luminosité imposée à l’allumage.
+
+**Lisser la variation pendant un maintien** est activé par défaut. Le premier pas est immédiat, puis le script partagé envoie des impulsions à la cadence configurée. Seule l’automatisation de la télécommande exécute les commandes de lampe, dans l’ordre. L’ampoule effectue un fondu natif pendant chaque intervalle, plafonné par le temps de maintien encore autorisé. Les appareils ou le réseau peuvent limiter la cadence réellement atteinte.
+
+Le maintien de couleur commence aussi immédiatement et se termine au relâchement. Le dernier fondu rejoint le dernier préréglage choisi, sans passer au suivant. Sa transition est limitée à l’intervalle de défilement pour éviter d’enchaîner des fondus trop longs. L’appui court change toujours d’un seul préréglage.
 
 Au relâchement ou au changement de sens, Home Assistant annonce souvent déjà la cible, alors que l’ampoule est encore en train d’y aller. Le blueprint estime le niveau intermédiaire à partir du dernier fondu et, au relâchement, envoie cette valeur avec une transition nulle. Cette estimation suppose un fondu linéaire : elle améliore l’arrêt mais ne remplace pas une mesure physique de luminosité. Un changement externe identifiable invalide cette estimation pour éviter de l’écraser. L’option de lissage peut être désactivée. Le réglage **Durée de transition des changements de couleur** reste indépendant de la variation de luminosité.
 
@@ -82,6 +94,7 @@ Les erreurs de configuration sont signalées lors d’un appui ou d’un recharg
 ## Robustesse et limites
 
 - Les commandes d’une télécommande sont sérialisées (`queued`, maximum 30 exécutions). Les deux lampes restent indépendantes. Un seul appel de lampe est en cours par automatisation.
+- Le script partagé ne commande aucune lampe. Chaque impulsion porte l’identité et l’horodatage du maintien ; une ancienne impulsion ou celle d’une autre télécommande est refusée. L’horloge s’arrête après un relâchement, un autre geste, une mémoire invalide ou l’expiration du délai. Une vérification par seconde subsiste comme protection complémentaire. Jusqu’à 50 horloges de maintien peuvent fonctionner simultanément.
 - Le bouton de relâchement arrête la variation. En cas de perte radio, la limite de maintien l’arrête également. Des paquets de maintien répétés n’accélèrent pas les pas et ne repoussent pas cette limite. Si le relâchement manque, appuyer brièvement sur un autre bouton avant de recommencer un maintien identique.
 - L’état de maintien est désarmé avant chaque appel de lampe. Si l’appel échoue ou est interrompu, aucun pas automatique supplémentaire n’est lancé.
 - Une lampe indisponible annule le geste. Son retour en ligne ne rejoue aucune commande. Les boutons ayant attendu plus de cinq secondes dans la file sont abandonnés ; un relâchement tardif peut toujours arrêter un geste. Les événements désordonnés sont ignorés.
@@ -94,4 +107,4 @@ Les erreurs de configuration sont signalées lors d’un appui ou d’un recharg
 
 Les tests font fonctionner le blueprint dans un **Home Assistant 2026.10.4 isolé**, avec de vraies automatisations, les services natifs de lampe et des assistants Texte. La radio et le rendu sont simulés, avec un modèle de fondu linéaire indépendant de la mémoire du blueprint. Ils couvrent notamment les capacités des différents modes, le diagnostic sans commande, l’arrêt à mi-fondu, les changements de sens, la cadence, les doubles appuis, les limites de luminosité, les événements répétés ou retardés, la perte du relâchement, les erreurs de commande, les changements externes et l’indépendance de deux télécommandes. Ils ne prouvent pas la réception radio ni le rendu des couleurs sur une ampoule physique. Aucune automatisation d’une installation réelle n’est modifiée par la publication dans ce dépôt.
 
-Une mise à jour depuis la version 1.0.0 conserve les entrées et l’assistant Texte existants. Les informations du dernier fondu sont ajoutées automatiquement ; un rechargement annule le geste en cours sans modifier l’éclairage.
+Une mise à jour depuis 1.0.0 ou 1.1.0 conserve les entrées et l’assistant Texte existants. **Installer aussi le fichier de script partagé avant de recharger le blueprint 1.2.0.** Choisir **Aucun** pour le geste de rappel supplémentaire si les deux maintiens latéraux doivent faire défiler la palette. Un rechargement annule le geste en cours sans modifier l’éclairage.

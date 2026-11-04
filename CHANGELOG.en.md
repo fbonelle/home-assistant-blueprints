@@ -2,6 +2,15 @@
 
 [Français](CHANGELOG.md) · **English**
 
+## STYRBAR light — 1.2.0 — 4 November 2026
+
+- Explicit brightness speed in percentage points/second, initially 35: approximately 3 seconds across the full range.
+- Continuous left/right palette cycling with an independent color interval, initially 0.4 seconds.
+- A small native YAML script provides fast pulses. Install `packages/ikea_styrbar_light.yaml` before the blueprint; no custom integration.
+- Stale and foreign pulses are rejected; release and timeout stop the hold. The shared script never commands a light.
+- Double up retains recall. Lateral recall is optional because it replaces cycling on that side.
+- Legacy step/interval settings remain in an advanced section for speed 0. Native tests cover both hold types and the actual shared script.
+
 ## STYRBAR light — 1.1.0 — 4 November 2026
 
 - Capability checks at activation, before commands and when availability or capabilities change.

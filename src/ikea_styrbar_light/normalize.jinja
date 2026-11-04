@@ -1,6 +1,7 @@
 {# Ignore unrecognized commands before they can cancel a valid hold. #}
 {% if trigger is not defined or trigger.id is not defined or trigger.id is none %}check
 {% elif trigger.id in ['tick','reset','capabilities'] %}{{ trigger.id }}
+{% elif trigger.id == 'pulse' %}tick
 {% elif trigger.id == 'availability' %}capabilities
 {% elif trigger.id != 'remote' %}invalid
 {% else %}
