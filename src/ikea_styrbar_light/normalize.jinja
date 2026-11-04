@@ -1,0 +1,17 @@
+{# Ignore unrecognized commands before they can cancel a valid hold. #}
+{% if trigger.id in ['tick','reset'] %}{{ trigger.id }}
+{% elif trigger.id != 'remote' %}invalid
+{% else %}
+ {% set e=trigger.event.data %}{% set c=e.get('command','') %}
+ {% set a=e.get('args',[]) %}
+ {% set a=a if a is sequence and a is not string and a is not mapping else [] %}
+ {% if c in ['on','off'] %}{{ c }}
+ {% elif c in ['stop','stop_with_on_off','release'] %}release
+ {% elif c == 'move_with_on_off' and a|count > 0 and (a[0]|string in ['0','MoveMode.Up']) %}up_hold
+ {% elif c == 'move' and a|count > 0 and (a[0]|string in ['1','MoveMode.Down']) %}down_hold
+ {% elif c == 'press' and a|count > 0 and a[0] == 256 %}right
+ {% elif c == 'press' and a|count > 0 and a[0] == 257 %}left
+ {% elif c == 'hold' and a|count > 0 and a[0] == 3328 %}right_hold
+ {% elif c == 'hold' and a|count > 0 and a[0] == 3329 %}left_hold
+ {% else %}invalid{% endif %}
+{% endif %}

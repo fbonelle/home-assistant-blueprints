@@ -2,12 +2,23 @@
 
 [Français](CHANGELOG.md) · **English**
 
-## 1.0.1 — 4 November 2026
+## STYRBAR light — 1.0.0 — 4 November 2026
+
+First published version of **Light with IKEA STYRBAR remote — ZHA**.
+
+- One blueprint per light, with a dedicated Text helper and no shared package.
+- On/off, bounded hold dimming, 23 available presets and configurable RGB recall.
+- Three Home Assistant reference whites; historical IKEA colors and whites sent as xy.
+- Double up when the firmware sends two events, plus a configurable lateral hold for recall.
+- Serialized commands, missing-release deadline, stale-command rejection and cancellation after failures or unavailability.
+- French and English documentation, fictional examples and isolated native tests.
+
+## Integration monitoring — 1.0.1 — 4 November 2026
 
 - Fix script loading from a Home Assistant package: field selectors now survive configuration merging.
 - Add a regression test that merges the package with an existing configuration and validates every script.
 
-## 1.0.0 — 4 November 2026
+## Integration monitoring — 1.0.0 — 4 November 2026
 
 First published version of **Integration monitoring and reload**.
 

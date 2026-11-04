@@ -1,0 +1,4 @@
+{% set m=raw[4:]|from_json({}) if raw.startswith('sl1:') else
+   dict(v=1,o=owner,c='',t=0,h='',s=0,u=0,i=-1,x=[],k='',p='') %}
+{# Wall-clock correction invalidates only transient gestures; never replay one. #}
+{{ dict(m,c='',t=0,h='',s=0,u=0) if m.t > clock + 1 or m.s > clock + 1 or m.u > clock + 5 else m }}

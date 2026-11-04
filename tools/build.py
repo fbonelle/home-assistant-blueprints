@@ -150,3 +150,6 @@ save('memoires_surveillance_integrations.yaml',helpers)
 save('journalisation_surveillance.yaml',{'logger':logger,'system_log':{}})
 save('package_surveillance_integrations.yaml',dict(script=scripts,automation=[admission,logging_automation],logger=logger,system_log={}), f'# Version {VERSION} — fichier de configuration commun à installer une seule fois.\n')
 print(OUT)
+# Each blueprint keeps its own version and sources.
+import runpy
+runpy.run_path(str(ROOT/'tools/build_styrbar.py'),run_name='__main__')

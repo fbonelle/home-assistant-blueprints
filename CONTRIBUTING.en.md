@@ -17,4 +17,4 @@ Each new blueprint needs its own folder under `blueprints/automation/` or `bluep
 .venv/bin/python -m pytest -q
 ```
 
-The version is defined in `src/integration_watchdog/VERSION`. The generator uses it in the blueprint name and generated file headers. Documentation and the changelog must match. The first version is **1.0.0**; changing display names must not rename internal identifiers used by automations.
+Each blueprint defines its version in `src/<name>/VERSION`. The generator uses it in the blueprint name and, where applicable, shared-file headers. Documentation and the changelog must match. The first version is **1.0.0**; changing display names must not rename internal identifiers used by automations.

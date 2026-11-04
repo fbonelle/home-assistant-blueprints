@@ -1,0 +1,347 @@
+blueprint:
+  name: Lampe avec télécommande IKEA STYRBAR — ZHA
+  description: >-
+    Marche/arrêt, variation par maintien, palette de blancs Home Assistant et de couleurs IKEA,
+    rappel d’une couleur configurable. Un assistant Texte distinct par automatisation (0 à 255 caractères).
+    ZHA et STYRBAR uniquement ; lampe couleur requise. Le double appui en haut exige deux événements
+    réellement transmis par la télécommande. Le maintien à droite sert aussi de rappel par défaut.
+    Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/ikea_styrbar_light.md
+  domain: automation
+  homeassistant:
+    min_version: 2026.10.0
+  source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/automation/ikea_styrbar_light/lampe_styrbar.yaml
+  input:
+    remote:
+      name: Télécommande STYRBAR
+      selector:
+        device:
+          filter:
+          - integration: zha
+            manufacturer: IKEA of Sweden
+            model: Remote Control N2
+    light:
+      name: Lampe couleur à piloter
+      selector:
+        entity:
+          filter:
+          - domain: light
+    memory:
+      name: Assistant Texte réservé à cette télécommande
+      description: Longueur minimale 0, maximale 255. Ne pas partager cet assistant avec une autre automatisation.
+      selector:
+        entity:
+          filter:
+          - domain: input_text
+    palette:
+      name: Palette et ordre de défilement
+      description: >-
+        L’ordre de la liste sélectionnée est utilisé. Les trois premiers choix sont les blancs de référence
+        de la capture Home Assistant, les suivants les préréglages IKEA. La liste peut aussi être réordonnée en YAML.
+      default: [ha_warm, ha_soft, ha_white, ikea_amber, ikea_peach, ikea_dark_peach, ikea_dark_red,
+                ikea_pink, ikea_light_pink, ikea_dark_pink, ikea_light_purple, ikea_dark_purple,
+                ikea_blue, ikea_light_blue, ikea_lime, ikea_yellow]
+      selector:
+        select:
+          multiple: true
+          sort: false
+          options: []
+    default_color:
+      name: Couleur de rappel
+      description: Par défaut, la pastille de gauche de la capture Home Assistant. La luminosité est conservée.
+      default: [255, 192, 140]
+      selector:
+        color_rgb: {}
+    double_press_ms:
+      name: Délai maximal du double appui en haut
+      description: >-
+        Le premier appui allume immédiatement. Le second rappelle la couleur. Aucun logiciel ne peut détecter
+        un second appui filtré par le micrologiciel ; utiliser alors le maintien à droite.
+      default: 800
+      selector:
+        number:
+          min: 250
+          max: 1500
+          step: 50
+          unit_of_measurement: ms
+          mode: box
+    recall_fallback:
+      name: Geste de rappel supplémentaire
+      default: right_hold
+      selector:
+        select:
+          options:
+          - {value: right_hold, label: Maintien à droite}
+          - {value: left_hold, label: Maintien à gauche}
+          - {value: none, label: Aucun}
+    brightness_step:
+      name: Pas de variation de luminosité
+      default: 10
+      selector:
+        number: {min: 1, max: 25, step: 1, unit_of_measurement: '%', mode: box}
+    min_brightness:
+      name: Luminosité minimale pendant la variation
+      default: 1
+      selector:
+        number: {min: 1, max: 100, step: 1, unit_of_measurement: '%', mode: box}
+    max_brightness:
+      name: Luminosité maximale pendant la variation
+      default: 100
+      selector:
+        number: {min: 1, max: 100, step: 1, unit_of_measurement: '%', mode: box}
+    on_brightness:
+      name: Luminosité imposée lors d’un appui simple en haut
+      description: 0 conserve la luminosité mémorisée par la lampe. Le rappel de couleur ne force jamais cette valeur.
+      default: 0
+      selector:
+        number: {min: 0, max: 100, step: 1, unit_of_measurement: '%', mode: box}
+    dim_interval:
+      name: Intervalle entre les pas de variation
+      default: 1
+      selector:
+        number: {min: 1, max: 5, step: 1, unit_of_measurement: s, mode: box}
+    hold_limit:
+      name: Durée maximale d’un maintien
+      description: Arrêt automatique si le relâchement radio est perdu. Un autre bouton arrête aussi la variation.
+      default: 15
+      selector:
+        number: {min: 2, max: 30, step: 1, unit_of_measurement: s, mode: box}
+    transition:
+      name: Durée de transition
+      default: 0.3
+      selector:
+        number: {min: 0, max: 2, step: 0.1, unit_of_measurement: s, mode: box}
+    colors_turn_on:
+      name: Les flèches de couleur peuvent allumer la lampe
+      default: true
+      selector: {boolean: {}}
+    recall_turns_on:
+      name: Le rappel de couleur peut allumer la lampe
+      default: true
+      selector: {boolean: {}}
+    debounce_ms:
+      name: Ignorer les événements identiques trop rapprochés
+      description: 0 désactive ce filtre. Ne doit pas dépasser le délai de double appui.
+      default: 50
+      selector:
+        number: {min: 0, max: 200, step: 10, unit_of_measurement: ms, mode: box}
+    logging:
+      name: Journaliser les boutons et les actions
+      description: Niveau INFO, journal ikea_styrbar_light. Les erreurs restent signalées par Home Assistant.
+      default: false
+      selector: {boolean: {}}
+mode: queued
+max: 30
+max_exceeded: warning
+triggers:
+- trigger: event
+  event_type: zha_event
+  event_data:
+    device_id: !input remote
+  id: remote
+- trigger: time_pattern
+  seconds: /1
+  id: tick
+- trigger: homeassistant
+  event: start
+  id: reset
+- trigger: event
+  event_type: automation_reloaded
+  id: reset
+variables:
+  remote: !input remote
+  lamp: !input light
+  memory_entity: !input memory
+  palette: !input palette
+  default_color: !input default_color
+  double_press_ms: !input double_press_ms
+  recall_fallback: !input recall_fallback
+  brightness_step: !input brightness_step
+  min_brightness: !input min_brightness
+  max_brightness: !input max_brightness
+  on_brightness: !input on_brightness
+  dim_interval: !input dim_interval
+  hold_limit: !input hold_limit
+  transition: !input transition
+  colors_turn_on: !input colors_turn_on
+  recall_turns_on: !input recall_turns_on
+  debounce_ms: !input debounce_ms
+  logging: !input logging
+conditions:
+- condition: template
+  value_template: >-
+    {% if trigger is not defined %}false
+    {% elif trigger.id == 'tick' %}
+      {% set raw=states(memory_entity) %}
+      {% set m=raw[4:]|from_json({}) if raw.startswith('sl1:') else {} %}
+      {{ m is mapping and m.get('h') in ['up','down'] }}
+    {% elif trigger.id == 'reset' %}true
+    {% elif trigger.id == 'remote' and trigger.event is defined %}
+      {{ trigger.event.data.get('command') in
+      ['on','off','move','move_with_on_off','stop','stop_with_on_off','press','hold','release'] }}
+    {% else %}false{% endif %}
+actions:
+# All mutable state is read inside the queued action, never captured at trigger admission.
+- variables:
+    clock: '{{ as_timestamp(now()) }}'
+    owner: '{{ sha256(this.entity_id ~ ":" ~ remote ~ ":" ~ lamp)[:16] }}'
+    palette_key: '{{ sha256(palette | to_json)[:8] }}'
+    raw: '{{ states(memory_entity) }}'
+    command: '@template:normalize'
+- if: "{{ command == 'invalid' }}"
+  then:
+  - stop: Événement sans action reconnue.
+- variables:
+    check: '@template:validation'
+- if: '{{ check | count > 0 }}'
+  then:
+  - if: "{{ command != 'tick' }}"
+    then:
+    - action: system_log.write
+      data:
+        logger: ikea_styrbar_light
+        level: warning
+        message: '{{ this.entity_id }} : {{ check | join(" ") }}'
+  - stop: Configuration invalide ; aucune commande de lampe envoyée.
+- variables:
+    m: '@template:read'
+- if: "{{ command == 'reset' }}"
+  then:
+  - action: input_text.set_value
+    target: {entity_id: '{{ memory_entity }}'}
+    data:
+      value: 'sl1:{{ dict(m,c="",t=0,h="",s=0,u=0) | to_json }}'
+  - stop: Gestes en cours annulés ; couleur et luminosité inchangées.
+- variables:
+    event_time: '{{ as_timestamp(trigger.event.time_fired) if command != "tick" else clock }}'
+- if: >-
+    {{ command != 'tick' and (event_time < m.t or event_time > clock + 1 or
+       (command != 'release' and clock - event_time > 5) or
+       (m.c == command and 0 <= event_time - m.t < debounce_ms / 1000)) }}
+  then:
+  - stop: Événement ancien, désordonné ou doublon ignoré.
+# Repeated move/hold packets neither accelerate the dimmer nor extend its deadline.
+- if: >-
+    {{ command in ['up_hold','down_hold','left_hold','right_hold'] and m.c == command
+       and m.s > 0 }}
+  then:
+  - action: input_text.set_value
+    target: {entity_id: '{{ memory_entity }}'}
+    data:
+      value: 'sl1:{{ dict(m,t=event_time) | to_json }}'
+  - stop: Paquet de maintien répété ; durée et prochain pas conservés.
+- variables:
+    operation: >-
+      {% if command == 'tick' %}dim
+      {% elif command in ['up_hold','down_hold'] %}dim
+      {% elif command == 'on' and m.c == 'on' and 0 < event_time - m.t <= double_press_ms / 1000 %}recall
+      {% elif command == recall_fallback and command in ['left_hold','right_hold'] %}recall
+      {% elif command == 'left' %}previous
+      {% elif command == 'right' %}next
+      {% elif command in ['on','off'] %}{{ command }}
+      {% else %}none{% endif %}
+    direction: >-
+      {{ m.h if command == 'tick' else 'up' if command == 'up_hold' else 'down' if command == 'down_hold' else '' }}
+    hold_started: >-
+      {{ m.s if command == 'tick'
+         else event_time if command in ['up_hold','down_hold','left_hold','right_hold'] else 0 }}
+    enabled_since: >-
+      {% set stamp=as_timestamp(this.last_changed,0) %}
+      {{ stamp if stamp <= clock + 1 else 0 }}
+- if: >-
+    {{ command == 'tick' and direction not in ['up','down'] }}
+  then:
+  - action: input_text.set_value
+    target: {entity_id: '{{ memory_entity }}'}
+    data:
+      value: 'sl1:{{ m | to_json }}'
+  - stop: Ancien geste annulé après une correction d’horloge.
+- if: >-
+    {{ command == 'tick' and clock < m.u and clock >= hold_started and
+       clock - hold_started < hold_limit and hold_started >= enabled_since }}
+  then:
+  - stop: Aucun pas de variation à exécuter.
+# Disarm before every service call. A failed/aborted call cannot leave a running hold.
+- variables:
+    updated: >-
+      {{ dict(m,h='',c=(m.c if command == 'tick' else 'paired' if operation == 'recall' and command == 'on' else command),
+         t=(m.t if command == 'tick' else event_time),s=hold_started,u=0) }}
+- action: input_text.set_value
+  target: {entity_id: '{{ memory_entity }}'}
+  data:
+    value: 'sl1:{{ updated | to_json }}'
+- if: >-
+    {{ operation == 'none' or states(lamp) not in ['on','off'] or
+       (operation == 'dim' and (hold_started < enabled_since or clock - hold_started >= hold_limit or
+                               clock < hold_started or (is_state(lamp,'off') and (command == 'tick' or direction == 'down')))) or
+       (operation in ['next','previous'] and not colors_turn_on and is_state(lamp,'off')) or
+       (operation == 'recall' and not recall_turns_on and is_state(lamp,'off')) }}
+  then:
+  - stop: Geste terminé, maintien expiré ou lampe indisponible ; aucune commande différée.
+- variables:
+    selected_index: -1
+    keep_hold: false
+    stop_effect: >-
+      {{ dict(effect='off') if state_attr(lamp,'effect') not in [none,'off'] and
+         'off' in (state_attr(lamp,'effect_list') or []) else {} }}
+- choose:
+  - conditions: "{{ operation == 'off' }}"
+    sequence:
+    - action: light.turn_off
+      target: {entity_id: '{{ lamp }}'}
+  - conditions: "{{ operation == 'on' }}"
+    sequence:
+    - action: light.turn_on
+      target: {entity_id: '{{ lamp }}'}
+      data: '{{ dict(brightness_pct=on_brightness) if on_brightness > 0 else {} }}'
+  - conditions: "{{ operation == 'recall' }}"
+    sequence:
+    - action: light.turn_on
+      target: {entity_id: '{{ lamp }}'}
+      data: '{{ dict(stop_effect,rgb_color=default_color,transition=transition) }}'
+  - conditions: "{{ operation in ['next','previous'] }}"
+    sequence:
+    - variables:
+        selected_index: '@template:cycle'
+        color: '{{ catalog[palette[selected_index]] }}'
+    - action: light.turn_on
+      target: {entity_id: '{{ lamp }}'}
+      data: >-
+        {{ dict(stop_effect,rgb_color=color.rgb_color,transition=transition) if 'rgb_color' in color
+           else dict(stop_effect,xy_color=color.xy_color,transition=transition) }}
+  - conditions: "{{ operation == 'dim' }}"
+    sequence:
+    - if: "{{ is_state(lamp,'on') and state_attr(lamp,'brightness') is not number }}"
+      then:
+      - stop: Luminosité inconnue ; variation annulée.
+    - variables:
+        old_level: '{{ state_attr(lamp,"brightness") | float(0) / 255 * 100 }}'
+        new_level: >-
+          {{ min_brightness if is_state(lamp,'off') else
+             ([min_brightness, old_level + (brightness_step if direction == 'up' else -brightness_step), max_brightness] | sort)[1] | round(3) }}
+        keep_hold: '{{ (direction == "up" and new_level < max_brightness) or (direction == "down" and new_level > min_brightness) }}'
+    - action: light.turn_on
+      target: {entity_id: '{{ lamp }}'}
+      data: '{{ dict(brightness_pct=new_level,transition=[transition,dim_interval]|min) }}'
+- variables:
+    actual_xy: '{{ state_attr(lamp,"xy_color") }}'
+    observed_xy: >-
+      {{ [actual_xy[0]|round(6),actual_xy[1]|round(6)] if actual_xy is sequence and
+         actual_xy is not string and actual_xy|count == 2 else [] }}
+    cursor: >-
+      {{ selected_index if operation in ['next','previous'] else m.i
+         if operation in ['dim','on','off'] and m.p == palette_key and observed_xy == m.x else -1 }}
+    completed: >-
+      {{ dict(updated,h=(direction if keep_hold else ''),u=((clock + dim_interval)|round(3) if keep_hold else 0),
+         i=cursor,p=palette_key,x=observed_xy,
+         k=sha256(states[lamp].context.id)[:8]) }}
+- action: input_text.set_value
+  target: {entity_id: '{{ memory_entity }}'}
+  data:
+    value: 'sl1:{{ completed | to_json }}'
+- if: '{{ logging and command != "tick" }}'
+  then:
+  - action: system_log.write
+    data:
+      logger: ikea_styrbar_light
+      level: info
+      message: '{{ this.entity_id }} : {{ command }} → {{ operation }}.'

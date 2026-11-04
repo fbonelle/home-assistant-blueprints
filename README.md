@@ -9,6 +9,7 @@ Une collection de blueprints pour automatiser Home Assistant avec ses fonctions 
 | Blueprint | Fonction | Version | Prérequis |
 |---|---|---|---|
 | [Surveillance et relance des intégrations](docs/integration_watchdog.md) | Détecter une panne à partir d’entités choisies, tenter une relance et prévenir si une intervention est nécessaire. | **1.0.1** | Home Assistant 2026.10 minimum |
+| [Lampe avec télécommande IKEA STYRBAR](docs/ikea_styrbar_light.md) | Marche/arrêt, luminosité, palette de blancs et couleurs IKEA, rappel d’une couleur configurable. | **1.0.0** | Home Assistant 2026.10, ZHA, lampe couleur |
 
 La version **1.0.0 est la première version publiée**. Les numéros utilisés pendant la préparation ne constituent pas des versions du projet.
 
@@ -26,6 +27,12 @@ Les délais, le nombre de tentatives, les exclusions, les notifications et les j
 
 Les exemples Netatmo, TaHoma et Cozytouch sont fictifs et doivent être adaptés avant utilisation.
 
+## Lampe avec télécommande IKEA STYRBAR
+
+Un blueprint par lampe, avec un assistant Texte dédié. Aucun fichier partagé à installer. Les trois blancs de référence Home Assistant, les 20 préréglages historiques IKEA et les réglages de luminosité sont disponibles dans le formulaire. Le double appui en haut dépend des événements réellement émis par le micrologiciel ; le maintien à droite rappelle également la couleur par défaut.
+
+[Installation et boutons](docs/ikea_styrbar_light.md) · [Blueprint](blueprints/automation/ikea_styrbar_light/lampe_styrbar.yaml) · [Exemples](examples/ikea_styrbar_light/automations.yaml)
+
 ## Développement
 
 Les blueprints se trouvent dans `blueprints/`, leurs fichiers communs dans `packages/`, leurs exemples dans `examples/` et leurs guides dans `docs/`.
@@ -39,6 +46,6 @@ python3.14 -m venv .venv
 .venv/bin/python -m pytest -q
 ```
 
-La suite comprend **89 tests** sous Home Assistant 2026.10.4. Les appels aux fournisseurs sont simulés ; aucun identifiant de production n’est nécessaire. GitHub Actions vérifie aussi que les fichiers générés sont à jour.
+La suite utilise Home Assistant 2026.10.4 et couvre les deux blueprints avec ses schémas, automatisations et services natifs. Les fournisseurs et la radio sont simulés ; aucun identifiant de production n’est nécessaire. GitHub Actions vérifie aussi que les fichiers générés sont à jour. Chaque blueprint conserve sa propre version dans `src/<nom>/VERSION`.
 
 [Contribuer](CONTRIBUTING.md) · [Historique](CHANGELOG.md) · [Origine et licence](NOTICE.md)

@@ -17,4 +17,4 @@ Chaque nouveau blueprint doit avoir son propre dossier sous `blueprints/automati
 .venv/bin/python -m pytest -q
 ```
 
-La version est définie dans `src/integration_watchdog/VERSION`. Le générateur l’utilise pour le nom du blueprint et les en-têtes des fichiers. La documentation et l’historique doivent reprendre cette version. La première version est **1.0.0** ; un changement de nom affiché ne doit pas renommer les identifiants internes utilisés par les automatisations.
+Chaque blueprint définit sa version dans `src/<nom>/VERSION`. Le générateur l’utilise pour son nom et, le cas échéant, les en-têtes de ses fichiers communs. La documentation et l’historique doivent reprendre cette version. La première version est **1.0.0** ; un changement de nom affiché ne doit pas renommer les identifiants internes utilisés par les automatisations.

@@ -1,0 +1,16 @@
+{# Prefer the successful previous selection only while both actual color and context still agree.
+   An external change invalidates that cursor; continue from the closest actual xy color. #}
+{% set xy=state_attr(lamp,'xy_color') %}
+{% set valid=xy is sequence and xy is not string and xy|count == 2 and xy[0] is number and xy[1] is number %}
+{% set ns=namespace(index=-1,distance=999) %}
+{% if valid and m.p == palette_key and 0 <= m.i < palette|count and [xy[0]|round(6),xy[1]|round(6)] == m.x
+ and sha256(states[lamp].context.id)[:8] == m.k %}
+ {% set ns.index=m.i %}
+{% elif valid %}
+ {% for key in palette %}
+  {% set x=catalog[key].xy %}{% set distance=(xy[0]-x[0])**2 + (xy[1]-x[1])**2 %}
+  {% if distance < ns.distance %}{% set ns.index=loop.index0 %}{% set ns.distance=distance %}{% endif %}
+ {% endfor %}
+{% endif %}
+{{ (ns.index + 1) % (palette|count) if operation == 'next'
+ else ((ns.index - 1) % (palette|count) if ns.index >= 0 else palette|count - 1) }}

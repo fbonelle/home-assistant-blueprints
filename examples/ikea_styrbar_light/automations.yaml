@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Fictional identifiers. Replace both remotes and lights before enabling.
+- id: bedside_remote_left
+  alias: Lampe de chevet — côté gauche
+  use_blueprint:
+    path: fbonelle/lampe_styrbar.yaml
+    input:
+      remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1
+      light: light.bedside_left
+      memory: input_text.bedside_remote_left
+      default_color: [255, 192, 140]
+      recall_fallback: right_hold
+- id: bedside_remote_right
+  alias: Lampe de chevet — côté droit
+  use_blueprint:
+    path: fbonelle/lampe_styrbar.yaml
+    input:
+      remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2
+      light: light.bedside_right
+      memory: input_text.bedside_remote_right
+      default_color: [255, 192, 140]
+      recall_fallback: right_hold

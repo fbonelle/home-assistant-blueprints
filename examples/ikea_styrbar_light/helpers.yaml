@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Optional YAML alternative to creating two Text helpers in the UI.
+# Include once under homeassistant.packages, or merge input_text into your configuration.
+# Do not replace an existing input_text section.
+input_text:
+  bedside_remote_left:
+    name: Mémoire de la télécommande — côté gauche
+    min: 0
+    max: 255
+  bedside_remote_right:
+    name: Mémoire de la télécommande — côté droit
+    min: 0
+    max: 255

@@ -1,0 +1,73 @@
+# The three reference swatches supplied by the user, as RGB (not inferred Kelvin).
+ha_warm:
+  name: Home Assistant — blanc chaud de référence
+  rgb_color: [255, 192, 140]
+ha_soft:
+  name: Home Assistant — blanc intermédiaire de référence
+  rgb_color: [255, 228, 206]
+ha_white:
+  name: Home Assistant — blanc clair de référence
+  rgb_color: [255, 254, 250]
+# Numerical xy coordinates recorded from the TRADFRI app by node-tradfri-client.
+# https://github.com/AlCalzone/node-tradfri-client/blob/master/src/lib/predefined-colors.ts
+# Send xy, not the app's decorative RGB swatches. Names follow IKEA's documented palette.
+ikea_cold_sky:
+  name: IKEA — ciel froid
+  xy_color: [0.3221, 0.3317]
+ikea_cool_daylight:
+  name: IKEA — lumière du jour froide
+  xy_color: [0.3451, 0.3451]
+ikea_cool_white:
+  name: IKEA — blanc froid
+  xy_color: [0.3804, 0.3804]
+ikea_sunrise:
+  name: IKEA — lever de soleil
+  xy_color: [0.4369, 0.4041]
+ikea_warm_white:
+  name: IKEA — blanc chaud
+  xy_color: [0.4599, 0.4106]
+ikea_warm_glow:
+  name: IKEA — lueur chaude
+  xy_color: [0.5056, 0.4152]
+ikea_candle:
+  name: IKEA — bougie
+  xy_color: [0.5516, 0.4075]
+ikea_amber:
+  name: IKEA — ambre
+  xy_color: [0.58, 0.38]
+ikea_peach:
+  name: IKEA — pêche
+  xy_color: [0.58, 0.35]
+ikea_dark_peach:
+  name: IKEA — pêche foncée
+  xy_color: [0.62, 0.34]
+ikea_dark_red:
+  name: IKEA — rouge foncé
+  xy_color: [0.66, 0.32]
+ikea_pink:
+  name: IKEA — rose
+  xy_color: [0.5, 0.28]
+ikea_light_pink:
+  name: IKEA — rose clair
+  xy_color: [0.45, 0.28]
+ikea_dark_pink:
+  name: IKEA — rose foncé
+  xy_color: [0.5, 0.24]
+ikea_light_purple:
+  name: IKEA — mauve clair
+  xy_color: [0.34, 0.19]
+ikea_dark_purple:
+  name: IKEA — mauve foncé
+  xy_color: [0.31, 0.12]
+ikea_blue:
+  name: IKEA — bleu
+  xy_color: [0.17, 0.05]
+ikea_light_blue:
+  name: IKEA — bleu clair
+  xy_color: [0.2, 0.1]
+ikea_lime:
+  name: IKEA — vert citron
+  xy_color: [0.41, 0.51]
+ikea_yellow:
+  name: IKEA — jaune
+  xy_color: [0.45, 0.47]
