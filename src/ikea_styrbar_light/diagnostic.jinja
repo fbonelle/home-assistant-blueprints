@@ -1,0 +1,21 @@
+{% set c=capabilities %}
+{% if check or c.errors %}**Contrôle en attente ou configuration incompatible.**
+{% else %}**Configuration compatible avec les capacités déclarées.**
+{% endif %}
+
+Lampe : {{ state_attr(lamp,'friendly_name') or lamp }} (`{{ lamp }}`).
+
+- Communication : {{ 'joignable' if c.online else 'indisponible' }}.
+- Variation de luminosité : {{ 'oui' if c.brightness else 'non déclarée' }}.
+- Couleurs : {{ 'oui' if c.color else 'non déclarées' }}.
+- Blancs de la palette : {{ 'oui, via le mode couleur' if c.preset_white else 'non disponibles avec cette palette RGB/xy' }}.
+- Canal blanc distinct : {{ 'déclaré' if c.white_channel else 'non déclaré' }}.
+- Température de blanc native : {{ ('oui, de ' ~ c.temperature_range[0] ~ ' à ' ~ c.temperature_range[1] ~ ' K') if c.temperature_range else 'déclarée, plage inconnue' if c.color_temperature else 'non déclarée' }}.
+- Fondus de transition : {{ 'oui' if c.transition else 'non déclarés ; variation par pas' }}.
+- Modes Home Assistant : {{ c.modes|join(', ') if c.modes else 'inconnus' }}.
+{% for error in check + c.errors %}
+- **{{ error }}**
+{% endfor %}
+
+Contrôle des informations fournies par Home Assistant ; aucune commande d’éclairage n’a été envoyée par ce diagnostic.
+Un blanc obtenu en mode couleur ne prouve pas la présence d’un canal blanc dédié. Le rendu et la réception radio ne sont pas testés.

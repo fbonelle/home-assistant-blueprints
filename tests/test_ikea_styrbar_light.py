@@ -47,6 +47,17 @@ class RadioLight(LightEntity):
         self.gate = None
         self.fail = False
         self._attr_available = True
+        self._render_start = self._render_target = 128
+        self._render_time = 0
+        self._render_duration = 0
+
+    def rendered_level(self):
+        """Independent linear device fade: HA still advertises the target immediately."""
+        if not self.is_on:
+            return 0
+        elapsed=dt_util.utcnow().timestamp()-self._render_time
+        fraction=min(1,max(0,elapsed/self._render_duration)) if self._render_duration else 1
+        return self._render_start+(self._render_target-self._render_start)*fraction
 
     async def async_turn_on(self, **kwargs):
         self.calls.append(('on', copy.deepcopy(kwargs)))
@@ -54,6 +65,11 @@ class RadioLight(LightEntity):
             await self.gate.wait()
         if self.fail:
             raise HomeAssistantError('Simulated radio timeout')
+        displayed=self.rendered_level()
+        self._render_start=displayed
+        self._render_target=kwargs.get('brightness',self._attr_brightness)
+        self._render_time=dt_util.utcnow().timestamp()
+        self._render_duration=kwargs.get('transition',0)
         self._attr_is_on = True
         self._attr_brightness = kwargs.get('brightness', self._attr_brightness)
         self._attr_xy_color = kwargs.get('xy_color', self._attr_xy_color)
@@ -81,6 +97,7 @@ class BedsideEnv:
         assert await async_setup_component(self.hass, 'input_text', {'input_text': {
             f'bedside_{i}': dict(min=0, max=255) for i in range(2)}})
         assert await async_setup_component(self.hass, 'system_log', {})
+        assert await async_setup_component(self.hass, 'persistent_notification', {})
         assert await async_setup_component(self.hass, 'light', {})
         self.lights = [RadioLight(i) for i in range(2)]
         await self.hass.data['light'].async_add_entities(self.lights)
@@ -120,6 +137,16 @@ class BedsideEnv:
     def memory(self, index=0):
         raw = self.hass.states.get(f'input_text.bedside_{index}').state
         return json.loads(raw[4:]) if raw.startswith('sl1:') else None
+
+    def diagnostic(self, index=0):
+        from homeassistant.components.persistent_notification import DOMAIN
+        notes=self.hass.data[DOMAIN]
+        return next(n['message'] for n in notes.values() if f'light.bedside_{index}' in n['message'])
+
+    async def check(self,index=0):
+        await self.hass.services.async_call('automation','trigger',
+            dict(entity_id=f'automation.bedside_{index}',skip_condition=True),blocking=True)
+        await self.drain()
 
     async def write(self, value, index=0):
         await self.hass.services.async_call('input_text', 'set_value',
@@ -422,11 +449,11 @@ async def test_selector_bounds_and_custom_color(tmp_path):
         assert env.lights[0].xy_color==color_util.color_RGB_to_xy(127,172,255)
         assert 75 <= env.lights[0].brightness <= 77
         await env.emit('move_with_on_off',[0,83])
-        await env.tick()
+        await env.tick();await env.tick()
         assert env.lights[0].brightness<=102 and env.memory()['h']==''
         await env.emit('move',[1,83])
-        await env.tick();await env.tick()
-        assert env.lights[0].brightness>=51 and env.memory()['h']==''
+        await env.tick();await env.tick();await env.tick()
+        assert env.lights[0].brightness>=51 and env.memory()['h']=='', json.dumps(dict(memory=env.memory(),calls=env.lights[0].calls))
     finally:
         await env.close()
 
@@ -519,5 +546,164 @@ async def test_all_23_presets_and_expiry_before_next_step(tmp_path):
         await env.emit('move_with_on_off',[0,83]); count=len(env.lights[0].calls)
         await env.tick(advance=3)
         assert env.memory()['h']=='' and len(env.lights[0].calls)==count
+    finally:
+        await env.close()
+
+@pytest.mark.asyncio
+async def test_diagnostic_distinguishes_xy_whites_from_native_kelvin(bedside):
+    await bedside.check()
+    message=bedside.diagnostic()
+    assert 'Configuration compatible' in message
+    assert 'Blancs de la palette : oui, via le mode couleur' in message
+    assert 'Canal blanc distinct : non déclaré' in message
+    assert 'Température de blanc native : non déclarée' in message
+    assert 'Fondus de transition : oui' in message
+    assert not bedside.lights[0].calls
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('modes,brightness,color,channel,kelvin',[
+    (['onoff'],False,False,False,False),(['brightness'],True,False,False,False),
+    (['color_temp'],True,False,False,True),(['xy'],True,True,False,False),
+    (['hs'],True,True,False,False),(['rgb'],True,True,False,False),
+    (['rgbw'],True,True,True,False),(['rgbww'],True,True,True,False),
+    (['xy','color_temp'],True,True,False,True),([],False,False,False,False),
+])
+async def test_capability_modes_are_reported_without_light_commands(bedside,modes,brightness,color,channel,kelvin):
+    attrs=dict(bedside.hass.states.get('light.bedside_0').attributes)
+    attrs.update(supported_color_modes=modes,min_color_temp_kelvin=2000,max_color_temp_kelvin=6500)
+    bedside.hass.states.async_set('light.bedside_0','on',attrs)
+    await bedside.drain();await bedside.check()
+    message=bedside.diagnostic()
+    assert ('Variation de luminosité : oui' in message)==brightness
+    assert ('Couleurs : oui' in message)==color
+    assert ('Canal blanc distinct : déclaré' in message)==channel
+    assert ('de 2000 à 6500 K' in message)==kelvin
+    assert not bedside.lights[0].calls
+    await bedside.emit('on')
+    assert bool(bedside.lights[0].calls)==color
+
+@pytest.mark.asyncio
+async def test_capability_change_cancels_hold_and_recovers(bedside):
+    await bedside.emit('move_with_on_off',[0,83])
+    count=len(bedside.lights[0].calls)
+    attrs=dict(bedside.hass.states.get('light.bedside_0').attributes)
+    attrs['supported_color_modes']=['brightness']
+    bedside.hass.states.async_set('light.bedside_0','on',attrs)
+    await bedside.drain()
+    assert bedside.memory()['h']=='' and bedside.memory()['f']==[]
+    assert 'ne déclare pas les couleurs' in bedside.diagnostic()
+    await bedside.tick()
+    assert len(bedside.lights[0].calls)==count
+    attrs['supported_color_modes']=['xy']
+    bedside.hass.states.async_set('light.bedside_0','on',attrs)
+    await bedside.drain();await bedside.check()
+    assert 'Configuration compatible' in bedside.diagnostic()
+    assert len(bedside.lights[0].calls)==count
+
+@pytest.mark.asyncio
+async def test_unavailable_diagnostic_is_pending_and_recovery_clears_problem(bedside):
+    bedside.lights[0]._attr_available=False;bedside.lights[0].async_write_ha_state()
+    await bedside.drain();await bedside.check()
+    assert 'contrôle en attente' in bedside.diagnostic()
+    assert not bedside.lights[0].calls
+    bedside.lights[0]._attr_available=True;bedside.lights[0].async_write_ha_state()
+    await bedside.drain();await bedside.check()
+    assert 'Configuration compatible' in bedside.diagnostic()
+
+@pytest.mark.asyncio
+async def test_no_transition_capability_falls_back_to_steps(bedside):
+    bedside.lights[0]._attr_supported_features=LightEntityFeature.EFFECT
+    bedside.lights[0].async_write_ha_state();await bedside.drain()
+    await bedside.emit('move_with_on_off',[0,83])
+    assert 'transition' not in bedside.lights[0].calls[-1][1]
+    assert bedside.memory()['f']==[]
+    await bedside.check()
+    assert 'non déclarés ; variation par pas' in bedside.diagnostic()
+
+@pytest.mark.asyncio
+async def test_release_freezes_intermediate_rendered_level(bedside):
+    lamp=bedside.lights[0]
+    await bedside.emit('move_with_on_off',[0,83])
+    assert lamp.calls[-1][1]['transition']>0
+    frame=bedside.memory()['f'];assert len(frame)==4
+    bedside.now+=timedelta(seconds=frame[3]/2)
+    rendered=lamp.rendered_level()
+    await bedside.emit('stop_with_on_off',advance=0)
+    assert lamp.calls[-1][1]['transition']==0
+    assert abs(lamp.rendered_level()-rendered)<=1
+    assert lamp.brightness < frame[1]/100*255
+    assert bedside.memory()['h']=='' and bedside.memory()['f']==[]
+
+@pytest.mark.asyncio
+async def test_ticks_follow_clock_grid_without_two_second_skips(bedside):
+    await bedside.emit('move_with_on_off',[0,83])
+    for _ in range(4):
+        due=bedside.memory()['u'];count=len(bedside.lights[0].calls)
+        await bedside.tick(advance=due-bedside.now.timestamp()+.005)
+        assert len(bedside.lights[0].calls)==count+1
+        assert .9 <= bedside.lights[0].calls[-1][1]['transition']<=1.05
+        assert bedside.memory()['u']-due==pytest.approx(1,abs=.01)
+
+@pytest.mark.asyncio
+async def test_direction_reversal_uses_intermediate_level(bedside):
+    await bedside.emit('move_with_on_off',[0,83])
+    frame=bedside.memory()['f'];bedside.now+=timedelta(seconds=frame[3]/2)
+    actual=bedside.lights[0].rendered_level()
+    await bedside.emit('move',[1,83],advance=0)
+    target=bedside.lights[0].calls[-1][1]['brightness']
+    assert target<actual and abs(bedside.memory()['f'][0]/100*255-actual)<=1
+
+@pytest.mark.asyncio
+async def test_release_does_not_override_external_brightness_change(bedside):
+    await bedside.emit('move_with_on_off',[0,83])
+    await bedside.hass.services.async_call('light','turn_on',dict(entity_id='light.bedside_0',brightness=30),blocking=True)
+    count=len(bedside.lights[0].calls)
+    await bedside.emit('stop')
+    assert len(bedside.lights[0].calls)==count and bedside.lights[0].brightness==30
+
+@pytest.mark.asyncio
+async def test_color_change_during_fade_preserves_current_level(bedside):
+    await bedside.emit('move_with_on_off',[0,83])
+    frame=bedside.memory()['f'];bedside.now+=timedelta(seconds=frame[3]/2)
+    rendered=bedside.lights[0].rendered_level()
+    await bedside.emit('press',[256,13,0],advance=0)
+    assert abs(bedside.lights[0].brightness-rendered)<=1
+    assert bedside.memory()['h']=='' and bedside.memory()['f']==[]
+
+@pytest.mark.asyncio
+async def test_hold_fade_never_exceeds_deadline_and_memory_capacity(bedside):
+    bedside.now=bedside.now.replace(microsecond=987654)
+    await bedside.emit('move_with_on_off',[0,83])
+    end=bedside.memory()['s']+15
+    for _ in range(5):
+        frame=bedside.memory()['f']
+        assert frame[2]+frame[3]<=end+.001
+        assert len(bedside.hass.states.get('input_text.bedside_0').state)<=255
+        due=bedside.memory()['u'];await bedside.tick(advance=due-bedside.now.timestamp()+.005)
+    await bedside.tick(advance=15)
+    assert bedside.memory()['h']==''
+
+@pytest.mark.asyncio
+async def test_old_memory_upgrades_without_losing_ownership(bedside):
+    old=bedside.memory();old.pop('f',None)
+    await bedside.write('sl1:'+json.dumps(old,separators=(',',':')))
+    await bedside.emit('on')
+    assert bedside.memory()['o']==old['o'] and bedside.memory()['f']==[]
+
+@pytest.mark.asyncio
+async def test_invalid_fade_frame_is_preserved_and_blocked(bedside):
+    m=bedside.memory();m['f']=[10,20,bedside.now.timestamp(),999]
+    text='sl1:'+json.dumps(m,separators=(',',':'));await bedside.write(text)
+    await bedside.emit('on')
+    assert bedside.hass.states.get('input_text.bedside_0').state==text
+    assert not bedside.lights[0].calls
+
+@pytest.mark.asyncio
+async def test_smoothing_can_be_disabled(tmp_path):
+    env=await BedsideEnv().setup(tmp_path,dict(smooth_dimming=False))
+    try:
+        await env.emit('move_with_on_off',[0,83])
+        assert env.lights[0].calls[-1][1]['transition']==0
+        assert env.memory()['f']==[]
     finally:
         await env.close()

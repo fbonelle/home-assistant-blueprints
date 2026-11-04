@@ -1,0 +1,22 @@
+{# Capabilities are metadata, never a claim that a physical command was tested. #}
+{% set raw_modes=state_attr(lamp,'supported_color_modes') %}
+{% set valid=raw_modes is sequence and raw_modes is not string and raw_modes is not mapping %}
+{% set modes=raw_modes|list if valid else [] %}
+{% set colors=modes|select('in',['xy','hs','rgb','rgbw','rgbww'])|list|count > 0 %}
+{% set brightness=modes|select('in',['brightness','color_temp','xy','hs','rgb','rgbw','rgbww','white'])|list|count > 0 %}
+{% set online=states(lamp) in ['on','off'] and not state_attr(lamp,'restored') %}
+{% set features=state_attr(lamp,'supported_features')|int(0) %}
+{% set lo=state_attr(lamp,'min_color_temp_kelvin') %}{% set hi=state_attr(lamp,'max_color_temp_kelvin') %}
+{% set ct='color_temp' in modes %}
+{% set range_ok=ct and lo is number and hi is number and lo is not boolean and hi is not boolean and 0 < lo <= hi < 100000 %}
+{% set ns=namespace(errors=[]) %}
+{% if not online %}{% set ns.errors=ns.errors+['Lampe indisponible : contrôle en attente de sa connexion.'] %}
+{% elif not valid or modes|count == 0 %}{% set ns.errors=ns.errors+['Home Assistant ne fournit pas les capacités de cette lampe.'] %}
+{% else %}
+ {% if not brightness %}{% set ns.errors=ns.errors+['Cette lampe ne déclare pas de variation de luminosité.'] %}{% endif %}
+ {% if not colors %}{% set ns.errors=ns.errors+['Cette lampe ne déclare pas les couleurs nécessaires à la palette et au rappel RGB.'] %}{% endif %}
+{% endif %}
+{{ dict(online=online,modes=modes,color=colors,brightness=brightness,
+ preset_white=colors,white_channel=('white' in modes or 'rgbw' in modes or 'rgbww' in modes),
+ color_temperature=ct,temperature_range=([lo,hi] if range_ok else []),
+ transition=(features|bitwise_and(32) != 0),errors=ns.errors) }}

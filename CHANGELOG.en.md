@@ -2,6 +2,15 @@
 
 [Français](CHANGELOG.md) · **English**
 
+## STYRBAR light — 1.1.0 — 4 November 2026
+
+- Capability checks at activation, before commands and when availability or capabilities change.
+- Manual diagnostic through “Run actions”, without lighting commands: dimming, colors, palette whites, white channel, native temperature and transitions.
+- IKEA `xy` lights retain palette whites; non-color lights are rejected and unavailable lights remain pending verification.
+- Native hold fading, clock-aligned cadence and estimated intermediate-level stopping on release or direction reversal.
+- Independent color transitions, step fallback without fade support, automatic reuse of 1.0.0 memory.
+- Tests using an independent fade model and bilingual documentation of setup and measurement limits.
+
 ## STYRBAR light — 1.0.0 — 4 November 2026
 
 First published version of **Light with IKEA STYRBAR remote — ZHA**.

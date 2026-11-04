@@ -1,4 +1,6 @@
 {% set m=raw[4:]|from_json({}) if raw.startswith('sl1:') else
    dict(v=1,o=owner,c='',t=0,h='',s=0,u=0,i=-1,x=[],k='',p='') %}
+{% set m=dict(m,f=m.get('f',[])) %}
 {# Wall-clock correction invalidates only transient gestures; never replay one. #}
-{{ dict(m,c='',t=0,h='',s=0,u=0) if m.t > clock + 1 or m.s > clock + 1 or m.u > clock + 5 else m }}
+{{ dict(m,c='',t=0,h='',s=0,u=0,f=[]) if m.t > clock + 1 or m.s > clock + 1 or m.u > clock + 6
+ or (m.f|count == 4 and m.f[2] > clock + 1) else m }}

@@ -5,6 +5,8 @@ blueprint:
     rappel d’une couleur configurable. Un assistant Texte distinct par automatisation (0 à 255 caractères).
     ZHA et STYRBAR uniquement ; lampe couleur requise. Le double appui en haut exige deux événements
     réellement transmis par la télécommande. Le maintien à droite sert aussi de rappel par défaut.
+    Les capacités déclarées sont contrôlées à l’activation. Menu → Exécuter les actions affiche
+    un diagnostic sans allumer la lampe. Les blancs en mode couleur ne nécessitent pas de mode color_temp.
     Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/ikea_styrbar_light.md
   domain: automation
   homeassistant:
@@ -21,6 +23,9 @@ blueprint:
             model: Remote Control N2
     light:
       name: Lampe couleur à piloter
+      description: >-
+        Les capacités sont vérifiées après enregistrement et avant toute commande. Utiliser Menu → Exécuter
+        les actions pour consulter le diagnostic : luminosité, couleurs, blancs, température et transitions.
       selector:
         entity:
           filter:
@@ -106,10 +111,17 @@ blueprint:
       selector:
         number: {min: 2, max: 30, step: 1, unit_of_measurement: s, mode: box}
     transition:
-      name: Durée de transition
+      name: Durée de transition des changements de couleur
       default: 0.3
       selector:
         number: {min: 0, max: 2, step: 0.1, unit_of_measurement: s, mode: box}
+    smooth_dimming:
+      name: Lisser la variation pendant un maintien
+      description: >-
+        Utilise les fondus natifs si la lampe les déclare. Le relâchement fige le niveau estimé atteint,
+        car Home Assistant annonce souvent le niveau cible avant la fin du fondu.
+      default: true
+      selector: {boolean: {}}
     colors_turn_on:
       name: Les flèches de couleur peuvent allumer la lampe
       default: true
@@ -147,6 +159,18 @@ triggers:
 - trigger: event
   event_type: automation_reloaded
   id: reset
+- trigger: state
+  entity_id: !input light
+  attribute: supported_color_modes
+  id: capabilities
+- trigger: state
+  entity_id: !input light
+  attribute: supported_features
+  id: capabilities
+- trigger: state
+  entity_id: !input light
+  to: ['on','off','unavailable','unknown']
+  id: availability
 variables:
   remote: !input remote
   lamp: !input light
@@ -162,6 +186,7 @@ variables:
   dim_interval: !input dim_interval
   hold_limit: !input hold_limit
   transition: !input transition
+  smooth_dimming: !input smooth_dimming
   colors_turn_on: !input colors_turn_on
   recall_turns_on: !input recall_turns_on
   debounce_ms: !input debounce_ms
@@ -169,12 +194,15 @@ variables:
 conditions:
 - condition: template
   value_template: >-
-    {% if trigger is not defined %}false
+    {% if trigger is not defined or trigger.id is not defined or trigger.id is none %}true
     {% elif trigger.id == 'tick' %}
       {% set raw=states(memory_entity) %}
       {% set m=raw[4:]|from_json({}) if raw.startswith('sl1:') else {} %}
       {{ m is mapping and m.get('h') in ['up','down'] }}
-    {% elif trigger.id == 'reset' %}true
+    {% elif trigger.id in ['reset','capabilities'] %}true
+    {% elif trigger.id == 'availability' %}
+      {{ trigger.from_state is none or trigger.to_state is none or
+         trigger.from_state.state in ['unavailable','unknown'] or trigger.to_state.state in ['unavailable','unknown'] }}
     {% elif trigger.id == 'remote' and trigger.event is defined %}
       {{ trigger.event.data.get('command') in
       ['on','off','move','move_with_on_off','stop','stop_with_on_off','press','hold','release'] }}
@@ -192,10 +220,18 @@ actions:
   - stop: Événement sans action reconnue.
 - variables:
     check: '@template:validation'
+    capabilities: '@template:capabilities'
+    diagnostic_id: '{{ "styrbar_capabilities_" ~ sha256(this.entity_id)[:16] }}'
+    diagnostic: '@template:diagnostic'
 - if: '{{ check | count > 0 }}'
   then:
   - if: "{{ command != 'tick' }}"
     then:
+    - action: persistent_notification.create
+      data:
+        notification_id: '{{ diagnostic_id }}'
+        title: Compatibilité de la lampe STYRBAR
+        message: '{{ diagnostic }}'
     - action: system_log.write
       data:
         logger: ikea_styrbar_light
@@ -204,12 +240,41 @@ actions:
   - stop: Configuration invalide ; aucune commande de lampe envoyée.
 - variables:
     m: '@template:read'
-- if: "{{ command == 'reset' }}"
+- if: '{{ capabilities.errors | count > 0 }}'
   then:
   - action: input_text.set_value
     target: {entity_id: '{{ memory_entity }}'}
     data:
-      value: 'sl1:{{ dict(m,c="",t=0,h="",s=0,u=0) | to_json }}'
+      value: 'sl1:{{ dict(m,h="",s=0,u=0,f=[]) | to_json }}'
+  - if: "{{ command != 'tick' }}"
+    then:
+    - action: persistent_notification.create
+      data:
+        notification_id: '{{ diagnostic_id }}'
+        title: Compatibilité de la lampe STYRBAR
+        message: '{{ diagnostic }}'
+    - action: system_log.write
+      data:
+        logger: ikea_styrbar_light
+        level: '{{ "warning" if capabilities.online else "info" }}'
+        message: '{{ this.entity_id }} : {{ capabilities.errors | join(" ") }}'
+  - stop: Contrôle des capacités non concluant ; aucune commande de lampe envoyée.
+- if: "{{ command == 'check' }}"
+  then:
+  - action: persistent_notification.create
+    data:
+      notification_id: '{{ diagnostic_id }}'
+      title: Compatibilité de la lampe STYRBAR
+      message: '{{ diagnostic }}'
+  - stop: Diagnostic affiché ; lampe inchangée.
+- if: "{{ command in ['reset','capabilities'] }}"
+  then:
+  - action: input_text.set_value
+    target: {entity_id: '{{ memory_entity }}'}
+    data:
+      value: 'sl1:{{ dict(m,c="",t=0,h="",s=0,u=0,f=[]) | to_json }}'
+  - action: persistent_notification.dismiss
+    data: {notification_id: '{{ diagnostic_id }}'}
   - stop: Gestes en cours annulés ; couleur et luminosité inchangées.
 - variables:
     event_time: '{{ as_timestamp(trigger.event.time_fired) if command != "tick" else clock }}'
@@ -230,6 +295,15 @@ actions:
       value: 'sl1:{{ dict(m,t=event_time) | to_json }}'
   - stop: Paquet de maintien répété ; durée et prochain pas conservés.
 - variables:
+    frame_active: >-
+      {{ m.f|count == 4 and capabilities.transition and is_state(lamp,'on') and
+         m.f[2] <= clock < m.f[2]+m.f[3] and state_attr(lamp,'brightness') is number and
+         ((state_attr(lamp,'brightness')/255*100)-m.f[1])|abs < 0.6 and
+         sha256(states[lamp].context.id)[:8] == m.k }}
+    current_level: >-
+      {{ (m.f[0]+(m.f[1]-m.f[0])*(clock-m.f[2])/m.f[3])|round(3) if frame_active
+         else state_attr(lamp,'brightness')|float(0)/255*100 }}
+- variables:
     operation: >-
       {% if command == 'tick' %}dim
       {% elif command in ['up_hold','down_hold'] %}dim
@@ -237,6 +311,7 @@ actions:
       {% elif command == recall_fallback and command in ['left_hold','right_hold'] %}recall
       {% elif command == 'left' %}previous
       {% elif command == 'right' %}next
+      {% elif command == 'release' and frame_active %}freeze
       {% elif command in ['on','off'] %}{{ command }}
       {% else %}none{% endif %}
     direction: >-
@@ -256,7 +331,7 @@ actions:
       value: 'sl1:{{ m | to_json }}'
   - stop: Ancien geste annulé après une correction d’horloge.
 - if: >-
-    {{ command == 'tick' and clock < m.u and clock >= hold_started and
+    {{ command == 'tick' and clock < m.u - 0.05 and clock >= hold_started and
        clock - hold_started < hold_limit and hold_started >= enabled_since }}
   then:
   - stop: Aucun pas de variation à exécuter.
@@ -264,13 +339,14 @@ actions:
 - variables:
     updated: >-
       {{ dict(m,h='',c=(m.c if command == 'tick' else 'paired' if operation == 'recall' and command == 'on' else command),
-         t=(m.t if command == 'tick' else event_time),s=hold_started,u=0) }}
+         t=(m.t if command == 'tick' else event_time),s=hold_started,u=0,f=[]) }}
 - action: input_text.set_value
   target: {entity_id: '{{ memory_entity }}'}
   data:
     value: 'sl1:{{ updated | to_json }}'
 - if: >-
     {{ operation == 'none' or states(lamp) not in ['on','off'] or
+       (operation == 'freeze' and not is_state(lamp,'on')) or
        (operation == 'dim' and (hold_started < enabled_since or clock - hold_started >= hold_limit or
                                clock < hold_started or (is_state(lamp,'off') and (command == 'tick' or direction == 'down')))) or
        (operation in ['next','previous'] and not colors_turn_on and is_state(lamp,'off')) or
@@ -280,10 +356,20 @@ actions:
 - variables:
     selected_index: -1
     keep_hold: false
+    next_deadline: 0
+    new_frame: []
     stop_effect: >-
       {{ dict(effect='off') if state_attr(lamp,'effect') not in [none,'off'] and
          'off' in (state_attr(lamp,'effect_list') or []) else {} }}
+    color_options: >-
+      {% set options=dict(stop_effect,brightness_pct=current_level) if frame_active else stop_effect %}
+      {{ dict(options,transition=transition) if capabilities.transition else options }}
 - choose:
+  - conditions: "{{ operation == 'freeze' }}"
+    sequence:
+    - action: light.turn_on
+      target: {entity_id: '{{ lamp }}'}
+      data: '{{ dict(brightness_pct=current_level,transition=0) }}'
   - conditions: "{{ operation == 'off' }}"
     sequence:
     - action: light.turn_off
@@ -292,12 +378,14 @@ actions:
     sequence:
     - action: light.turn_on
       target: {entity_id: '{{ lamp }}'}
-      data: '{{ dict(brightness_pct=on_brightness) if on_brightness > 0 else {} }}'
+      data: >-
+        {{ dict(brightness_pct=on_brightness) if on_brightness > 0 else
+           dict(brightness_pct=current_level,transition=0) if frame_active else {} }}
   - conditions: "{{ operation == 'recall' }}"
     sequence:
     - action: light.turn_on
       target: {entity_id: '{{ lamp }}'}
-      data: '{{ dict(stop_effect,rgb_color=default_color,transition=transition) }}'
+      data: '{{ dict(color_options,rgb_color=default_color) }}'
   - conditions: "{{ operation in ['next','previous'] }}"
     sequence:
     - variables:
@@ -306,22 +394,37 @@ actions:
     - action: light.turn_on
       target: {entity_id: '{{ lamp }}'}
       data: >-
-        {{ dict(stop_effect,rgb_color=color.rgb_color,transition=transition) if 'rgb_color' in color
-           else dict(stop_effect,xy_color=color.xy_color,transition=transition) }}
+        {{ dict(color_options,rgb_color=color.rgb_color) if 'rgb_color' in color
+           else dict(color_options,xy_color=color.xy_color) }}
   - conditions: "{{ operation == 'dim' }}"
     sequence:
     - if: "{{ is_state(lamp,'on') and state_attr(lamp,'brightness') is not number }}"
       then:
       - stop: Luminosité inconnue ; variation annulée.
     - variables:
-        old_level: '{{ state_attr(lamp,"brightness") | float(0) / 255 * 100 }}'
+        old_level: '{{ current_level }}'
+        next_deadline: >-
+          {% set end=[clock|round(0,'floor')+dim_interval,hold_started+hold_limit]|min %}
+          {{ [end+dim_interval,hold_started+hold_limit]|min if end-clock < 0.05 else end }}
+        fade_duration: >-
+          {{ ([0,([dim_interval,hold_started+hold_limit-clock]|min)]|max)|round(3) if smooth_dimming and capabilities.transition and
+             is_state(lamp,'on') else 0 }}
         new_level: >-
           {{ min_brightness if is_state(lamp,'off') else
-             ([min_brightness, old_level + (brightness_step if direction == 'up' else -brightness_step), max_brightness] | sort)[1] | round(3) }}
-        keep_hold: '{{ (direction == "up" and new_level < max_brightness) or (direction == "down" and new_level > min_brightness) }}'
+             ([min_brightness, old_level + (brightness_step if direction == 'up' else -brightness_step)*
+               (fade_duration/dim_interval if fade_duration > 0 else 1), max_brightness] | sort)[1] | round(3) }}
+        keep_hold: >-
+          {{ fade_duration > 0 or (direction == 'up' and new_level < max_brightness) or
+             (direction == 'down' and new_level > min_brightness) }}
+        new_frame: '{{ [old_level|round(3),new_level,clock,fade_duration] if fade_duration > 0 else [] }}'
+    - if: "{{ is_state(lamp,'on') and (new_level-old_level)|abs < 0.01 }}"
+      then:
+      - stop: Butée de luminosité atteinte ; maintien terminé.
     - action: light.turn_on
       target: {entity_id: '{{ lamp }}'}
-      data: '{{ dict(brightness_pct=new_level,transition=[transition,dim_interval]|min) }}'
+      data: >-
+        {{ dict(brightness_pct=new_level,transition=fade_duration) if capabilities.transition
+           else dict(brightness_pct=new_level) }}
 - variables:
     actual_xy: '{{ state_attr(lamp,"xy_color") }}'
     observed_xy: >-
@@ -329,9 +432,9 @@ actions:
          actual_xy is not string and actual_xy|count == 2 else [] }}
     cursor: >-
       {{ selected_index if operation in ['next','previous'] else m.i
-         if operation in ['dim','on','off'] and m.p == palette_key and observed_xy == m.x else -1 }}
+         if operation in ['dim','freeze','on','off'] and m.p == palette_key and observed_xy == m.x else -1 }}
     completed: >-
-      {{ dict(updated,h=(direction if keep_hold else ''),u=((clock + dim_interval)|round(3) if keep_hold else 0),
+      {{ dict(updated,h=(direction if keep_hold else ''),u=(next_deadline|round(3) if keep_hold else 0),f=new_frame,
          i=cursor,p=palette_key,x=observed_xy,
          k=sha256(states[lamp].context.id)[:8]) }}
 - action: input_text.set_value

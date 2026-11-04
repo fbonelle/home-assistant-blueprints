@@ -9,7 +9,7 @@ A collection of blueprints built with standard Home Assistant features. Each blu
 | Blueprint | Purpose | Version | Requirements |
 |---|---|---|---|
 | [Integration monitoring and reload](docs/integration_watchdog.en.md) | Detect a problem using selected entities, try reloading the integration and notify you when intervention is needed. | **1.0.1** | Home Assistant 2026.10 or later |
-| [Light with IKEA STYRBAR remote](docs/ikea_styrbar_light.en.md) | On/off, brightness, white and IKEA color palette, configurable color recall. | **1.0.0** | Home Assistant 2026.10, ZHA, color light |
+| [Light with IKEA STYRBAR remote](docs/ikea_styrbar_light.en.md) | On/off, smooth dimming, capability checks, white and IKEA color palette, configurable recall. | **1.1.0** | Home Assistant 2026.10, ZHA, color light |
 
 **1.0.0 is the first published version.** Numbers used during development do not represent project releases.
 
@@ -30,6 +30,8 @@ The blueprint form currently uses French labels; the English guide includes the 
 ## Light with IKEA STYRBAR remote
 
 One blueprint per light, with a dedicated Text helper. No shared configuration file to install. The form offers three Home Assistant reference whites, 20 historical IKEA presets and brightness settings. Double up depends on events actually sent by the firmware; holding right also recalls the default color.
+
+**Menu → Run actions** shows the capability diagnostic without commanding the light. Holds use native fades and freeze at the estimated intermediate level when released.
 
 [Installation and buttons](docs/ikea_styrbar_light.en.md) · [Blueprint](blueprints/automation/ikea_styrbar_light/lampe_styrbar.yaml) · [Examples](examples/ikea_styrbar_light/automations.yaml)
 

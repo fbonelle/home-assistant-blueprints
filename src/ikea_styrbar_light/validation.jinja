@@ -2,10 +2,6 @@
 {% if not lamp.startswith('light.') or not remote %}
  {% set ns.errors=ns.errors+['Choisir une lampe et une télécommande.'] %}
 {% endif %}
-{% set modes=state_attr(lamp,'supported_color_modes') or [] %}
-{% if modes|select('in',['xy','hs','rgb','rgbw','rgbww'])|list|count == 0 %}
- {% set ns.errors=ns.errors+['La lampe doit prendre en charge les couleurs.'] %}
-{% endif %}
 {% if not memory_entity.startswith('input_text.') or states[memory_entity] is none or raw == 'unavailable'
  or state_attr(memory_entity,'min') != 0 or state_attr(memory_entity,'max') != 255 %}
  {% set ns.errors=ns.errors+['Créer un assistant Texte distinct, de longueur minimale 0 et maximale 255.'] %}
@@ -40,7 +36,7 @@
 {% if (min_brightness is number and max_brightness is number and min_brightness > max_brightness) or
  (debounce_ms is number and double_press_ms is number and debounce_ms >= double_press_ms) or
  recall_fallback not in ['right_hold','left_hold','none'] or
- colors_turn_on is not boolean or recall_turns_on is not boolean or logging is not boolean %}
+ colors_turn_on is not boolean or recall_turns_on is not boolean or logging is not boolean or smooth_dimming is not boolean %}
  {% set ns.errors=ns.errors+['Les réglages de variation ou de rappel sont incohérents.'] %}
 {% endif %}
 {% if raw not in ['','unknown'] %}
@@ -48,7 +44,7 @@
  {% if m is not mapping or m.get('v') is not integer or m.v != 1 or m.get('o') != owner %}
   {% set ns.errors=ns.errors+['L’assistant Texte est illisible ou appartient à une autre automatisation. Ne pas le partager.'] %}
  {% else %}
-  {% if m.keys()|list|sort != ['c','h','i','k','o','p','s','t','u','v','x'] or
+  {% if m.keys()|reject('eq','f')|list|sort != ['c','h','i','k','o','p','s','t','u','v','x'] or
    m.get('c') not in ['','on','off','left','right','up_hold','down_hold','left_hold','right_hold','release','paired'] or
    m.get('h') not in ['','up','down'] or m.get('i') is not integer or not -1 <= m.i < catalog|count or
    m.get('k') is not string or m.k|length not in [0,8] or m.get('p') is not string or m.p|length not in [0,8] %}
@@ -66,6 +62,16 @@
   {% else %}{% for value in x %}{% if value is not number or value is boolean or not 0 <= value <= 1 %}
    {% set ns.errors=ns.errors+['Coordonnées de couleur invalides dans l’assistant Texte.'] %}
   {% endif %}{% endfor %}{% endif %}
+  {% set f=m.get('f',[]) %}
+  {% if f is not sequence or f is string or f is mapping or f|count not in [0,4] %}
+   {% set ns.errors=ns.errors+['Le fondu mémorisé est invalide.'] %}
+  {% elif f|count == 4 %}
+   {% for value,lower,upper in [(f[0],0,100),(f[1],0,100),(f[2],0,7258118400),(f[3],0.001,6)] %}
+    {% if value is not number or value is boolean or not lower <= value <= upper %}
+     {% set ns.errors=ns.errors+['Le fondu mémorisé est invalide.'] %}
+    {% endif %}
+   {% endfor %}
+  {% endif %}
  {% endif %}
 {% endif %}
 {{ ns.errors|unique|list }}

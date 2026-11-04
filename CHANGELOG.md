@@ -2,6 +2,15 @@
 
 **Français** · [English](CHANGELOG.en.md)
 
+## Lampe STYRBAR — 1.1.0 — 4 novembre 2026
+
+- Contrôle des capacités à l’activation, avant les commandes et lors d’un changement de disponibilité ou de capacités.
+- Diagnostic manuel depuis « Exécuter les actions », sans commande d’éclairage : luminosité, couleurs, blancs de palette, canal blanc, température native et transitions.
+- Les IKEA en mode `xy` conservent les blancs de la palette ; une ampoule sans couleur est refusée et une indisponibilité reste un contrôle en attente.
+- Lissage natif des maintiens, cadence alignée sur l’horloge et arrêt au niveau intermédiaire estimé lors du relâchement ou d’une inversion de sens.
+- Transitions de couleur indépendantes, repli par pas si les fondus ne sont pas déclarés, mémoire 1.0.0 reprise automatiquement.
+- Tests avec modèle de fondu indépendant et documentation bilingue des limites de configuration et de mesure.
+
 ## Lampe STYRBAR — 1.0.0 — 4 novembre 2026
 
 Première version publiée de **Lampe avec télécommande IKEA STYRBAR — ZHA**.

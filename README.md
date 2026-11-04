@@ -9,7 +9,7 @@ Une collection de blueprints pour automatiser Home Assistant avec ses fonctions 
 | Blueprint | Fonction | Version | Prérequis |
 |---|---|---|---|
 | [Surveillance et relance des intégrations](docs/integration_watchdog.md) | Détecter une panne à partir d’entités choisies, tenter une relance et prévenir si une intervention est nécessaire. | **1.0.1** | Home Assistant 2026.10 minimum |
-| [Lampe avec télécommande IKEA STYRBAR](docs/ikea_styrbar_light.md) | Marche/arrêt, luminosité, palette de blancs et couleurs IKEA, rappel d’une couleur configurable. | **1.0.0** | Home Assistant 2026.10, ZHA, lampe couleur |
+| [Lampe avec télécommande IKEA STYRBAR](docs/ikea_styrbar_light.md) | Marche/arrêt, variation fluide, contrôle des capacités, palette de blancs et couleurs IKEA, rappel configurable. | **1.1.0** | Home Assistant 2026.10, ZHA, lampe couleur |
 
 La version **1.0.0 est la première version publiée**. Les numéros utilisés pendant la préparation ne constituent pas des versions du projet.
 
@@ -30,6 +30,8 @@ Les exemples Netatmo, TaHoma et Cozytouch sont fictifs et doivent être adaptés
 ## Lampe avec télécommande IKEA STYRBAR
 
 Un blueprint par lampe, avec un assistant Texte dédié. Aucun fichier partagé à installer. Les trois blancs de référence Home Assistant, les 20 préréglages historiques IKEA et les réglages de luminosité sont disponibles dans le formulaire. Le double appui en haut dépend des événements réellement émis par le micrologiciel ; le maintien à droite rappelle également la couleur par défaut.
+
+Le diagnostic des capacités s’affiche avec **Menu → Exécuter les actions**, sans commander la lampe. Les maintiens utilisent les fondus natifs et un arrêt au niveau intermédiaire estimé lors du relâchement.
 
 [Installation et boutons](docs/ikea_styrbar_light.md) · [Blueprint](blueprints/automation/ikea_styrbar_light/lampe_styrbar.yaml) · [Exemples](examples/ikea_styrbar_light/automations.yaml)
 

@@ -2,7 +2,7 @@
 
 **Français** · [English](ikea_styrbar_light.en.md) · [Accueil](../README.md)
 
-Version **1.0.0**. Un seul blueprint par lampe remplace le couple « contrôleur + hook ». Il utilise les fonctions standard de Home Assistant, sans composant personnalisé ni script partagé à installer.
+Version **1.1.0**. Un seul blueprint par lampe remplace le couple « contrôleur + hook ». Il utilise les fonctions standard de Home Assistant, sans composant personnalisé ni script partagé à installer.
 
 ## Installation
 
@@ -13,6 +13,16 @@ Version **1.0.0**. Un seul blueprint par lampe remplace le couple « contrôleur
 5. Avant d’activer le nouveau pilotage, désactiver les anciennes automatisations contrôleur et hook de cette télécommande. Vérifier aussi qu’aucune liaison Zigbee directe ou autre automatisation ne commande simultanément la lampe.
 
 Les [exemples d’automatisations](../examples/ikea_styrbar_light/automations.yaml) et d’[assistants YAML](../examples/ikea_styrbar_light/helpers.yaml) utilisent uniquement des identifiants fictifs. Les assistants créés depuis l’interface suffisent : le fichier YAML d’assistants est facultatif. Adapter le chemin du blueprint si Home Assistant propose un autre nom lors de l’importation.
+
+## Vérifier les capacités à la configuration
+
+Le formulaire standard des blueprints ne permet pas d’exécuter un test dès le choix de l’ampoule ou d’empêcher l’enregistrement selon ses attributs. Le contrôle s’exécute après activation/rechargement, avant les commandes, et lorsque les capacités ou la disponibilité de la lampe changent. Une incompatibilité bloque les commandes et crée une notification Home Assistant distincte pour cette automatisation. Une indisponibilité est signalée comme un contrôle en attente, sans conclure que l’ampoule est incompatible.
+
+Pour afficher aussi un résultat positif, ouvrir le **Menu → Exécuter les actions** de l’automatisation. Cette action affiche uniquement un diagnostic : communication, luminosité, couleurs, blancs de la palette, canal blanc distinct, mode température native et sa plage en kelvins lorsqu’elle est fournie, transitions. Elle ne commande pas la lampe et n’interrompt pas un maintien valide. Les notifications de problème sont retirées après un nouveau contrôle automatique concluant.
+
+Une ampoule IKEA déclarant seulement `xy` peut produire les blancs de la palette via son mode couleur. L’absence de `color_temp` ne la rend donc pas incompatible. À l’inverse, une ampoule blanche réglable en kelvins sans mode couleur est refusée par ce blueprint, car ses palettes et son rappel utilisent RGB/xy. Les fondus sont facultatifs : s’ils ne sont pas déclarés, la variation fonctionne par pas et aucun paramètre de transition n’est envoyé.
+
+Ce contrôle repose sur les informations déclarées par l’intégration. Il ne vérifie pas le rendu lumineux ni la fiabilité radio, et les capacités agrégées d’un groupe ne garantissent pas celles de chaque ampoule membre. Aucun éclairage de test n’est envoyé automatiquement à l’enregistrement.
 
 ## Boutons
 
@@ -55,7 +65,9 @@ L’ordre enregistré dans la sélection est l’ordre de défilement. En YAML, 
 
 Les pas de luminosité, les bornes de variation, la luminosité imposée à l’allumage, l’intervalle entre les pas, la durée maximale du maintien, la transition, le délai de double appui et le filtrage des événements répétés sont réglables. Les bornes de luminosité concernent la variation ; elles ne limitent pas les changements faits depuis l’application ni la luminosité imposée à l’allumage.
 
-La variation s’exécute au plus une fois par seconde, ou plus lentement selon l’intervalle choisi. Une cadence de deux secondes peut occasionnellement apparaître avec le décalage du premier appui par rapport à l’horloge. La transition est limitée à l’intervalle entre les pas pour éviter des transitions qui s’empilent.
+**Lisser la variation pendant un maintien** est activé par défaut. Une nouvelle cible de luminosité est envoyée au plus une fois par seconde, ou plus lentement selon l’intervalle choisi. L’ampoule effectue un fondu natif pendant cet intervalle ; le geste commence immédiatement et la cadence suivante suit l’horloge pour éviter les pauses de deux secondes dues au décalage du premier appui. La vitesse correspond au pas divisé par l’intervalle, par défaut environ dix points de luminosité par seconde. La durée est plafonnée par le temps de maintien encore autorisé.
+
+Au relâchement ou au changement de sens, Home Assistant annonce souvent déjà la cible, alors que l’ampoule est encore en train d’y aller. Le blueprint estime le niveau intermédiaire à partir du dernier fondu et, au relâchement, envoie cette valeur avec une transition nulle. Cette estimation suppose un fondu linéaire : elle améliore l’arrêt mais ne remplace pas une mesure physique de luminosité. Un changement externe identifiable invalide cette estimation pour éviter de l’écraser. L’option de lissage peut être désactivée. Le réglage **Durée de transition des changements de couleur** reste indépendant de la variation de luminosité.
 
 Activer **Journaliser les boutons et les actions** ajoute des messages INFO au journal `ikea_styrbar_light`. Pour les voir dans le journal complet, ajouter ou fusionner ce réglage dans la configuration de journalisation existante :
 
@@ -76,7 +88,10 @@ Les erreurs de configuration sont signalées lors d’un appui ou d’un recharg
 - Une extinction depuis l’application arrête aussi un maintien ; la vérification périodique ne rallume pas la lampe.
 - Un démarrage, un rechargement, une réactivation de l’automatisation ou un retour de l’horloge en arrière ne reprend pas un ancien maintien. Un autre réglage effectué depuis l’application invalide le repère de palette mémorisé.
 - Les événements inconnus et les mises à jour de batterie n’interrompent pas un maintien. Les variantes numériques et textuelles `MoveMode.Up/Down` sont acceptées.
+- Un maintien ayant atteint une butée reste identifiable jusqu’à la fin du dernier fondu, afin qu’un relâchement puisse encore l’arrêter à mi-parcours. Un échec de commande désarme toujours les pas suivants.
 - L’assistant est associé à l’automatisation, à la télécommande et à la lampe. Un état illisible ou appartenant à une autre configuration arrête les commandes et est signalé, sans écrasement automatique. Pour changer cette association, arrêter l’automatisation, vider cet assistant dédié puis réactiver. Ne pas partager un assistant : cette vérification n’est pas un verrou distribué pour deux nouvelles automatisations démarrant simultanément.
 - Home Assistant n’est pas un système temps réel : une commande radio lente peut retarder le relâchement jusqu’à sa fin ou son expiration côté intégration. La limite de maintien empêche les pas suivants ; elle ne peut pas annuler une commande déjà envoyée à une ampoule.
 
-Les tests font fonctionner le blueprint dans un **Home Assistant 2026.10.4 isolé**, avec de vraies automatisations, les services natifs de lampe et des assistants Texte. Seule la radio est simulée. Ils couvrent notamment les doubles appuis, les limites de luminosité, les événements répétés ou retardés, la perte du relâchement, les erreurs de commande, les changements externes et l’indépendance de deux télécommandes. Ils ne prouvent pas la réception radio ni le rendu des couleurs sur une ampoule physique. Aucune automatisation d’une installation réelle n’est modifiée par la publication dans ce dépôt.
+Les tests font fonctionner le blueprint dans un **Home Assistant 2026.10.4 isolé**, avec de vraies automatisations, les services natifs de lampe et des assistants Texte. La radio et le rendu sont simulés, avec un modèle de fondu linéaire indépendant de la mémoire du blueprint. Ils couvrent notamment les capacités des différents modes, le diagnostic sans commande, l’arrêt à mi-fondu, les changements de sens, la cadence, les doubles appuis, les limites de luminosité, les événements répétés ou retardés, la perte du relâchement, les erreurs de commande, les changements externes et l’indépendance de deux télécommandes. Ils ne prouvent pas la réception radio ni le rendu des couleurs sur une ampoule physique. Aucune automatisation d’une installation réelle n’est modifiée par la publication dans ce dépôt.
+
+Une mise à jour depuis la version 1.0.0 conserve les entrées et l’assistant Texte existants. Les informations du dernier fondu sont ajoutées automatiquement ; un rechargement annule le geste en cours sans modifier l’éclairage.
