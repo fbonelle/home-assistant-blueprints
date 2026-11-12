@@ -153,3 +153,4 @@ print(OUT)
 # Each blueprint keeps its own version and sources.
 import runpy
 runpy.run_path(str(ROOT/'tools/build_styrbar.py'),run_name='__main__')
+runpy.run_path(str(ROOT/'tools/build_battery.py'),run_name='__main__')
