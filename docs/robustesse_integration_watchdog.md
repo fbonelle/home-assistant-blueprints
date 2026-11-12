@@ -1,4 +1,4 @@
-# Fonctionnement, tests et limites — 1.0.1
+# Fonctionnement, tests et limites — 1.0.0
 
 **Français** · [English](robustesse_integration_watchdog.en.md) · [Guide d’installation](integration_watchdog.md)
 

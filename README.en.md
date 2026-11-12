@@ -8,8 +8,8 @@ A collection of blueprints built with standard Home Assistant features. Each blu
 
 | Blueprint | Purpose | Version | Requirements |
 |---|---|---|---|
-| [Integration monitoring and reload](docs/integration_watchdog.en.md) | Detect a problem using selected entities, try reloading the integration and notify you when intervention is needed. | **1.0.1** | Home Assistant 2026.10 or later |
-| [Light with IKEA STYRBAR remote](docs/ikea_styrbar_light.en.md) | On/off, fast brightness and color holds, capability checks, configurable recall. | **1.2.0** | Home Assistant 2026.10, ZHA, color light, shared script |
+| [Integration monitoring and reload](docs/integration_watchdog.en.md) | Detect a problem using selected entities, try reloading the integration and notify you when intervention is needed. | **1.0.0** | Home Assistant 2026.10 or later |
+| [Light with IKEA STYRBAR remote](docs/ikea_styrbar_light.en.md) | On/off, fast brightness and color holds, capability checks, configurable recall. | **1.0.0** | Home Assistant 2026.10, ZHA, color light, shared script |
 | [Battery monitoring](docs/battery_watch.en.md) | Report each battery to replace or silent device as soon as it is detected, then send a summary at a fixed time. | **1.0.0** | Home Assistant 2026.10 or later |
 
 **1.0.0 is the first published version.** Numbers used during development do not represent project releases.

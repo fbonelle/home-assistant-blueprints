@@ -1,4 +1,4 @@
-# Integration monitoring and reload — 1.0.1
+# Integration monitoring and reload — 1.0.0
 
 [Français](integration_watchdog.md) · **English** · [Home](../README.en.md)
 
@@ -49,7 +49,7 @@ The automation fills this helper. It keeps the retry count and reload state acro
 
 ### Fill in the form
 
-Create an automation using **Surveillance et relance des intégrations — 1.0.1**, then select:
+Create an automation using **Surveillance et relance des intégrations — 1.0.0**, then select:
 
 | French field label | What to select |
 |---|---|

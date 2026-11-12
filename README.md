@@ -8,8 +8,8 @@ Une collection de blueprints pour automatiser Home Assistant avec ses fonctions 
 
 | Blueprint | Fonction | Version | Prérequis |
 |---|---|---|---|
-| [Surveillance et relance des intégrations](docs/integration_watchdog.md) | Détecter une panne à partir d’entités choisies, tenter une relance et prévenir si une intervention est nécessaire. | **1.0.1** | Home Assistant 2026.10 minimum |
-| [Lampe avec télécommande IKEA STYRBAR](docs/ikea_styrbar_light.md) | Marche/arrêt, maintiens rapides de luminosité et couleur, contrôle des capacités, rappel configurable. | **1.2.0** | Home Assistant 2026.10, ZHA, lampe couleur, script partagé |
+| [Surveillance et relance des intégrations](docs/integration_watchdog.md) | Détecter une panne à partir d’entités choisies, tenter une relance et prévenir si une intervention est nécessaire. | **1.0.0** | Home Assistant 2026.10 minimum |
+| [Lampe avec télécommande IKEA STYRBAR](docs/ikea_styrbar_light.md) | Marche/arrêt, maintiens rapides de luminosité et couleur, contrôle des capacités, rappel configurable. | **1.0.0** | Home Assistant 2026.10, ZHA, lampe couleur, script partagé |
 | [Surveillance des piles et batteries](docs/battery_watch.md) | Signaler tout de suite chaque pile ou batterie à remplacer et chaque appareil muet, puis envoyer un récapitulatif à heure fixe. | **1.0.0** | Home Assistant 2026.10 minimum |
 
 La version **1.0.0 est la première version publiée**. Les numéros utilisés pendant la préparation ne constituent pas des versions du projet.

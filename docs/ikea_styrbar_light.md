@@ -2,7 +2,7 @@
 
 **Français** · [English](ikea_styrbar_light.en.md) · [Accueil](../README.md)
 
-Version **1.2.0**. Un seul blueprint par lampe remplace le couple « contrôleur + hook ». Les maintiens rapides utilisent un petit script partagé en YAML standard, sans composant personnalisé.
+Version **1.0.0**. Un seul blueprint par lampe remplace le couple « contrôleur + hook ». Les maintiens rapides utilisent un petit script partagé en YAML standard, sans composant personnalisé.
 
 ## Installation
 
@@ -107,4 +107,4 @@ Les erreurs de configuration sont signalées lors d’un appui ou d’un recharg
 
 Les tests font fonctionner le blueprint dans un **Home Assistant 2026.10.4 isolé**, avec de vraies automatisations, les services natifs de lampe et des assistants Texte. La radio et le rendu sont simulés, avec un modèle de fondu linéaire indépendant de la mémoire du blueprint. Ils couvrent notamment les capacités des différents modes, le diagnostic sans commande, l’arrêt à mi-fondu, les changements de sens, la cadence, les doubles appuis, les limites de luminosité, les événements répétés ou retardés, la perte du relâchement, les erreurs de commande, les changements externes et l’indépendance de deux télécommandes. Ils ne prouvent pas la réception radio ni le rendu des couleurs sur une ampoule physique. Aucune automatisation d’une installation réelle n’est modifiée par la publication dans ce dépôt.
 
-Une mise à jour depuis 1.0.0 ou 1.1.0 conserve les entrées et l’assistant Texte existants. **Installer aussi le fichier de script partagé avant de recharger le blueprint 1.2.0.** Choisir **Aucun** pour le geste de rappel supplémentaire si les deux maintiens latéraux doivent faire défiler la palette. Un rechargement annule le geste en cours sans modifier l’éclairage.
+Une mise à jour du blueprint conserve les entrées et l’assistant Texte existants. **Installer aussi le fichier de script partagé avant de recharger le blueprint.** Choisir **Aucun** pour le geste de rappel supplémentaire si les deux maintiens latéraux doivent faire défiler la palette. Un rechargement annule le geste en cours sans modifier l’éclairage.

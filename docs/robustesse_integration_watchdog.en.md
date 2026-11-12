@@ -1,4 +1,4 @@
-# How it works, tests and limitations — 1.0.1
+# How it works, tests and limitations — 1.0.0
 
 [Français](robustesse_integration_watchdog.md) · **English** · [Installation guide](integration_watchdog.en.md)
 
