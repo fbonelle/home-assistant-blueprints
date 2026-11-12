@@ -2,9 +2,9 @@
 
 **Français** · [English](CHANGELOG.en.md)
 
-## Surveillance des piles — 1.0.0 — 12 novembre 2026
+## Surveillance des piles et batteries — 1.0.0 — 12 novembre 2026
 
-Première version publiée de **Surveillance des piles**.
+Première version publiée de **Surveillance des piles et batteries**.
 
 - Alerte immédiate, une seule fois par appareil : pile sous le seuil, appareil muet au-delà d’un délai, alerte « pile faible » binaire.
 - Mémoire dans un assistant Texte : pas de nouvelle alerte quand une pile continue de baisser, oscille autour du seuil ou devient indisponible pendant un redémarrage.

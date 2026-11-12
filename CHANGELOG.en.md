@@ -4,7 +4,7 @@
 
 ## Battery monitoring — 1.0.0 — 12 November 2026
 
-First published version of **Battery monitoring** (*Surveillance des piles*).
+First published version of **Battery monitoring** (*Surveillance des piles et batteries*).
 
 - Immediate alert, once per device: battery below the threshold, device silent beyond a delay, binary “battery low” alert.
 - Memory in a Text helper: no new alert when a battery keeps dropping, oscillates around the threshold or becomes unavailable during a restart.

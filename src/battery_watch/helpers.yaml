@@ -4,6 +4,6 @@
 # Do not replace an existing input_text section.
 input_text:
   battery_watch_house:
-    name: Mémoire de la surveillance des piles
+    name: Mémoire de la surveillance des piles et batteries
     min: 0
     max: 255

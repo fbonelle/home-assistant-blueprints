@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BP = ROOT / 'blueprints/automation/battery_watch/surveillance_piles.yaml'
 EXAMPLES = ROOT / 'examples/battery_watch'
 MEMORY = 'input_text.battery_watch_house'
-AUTOMATION = 'automation.surveillance_des_piles_maison'
+AUTOMATION = 'automation.surveillance_des_piles_et_batteries_maison'
 WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 
 
@@ -174,7 +174,7 @@ async def make(tmp_path, **kw):
 
 async def test_native_schema_example_and_helper(env):
     bp = Blueprint(load_yaml(str(BP)), expected_domain='automation', schema=AUTOMATION_BLUEPRINT_SCHEMA)
-    assert bp.name.startswith('Surveillance des piles — ')
+    assert bp.name.startswith('Surveillance des piles et batteries — ')
     assert bp.name.endswith((ROOT / 'src/battery_watch/VERSION').read_text().strip())
     for example in load_yaml(str(EXAMPLES / 'automations.yaml')):
         args = BlueprintInputs(bp, example)
@@ -203,7 +203,7 @@ async def test_new_low_battery_is_reported_once(env):
     env.battery('sensor.remote_battery', 18)
     await env.run()
     assert len(env.sent) == 1
-    assert env.sent[0]['title'] == '🔋 Pile à remplacer (1)'
+    assert env.sent[0]['title'] == '🔋 Pile ou batterie à remplacer (1)'
     assert env.sent[0]['message'] == '• Remote battery — 18 %'
     for level in [17, 15, 9]:
         env.battery('sensor.remote_battery', level)
@@ -296,7 +296,7 @@ async def test_summary_weekday_empty_and_manual_run(tmp_path):
         await e.run()
         e.sent.clear()
         await e.run('summary', advance=0)
-        assert e.sent == [{'title': 'Piles à vérifier (2)',
+        assert e.sent == [{'title': 'Piles et batteries à vérifier (2)',
                            'message': '• Leak battery low — alerte pile faible\n• Remote battery — 15 %'}]
         e.now += timedelta(days=1)
         await e.run('summary', advance=0)
@@ -317,7 +317,7 @@ async def test_summary_when_empty(tmp_path):
     e = await make(tmp_path, overrides={'summary_when_empty': True})
     try:
         await e.run('summary', advance=0)
-        assert e.sent == [{'title': 'Piles : rien à signaler', 'message': 'Aucune pile à remplacer.'}]
+        assert e.sent == [{'title': 'Piles et batteries : rien à signaler', 'message': 'Aucune pile ni batterie à remplacer.'}]
     finally:
         await e.close()
 
@@ -353,12 +353,12 @@ async def test_memory_overflow_stays_within_255_and_does_not_repeat(env, caplog)
     with caplog.at_level(logging.WARNING, logger='battery_watch'):
         await env.run()
     assert len(env.memory()) <= 255
-    assert env.sent[-1]['title'] == '🔋 Pile à remplacer (36)'
+    assert env.sent[-1]['title'] == '🔋 Pile ou batterie à remplacer (36)'
     assert any('plus de 36 appareils' in r.getMessage() for r in caplog.records)
     count = len(env.sent)
     await env.run()
     assert len(env.sent) == count
-    assert env.notice()['title'] == 'Piles à vérifier (40)'
+    assert env.notice()['title'] == 'Piles et batteries à vérifier (40)'
 
 
 async def test_entity_without_registry_entry_is_watched(env):

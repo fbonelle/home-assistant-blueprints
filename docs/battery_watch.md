@@ -1,8 +1,8 @@
-# Surveillance des piles
+# Surveillance des piles et batteries
 
 **Français** · [English](battery_watch.en.md) · [Accueil](../README.md)
 
-Version **1.0.0**. Un blueprint autonome qui signale tout de suite chaque pile à remplacer, puis envoie un récapitulatif à l’heure choisie. Aucun fichier commun ni composant personnalisé n’est nécessaire.
+Version **1.0.0**. Un blueprint autonome qui signale tout de suite chaque pile ou batterie à remplacer, puis envoie un récapitulatif à l’heure choisie. Aucun fichier commun ni composant personnalisé n’est nécessaire.
 
 ## Installation
 
@@ -60,7 +60,7 @@ Les **Conditions supplémentaires** (par exemple : personne à la maison) s’ap
 
 | Variable | Contenu |
 |---|---|
-| `battery_title` | Titre prêt à l’emploi : `🔋 Pile à remplacer (2)` ou `Piles à vérifier (3)`. |
+| `battery_title` | Titre prêt à l’emploi : `🔋 Pile ou batterie à remplacer (2)` ou `Piles et batteries à vérifier (3)`. |
 | `battery_message` | Une ligne par appareil, triée par nom : les nouveaux appareils pour l’alerte, tous les appareils pour le récapitulatif. |
 | `battery_new` | Liste des nouveaux appareils. |
 | `battery_all` | Liste de tous les appareils à vérifier. |

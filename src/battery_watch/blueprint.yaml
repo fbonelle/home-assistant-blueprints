@@ -1,7 +1,7 @@
 blueprint:
-  name: Surveillance des piles
+  name: Surveillance des piles et batteries
   description: >-
-    Signale tout de suite chaque pile qui passe sous le seuil, chaque appareil devenu muet et chaque alerte
+    Signale tout de suite chaque pile ou batterie qui passe sous le seuil, chaque appareil devenu muet et chaque alerte
     « pile faible », puis envoie un récapitulatif à l’heure choisie. Téléphones, montres, ordinateurs et
     onduleurs sont exclus par défaut (intégrations mobile_app, icloud, icloud3, nut et fabricant Apple).
     Un assistant Texte réservé à cette automatisation (longueur 0 à 255) mémorise les appareils déjà
@@ -216,7 +216,7 @@ actions:
   - action: persistent_notification.create
     data:
       notification_id: '{{ notification_id }}'
-      title: Surveillance des piles — configuration
+      title: Surveillance des piles et batteries — configuration
       message: '{{ errors | join("\n") }}'
   - action: system_log.write
     data:
@@ -268,7 +268,7 @@ actions:
     - action: persistent_notification.create
       data:
         notification_id: '{{ notification_id }}'
-        title: 'Piles à vérifier ({{ battery_count }})'
+        title: 'Piles et batteries à vérifier ({{ battery_count }})'
         message: '{{ summary_text }}'
     else:
     - action: persistent_notification.dismiss
@@ -280,7 +280,7 @@ actions:
     conditions: !input notification_conditions
   then:
   - variables:
-      battery_title: '🔋 Pile à remplacer ({{ battery_new | count }})'
+      battery_title: '🔋 Pile ou batterie à remplacer ({{ battery_new | count }})'
       battery_message: '{{ new_text }}'
   - sequence: !input alert_actions
 - if:
@@ -294,6 +294,6 @@ actions:
   then:
   - variables:
       battery_title: >-
-        {{ 'Piles à vérifier (' ~ battery_count ~ ')' if battery_count > 0 else 'Piles : rien à signaler' }}
-      battery_message: '{{ summary_text if battery_count > 0 else "Aucune pile à remplacer." }}'
+        {{ 'Piles et batteries à vérifier (' ~ battery_count ~ ')' if battery_count > 0 else 'Piles et batteries : rien à signaler' }}
+      battery_message: '{{ summary_text if battery_count > 0 else "Aucune pile ni batterie à remplacer." }}'
   - sequence: !input summary_actions

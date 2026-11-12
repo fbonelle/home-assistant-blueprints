@@ -60,7 +60,7 @@ A Home Assistant persistent notification, specific to this automation, is update
 
 | Variable | Content |
 |---|---|
-| `battery_title` | Ready-to-use title: `🔋 Pile à remplacer (2)` or `Piles à vérifier (3)`. |
+| `battery_title` | Ready-to-use title: `🔋 Pile ou batterie à remplacer (2)` or `Piles et batteries à vérifier (3)`. |
 | `battery_message` | One line per device, sorted by name: new devices for the alert, all devices for the summary. |
 | `battery_new` | List of new devices. |
 | `battery_all` | List of all devices to check. |
