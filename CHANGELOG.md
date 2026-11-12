@@ -7,11 +7,11 @@
 Première version publiée de **Surveillance des piles et batteries**.
 
 - Alerte immédiate, une seule fois par appareil : pile sous le seuil, appareil muet au-delà d’un délai, alerte « pile faible » binaire.
-- Mémoire dans un assistant Texte : pas de nouvelle alerte quand une pile continue de baisser, oscille autour du seuil ou devient indisponible pendant un redémarrage.
+- Mémoire dans une liste de tâches locale, sans limite de taille : pas de nouvelle alerte quand une pile continue de baisser, oscille autour du seuil ou devient indisponible pendant un redémarrage. Un élément coché quitte le récapitulatif jusqu’au remplacement ; les éléments ajoutés à la main sont ignorés.
 - Récapitulatif à l’heure et aux jours choisis, envoi manuel par « Exécuter les actions », notification persistante tenue à jour.
 - Exclusions par défaut des téléphones, montres, ordinateurs et onduleurs (mobile_app, icloud, icloud3, nut, Apple), complétées par entité, appareil ou étiquette.
 - Actions de notification libres avec titre, message et listes fournis ; conditions supplémentaires facultatives.
-- Tests natifs Home Assistant 2026.10.4 : registres réels, mémoire, exclusions, récapitulatif et capacité de 36 appareils.
+- Tests natifs Home Assistant 2026.10.4 : registres réels, mémoire, exclusions, récapitulatif, éléments cochés et 80 appareils simultanés.
 
 ## Lampe STYRBAR — 1.2.0 — 4 novembre 2026
 

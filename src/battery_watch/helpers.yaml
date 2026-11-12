@@ -1,9 +1,0 @@
-# SPDX-License-Identifier: GPL-3.0-only
-# Optional YAML alternative to creating the Text helper in the UI.
-# Include once under homeassistant.packages, or merge input_text into your configuration.
-# Do not replace an existing input_text section.
-input_text:
-  battery_watch_house:
-    name: Mémoire de la surveillance des piles et batteries
-    min: 0
-    max: 255

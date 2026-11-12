@@ -1,13 +1,22 @@
-{#- Analyse des piles. Résultat : dict(items, new, keys, initialized, overflow).
-    items : appareils en alerte, dict(e=entité, n=nom, r=raison, v=niveau, h=heures).
-    new : sous-ensemble de items absent de la mémoire (à signaler tout de suite).
-    keys : empreintes à conserver dans l’assistant Texte (6 caractères chacune).
-    Une empreinte reste en mémoire tant que l’appareil n’est pas revenu à un état
-    sûr (niveau au moins égal au seuil plus la marge, alerte binaire à off) ; un
-    appareil muet ou inconnu n’est donc jamais signalé deux fois. -#}
-{%- set raw = states(memory_entity) -%}
-{%- set initialized = raw.startswith('bw1:') -%}
-{%- set stored = raw[4:].split(',') | reject('eq', '') | list if initialized else [] -%}
+{#- Analyse des piles et batteries, comparée à la liste de tâches mémoire.
+    Entrée : listed, les éléments de la liste (todo.get_items) ; seuls ceux dont la
+    description commence par « battery_watch: » appartiennent à cette automatisation.
+    Résultat : dict(items, acknowledged, new, renames, removals).
+      items : appareils en alerte non cochés, dict(e=entité, n=nom, r=raison, v=niveau, h=heures).
+      acknowledged : appareils en alerte dont l’élément a été coché (pris en compte).
+      new : appareils en alerte sans élément : à ajouter et à signaler tout de suite.
+      renames : dict(uid, summary) des éléments dont le libellé doit être actualisé.
+      removals : uid des éléments à retirer (appareil revenu à un état sûr, exclu ou disparu).
+    Un élément est conservé tant que l’appareil n’est pas revenu à un état sûr (niveau au
+    moins égal au seuil plus la marge, alerte binaire à « off ») : un appareil muet ou
+    inconnu n’est donc jamais signalé deux fois. -#}
+{%- set prefix = 'battery_watch:' -%}
+{%- set mine = namespace(by_entity={}, orphans=[]) -%}
+{%- for i in listed if (i.description | default('', true)).startswith(prefix) -%}
+  {%- set eid = i.description[prefix | length:] | trim -%}
+  {%- if eid in mine.by_entity -%}{%- set mine.orphans = mine.orphans + [i.uid] -%}
+  {%- else -%}{%- set mine.by_entity = dict(mine.by_entity, **{eid: i}) -%}{%- endif -%}
+{%- endfor -%}
 {%- set domains = excluded_integrations | map('lower') | list -%}
 {%- set makers = excluded_manufacturers | map('lower') | list -%}
 {%- set ex = namespace(entities=excluded_entities | list, devices=excluded_devices | list) -%}
@@ -21,18 +30,18 @@
      | selectattr('attributes.device_class', 'eq', 'battery') | list)
    + ((states.binary_sensor | selectattr('attributes.device_class', 'defined')
      | selectattr('attributes.device_class', 'eq', 'battery') | list) if include_binary else []) -%}
-{%- set ns = namespace(items=[], keys=[], new=[]) -%}
+{%- set ns = namespace(items=[], acknowledged=[], new=[], renames=[], held=[]) -%}
 {%- for s in candidates if s.entity_id not in ex.entities -%}
   {%- set entry = config_entry_id(s.entity_id) -%}
   {%- set domain = (config_entry_attr(entry, 'domain') or '') | lower if entry else '' -%}
   {%- set device = device_id(s.entity_id) -%}
   {%- set maker = (device_attr(device, 'manufacturer') or '') | lower if device else '' -%}
   {%- if domain not in domains and maker not in makers and (not device or device not in ex.devices) -%}
-    {%- set key = sha256(s.entity_id)[:6] -%}
     {%- if s.domain == 'binary_sensor' -%}
       {%- set alert = s.state == 'on' -%}
       {%- set safe = s.state == 'off' -%}
       {%- set item = dict(e=s.entity_id, n=s.name, r='alert', v=none, h=none) -%}
+      {%- set detail = 'alerte pile faible' -%}
     {%- else -%}
       {%- set number = s.state | is_number -%}
       {%- set value = s.state | float(0) -%}
@@ -40,23 +49,33 @@
       {%- set silent = unavailable_hours > 0 and s.state == 'unavailable' and s.last_changed < silent_limit -%}
       {%- set alert = low or silent -%}
       {%- set safe = number and value >= threshold + recovery_margin -%}
+      {%- set hours = ((now() - s.last_changed).total_seconds() // 3600) | int -%}
       {%- set item = dict(e=s.entity_id, n=s.name, r=('level' if low else 'silent'),
-           v=(value | round(0) | int if low else none),
-           h=((now() - s.last_changed).total_seconds() // 3600) | int if silent and not low else none) -%}
+           v=(value | round(0) | int if low else none), h=(hours if silent and not low else none)) -%}
+      {%- set detail = (item.v ~ ' %') if low else ('muet depuis ' ~ hours ~ ' h') -%}
     {%- endif -%}
+    {%- set existing = mine.by_entity.get(s.entity_id) -%}
     {%- if alert -%}
-      {%- set ns.items = ns.items + [dict(item, k=key)] -%}
-      {%- set ns.keys = ns.keys + [key] -%}
-    {%- elif key in stored and not safe -%}
-      {%- set ns.keys = ns.keys + [key] -%}
+      {%- set line = s.name ~ ' — ' ~ detail -%}
+      {%- if existing is none -%}
+        {%- set ns.new = ns.new + [dict(item, summary=line)] -%}
+        {%- set ns.items = ns.items + [item] -%}
+      {%- else -%}
+        {%- set ns.held = ns.held + [s.entity_id] -%}
+        {%- if existing.status == 'completed' -%}{%- set ns.acknowledged = ns.acknowledged + [item] -%}
+        {%- else -%}{%- set ns.items = ns.items + [item] -%}{%- endif -%}
+        {%- if existing.summary != line -%}
+          {%- set ns.renames = ns.renames + [dict(uid=existing.uid, summary=line)] -%}
+        {%- endif -%}
+      {%- endif -%}
+    {%- elif existing is not none and not safe -%}
+      {%- set ns.held = ns.held + [s.entity_id] -%}
     {%- endif -%}
   {%- endif -%}
 {%- endfor -%}
-{#- 36 empreintes de 6 caractères tiennent dans 255 caractères avec le préfixe bw1:. -#}
-{%- set ordered = ns.keys | unique | sort | list -%}
-{%- set kept = ordered[:36] -%}
-{%- for item in ns.items if item.k in kept and item.k not in stored -%}
-  {%- set ns.new = ns.new + [item] -%}
+{%- set removals = namespace(uids=mine.orphans) -%}
+{%- for eid, i in mine.by_entity.items() if eid not in ns.held -%}
+  {%- set removals.uids = removals.uids + [i.uid] -%}
 {%- endfor -%}
-{{ dict(items=ns.items | sort(attribute='n'), new=ns.new | sort(attribute='n'), keys=kept,
-        initialized=initialized, overflow=(ordered | count > 36)) }}
+{{ dict(items=ns.items | sort(attribute='n'), acknowledged=ns.acknowledged | sort(attribute='n'),
+        new=ns.new | sort(attribute='n'), renames=ns.renames, removals=removals.uids) }}

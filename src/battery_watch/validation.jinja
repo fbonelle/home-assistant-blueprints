@@ -1,8 +1,10 @@
 {%- set ns = namespace(errors=[]) -%}
-{%- if not memory_entity.startswith('input_text.') or states[memory_entity] is none
-      or states(memory_entity) == 'unavailable'
-      or state_attr(memory_entity, 'min') != 0 or state_attr(memory_entity, 'max') != 255 -%}
-  {%- set ns.errors = ns.errors + ['Créer un assistant Texte réservé à cette automatisation, de longueur minimale 0 et maximale 255.'] -%}
+{#- Liste de tâches capable d’ajouter, supprimer, modifier et décrire ses éléments (1 + 2 + 4 + 64). -#}
+{%- set features = state_attr(memory_entity, 'supported_features') | int(0) -%}
+{%- if not memory_entity.startswith('todo.') or states[memory_entity] is none
+      or states(memory_entity) in ['unavailable', 'unknown']
+      or (features | bitwise_and(71)) != 71 -%}
+  {%- set ns.errors = ns.errors + ['Créer une liste de tâches locale réservée à cette automatisation (intégration « Liste de tâches locale »).'] -%}
 {%- endif -%}
 {%- for value, lower, upper in [(threshold, 1, 100), (recovery_margin, 0, 50), (unavailable_hours, 0, 168)] -%}
   {%- if value is not number or value is boolean or not lower <= value <= upper -%}

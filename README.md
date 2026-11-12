@@ -38,7 +38,7 @@ Le diagnostic des capacités s’affiche avec **Menu → Exécuter les actions**
 
 ## Surveillance des piles et batteries
 
-Un blueprint autonome et un assistant Texte : chaque pile ou batterie qui passe sous le seuil, chaque appareil muet depuis plusieurs heures et chaque alerte « pile faible » est signalé une seule fois, dès sa détection. Un récapitulatif part à l’heure et aux jours choisis. Téléphones, montres, ordinateurs et onduleurs sont exclus par défaut ; les exclusions se complètent par intégration, fabricant, entité, appareil ou étiquette.
+Un blueprint autonome et une liste de tâches locale, sans limite de taille : chaque pile ou batterie qui passe sous le seuil, chaque appareil muet depuis plusieurs heures et chaque alerte « pile faible » est signalé une seule fois, dès sa détection, et ajouté à la liste ; cocher un élément le retire du récapitulatif jusqu’au remplacement. Un récapitulatif part à l’heure et aux jours choisis. Téléphones, montres, ordinateurs et onduleurs sont exclus par défaut ; les exclusions se complètent par intégration, fabricant, entité, appareil ou étiquette.
 
 [Installation et réglages](docs/battery_watch.md) · [Importer le blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fbattery_watch%2Fsurveillance_piles.yaml) · [Exemples](examples/battery_watch/automations.yaml)
 

@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# Fictional identifiers. Replace the Text helper and the notification actions before enabling.
+# Fictional identifiers. Replace the to-do list and the notification actions before enabling.
+# Create the list with the Local To-do integration; it cannot be declared in YAML.
 - id: battery_watch_house
   alias: Surveillance des piles et batteries — maison
   use_blueprint:
     path: fbonelle/surveillance_piles.yaml
     input:
-      memory: input_text.battery_watch_house
+      memory: todo.piles_et_batteries
       threshold: 20
       recovery_margin: 5
       unavailable_hours: 6

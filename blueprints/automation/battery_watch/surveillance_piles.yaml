@@ -4,10 +4,11 @@ blueprint:
   name: Surveillance des piles et batteries — 1.0.0
   description: 'Signale tout de suite chaque pile ou batterie qui passe sous le seuil, chaque appareil devenu muet
     et chaque alerte « pile faible », puis envoie un récapitulatif à l’heure choisie. Téléphones, montres, ordinateurs
-    et onduleurs sont exclus par défaut (intégrations mobile_app, icloud, icloud3, nut et fabricant Apple). Un assistant
-    Texte réservé à cette automatisation (longueur 0 à 255) mémorise les appareils déjà signalés : une pile n’est
-    pas signalée à nouveau tant qu’elle n’a pas été remplacée. Menu → Exécuter les actions envoie le récapitulatif
-    immédiatement. Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/battery_watch.md'
+    et onduleurs sont exclus par défaut (intégrations mobile_app, icloud, icloud3, nut et fabricant Apple). Une
+    liste de tâches locale réservée à cette automatisation, sans limite de taille, mémorise les appareils signalés
+    : une pile n’est pas signalée à nouveau tant qu’elle n’a pas été remplacée. Cocher un élément de la liste le
+    retire du récapitulatif jusqu’au remplacement. Menu → Exécuter les actions envoie le récapitulatif immédiatement.
+    Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/battery_watch.md'
   domain: automation
   homeassistant:
     min_version: 2026.10.0
@@ -18,13 +19,16 @@ blueprint:
       name: Détection
       input:
         memory:
-          name: Assistant Texte réservé à cette automatisation
-          description: Créer un assistant Texte de longueur minimale 0 et maximale 255. Il retient les appareils
-            déjà signalés, y compris après un redémarrage. Ne pas le partager avec une autre automatisation.
+          name: Liste de tâches réservée à cette automatisation
+          description: 'Ajouter l’intégration « Liste de tâches locale » et créer une liste dédiée. Chaque appareil
+            signalé y devient un élément, retiré automatiquement après remplacement de la pile. Cocher un élément
+            indique que la pile est prise en compte : il quitte le récapitulatif, sans nouvelle alerte. Les éléments
+            ajoutés à la main sont ignorés.'
           selector:
             entity:
               filter:
-              - domain: input_text
+              - domain: todo
+                integration: local_todo
         threshold:
           name: Seuil de pile faible
           description: Un niveau strictement inférieur à ce seuil déclenche une alerte.
@@ -153,8 +157,8 @@ blueprint:
         alert_actions:
           name: Actions d’alerte immédiate
           description: 'Exécutées lorsqu’au moins un appareil vient d’être détecté. Variables disponibles : battery_title,
-            battery_message (nouveaux appareils, une ligne chacun), battery_new et battery_all (listes de dictionnaires
-            e, n, r, v, h), battery_count.'
+            battery_message (nouveaux appareils, une ligne chacun), battery_new, battery_all (appareils non cochés)
+            et battery_acknowledged (appareils cochés), listes de dictionnaires e, n, r, v, h ; battery_count.'
           default: []
           selector:
             action: {}
@@ -235,6 +239,9 @@ triggers:
 - trigger: time
   at: !input 'summary_time'
   id: summary
+- trigger: state
+  entity_id: !input 'memory'
+  id: list
 variables:
   memory_entity: !input 'memory'
   threshold: !input 'threshold'
@@ -259,10 +266,12 @@ actions:
     notification_id: '{{ "battery_watch_" ~ sha256(this.entity_id)[:12] }}'
     errors: |
       {%- set ns = namespace(errors=[]) -%}
-      {%- if not memory_entity.startswith('input_text.') or states[memory_entity] is none
-            or states(memory_entity) == 'unavailable'
-            or state_attr(memory_entity, 'min') != 0 or state_attr(memory_entity, 'max') != 255 -%}
-        {%- set ns.errors = ns.errors + ['Créer un assistant Texte réservé à cette automatisation, de longueur minimale 0 et maximale 255.'] -%}
+      {#- Liste de tâches capable d’ajouter, supprimer, modifier et décrire ses éléments (1 + 2 + 4 + 64). -#}
+      {%- set features = state_attr(memory_entity, 'supported_features') | int(0) -%}
+      {%- if not memory_entity.startswith('todo.') or states[memory_entity] is none
+            or states(memory_entity) in ['unavailable', 'unknown']
+            or (features | bitwise_and(71)) != 71 -%}
+        {%- set ns.errors = ns.errors + ['Créer une liste de tâches locale réservée à cette automatisation (intégration « Liste de tâches locale »).'] -%}
       {%- endif -%}
       {%- for value, lower, upper in [(threshold, 1, 100), (recovery_margin, 0, 50), (unavailable_hours, 0, 168)] -%}
         {%- if value is not number or value is boolean or not lower <= value <= upper -%}
@@ -289,18 +298,37 @@ actions:
       level: warning
       message: '{{ this.entity_id }} : {{ errors | join(" ") }}'
   - stop: Configuration invalide ; mémoire inchangée.
+- action: todo.get_items
+  target:
+    entity_id: '{{ memory_entity }}'
+  data:
+    status:
+    - needs_action
+    - completed
+  response_variable: memory_items
+- variables:
+    listed: '{{ memory_items[memory_entity]["items"] | default([], true) }}'
 - variables:
     scan: |
-      {#- Analyse des piles. Résultat : dict(items, new, keys, initialized, overflow).
-          items : appareils en alerte, dict(e=entité, n=nom, r=raison, v=niveau, h=heures).
-          new : sous-ensemble de items absent de la mémoire (à signaler tout de suite).
-          keys : empreintes à conserver dans l’assistant Texte (6 caractères chacune).
-          Une empreinte reste en mémoire tant que l’appareil n’est pas revenu à un état
-          sûr (niveau au moins égal au seuil plus la marge, alerte binaire à off) ; un
-          appareil muet ou inconnu n’est donc jamais signalé deux fois. -#}
-      {%- set raw = states(memory_entity) -%}
-      {%- set initialized = raw.startswith('bw1:') -%}
-      {%- set stored = raw[4:].split(',') | reject('eq', '') | list if initialized else [] -%}
+      {#- Analyse des piles et batteries, comparée à la liste de tâches mémoire.
+          Entrée : listed, les éléments de la liste (todo.get_items) ; seuls ceux dont la
+          description commence par « battery_watch: » appartiennent à cette automatisation.
+          Résultat : dict(items, acknowledged, new, renames, removals).
+            items : appareils en alerte non cochés, dict(e=entité, n=nom, r=raison, v=niveau, h=heures).
+            acknowledged : appareils en alerte dont l’élément a été coché (pris en compte).
+            new : appareils en alerte sans élément : à ajouter et à signaler tout de suite.
+            renames : dict(uid, summary) des éléments dont le libellé doit être actualisé.
+            removals : uid des éléments à retirer (appareil revenu à un état sûr, exclu ou disparu).
+          Un élément est conservé tant que l’appareil n’est pas revenu à un état sûr (niveau au
+          moins égal au seuil plus la marge, alerte binaire à « off ») : un appareil muet ou
+          inconnu n’est donc jamais signalé deux fois. -#}
+      {%- set prefix = 'battery_watch:' -%}
+      {%- set mine = namespace(by_entity={}, orphans=[]) -%}
+      {%- for i in listed if (i.description | default('', true)).startswith(prefix) -%}
+        {%- set eid = i.description[prefix | length:] | trim -%}
+        {%- if eid in mine.by_entity -%}{%- set mine.orphans = mine.orphans + [i.uid] -%}
+        {%- else -%}{%- set mine.by_entity = dict(mine.by_entity, **{eid: i}) -%}{%- endif -%}
+      {%- endfor -%}
       {%- set domains = excluded_integrations | map('lower') | list -%}
       {%- set makers = excluded_manufacturers | map('lower') | list -%}
       {%- set ex = namespace(entities=excluded_entities | list, devices=excluded_devices | list) -%}
@@ -314,18 +342,18 @@ actions:
            | selectattr('attributes.device_class', 'eq', 'battery') | list)
          + ((states.binary_sensor | selectattr('attributes.device_class', 'defined')
            | selectattr('attributes.device_class', 'eq', 'battery') | list) if include_binary else []) -%}
-      {%- set ns = namespace(items=[], keys=[], new=[]) -%}
+      {%- set ns = namespace(items=[], acknowledged=[], new=[], renames=[], held=[]) -%}
       {%- for s in candidates if s.entity_id not in ex.entities -%}
         {%- set entry = config_entry_id(s.entity_id) -%}
         {%- set domain = (config_entry_attr(entry, 'domain') or '') | lower if entry else '' -%}
         {%- set device = device_id(s.entity_id) -%}
         {%- set maker = (device_attr(device, 'manufacturer') or '') | lower if device else '' -%}
         {%- if domain not in domains and maker not in makers and (not device or device not in ex.devices) -%}
-          {%- set key = sha256(s.entity_id)[:6] -%}
           {%- if s.domain == 'binary_sensor' -%}
             {%- set alert = s.state == 'on' -%}
             {%- set safe = s.state == 'off' -%}
             {%- set item = dict(e=s.entity_id, n=s.name, r='alert', v=none, h=none) -%}
+            {%- set detail = 'alerte pile faible' -%}
           {%- else -%}
             {%- set number = s.state | is_number -%}
             {%- set value = s.state | float(0) -%}
@@ -333,39 +361,66 @@ actions:
             {%- set silent = unavailable_hours > 0 and s.state == 'unavailable' and s.last_changed < silent_limit -%}
             {%- set alert = low or silent -%}
             {%- set safe = number and value >= threshold + recovery_margin -%}
+            {%- set hours = ((now() - s.last_changed).total_seconds() // 3600) | int -%}
             {%- set item = dict(e=s.entity_id, n=s.name, r=('level' if low else 'silent'),
-                 v=(value | round(0) | int if low else none),
-                 h=((now() - s.last_changed).total_seconds() // 3600) | int if silent and not low else none) -%}
+                 v=(value | round(0) | int if low else none), h=(hours if silent and not low else none)) -%}
+            {%- set detail = (item.v ~ ' %') if low else ('muet depuis ' ~ hours ~ ' h') -%}
           {%- endif -%}
+          {%- set existing = mine.by_entity.get(s.entity_id) -%}
           {%- if alert -%}
-            {%- set ns.items = ns.items + [dict(item, k=key)] -%}
-            {%- set ns.keys = ns.keys + [key] -%}
-          {%- elif key in stored and not safe -%}
-            {%- set ns.keys = ns.keys + [key] -%}
+            {%- set line = s.name ~ ' — ' ~ detail -%}
+            {%- if existing is none -%}
+              {%- set ns.new = ns.new + [dict(item, summary=line)] -%}
+              {%- set ns.items = ns.items + [item] -%}
+            {%- else -%}
+              {%- set ns.held = ns.held + [s.entity_id] -%}
+              {%- if existing.status == 'completed' -%}{%- set ns.acknowledged = ns.acknowledged + [item] -%}
+              {%- else -%}{%- set ns.items = ns.items + [item] -%}{%- endif -%}
+              {%- if existing.summary != line -%}
+                {%- set ns.renames = ns.renames + [dict(uid=existing.uid, summary=line)] -%}
+              {%- endif -%}
+            {%- endif -%}
+          {%- elif existing is not none and not safe -%}
+            {%- set ns.held = ns.held + [s.entity_id] -%}
           {%- endif -%}
         {%- endif -%}
       {%- endfor -%}
-      {#- 36 empreintes de 6 caractères tiennent dans 255 caractères avec le préfixe bw1:. -#}
-      {%- set ordered = ns.keys | unique | sort | list -%}
-      {%- set kept = ordered[:36] -%}
-      {%- for item in ns.items if item.k in kept and item.k not in stored -%}
-        {%- set ns.new = ns.new + [item] -%}
+      {%- set removals = namespace(uids=mine.orphans) -%}
+      {%- for eid, i in mine.by_entity.items() if eid not in ns.held -%}
+        {%- set removals.uids = removals.uids + [i.uid] -%}
       {%- endfor -%}
-      {{ dict(items=ns.items | sort(attribute='n'), new=ns.new | sort(attribute='n'), keys=kept,
-              initialized=initialized, overflow=(ordered | count > 36)) }}
-    previous: '{{ states(memory_entity) }}'
-    next_memory: '{{ "bw1:" ~ scan["keys"] | join(",") }}'
-- if: '{{ next_memory != previous }}'
+      {{ dict(items=ns.items | sort(attribute='n'), acknowledged=ns.acknowledged | sort(attribute='n'),
+              new=ns.new | sort(attribute='n'), renames=ns.renames, removals=removals.uids) }}
+- if: '{{ scan.removals | count > 0 }}'
   then:
-  - action: input_text.set_value
+  - action: todo.remove_item
     target:
       entity_id: '{{ memory_entity }}'
     data:
-      value: '{{ next_memory }}'
+      item: '{{ scan.removals }}'
+- repeat:
+    for_each: '{{ scan.new }}'
+    sequence:
+    - action: todo.add_item
+      target:
+        entity_id: '{{ memory_entity }}'
+      data:
+        item: '{{ repeat.item.summary }}'
+        description: battery_watch:{{ repeat.item.e }}
+- repeat:
+    for_each: '{{ scan.renames }}'
+    sequence:
+    - action: todo.update_item
+      target:
+        entity_id: '{{ memory_entity }}'
+      data:
+        item: '{{ repeat.item.uid }}'
+        rename: '{{ repeat.item.summary }}'
 - variables:
-    changed: '{{ next_memory != previous }}'
+    changed: '{{ (scan.new | count + scan.renames | count + scan.removals | count) > 0 }}'
     battery_all: '{{ scan["items"] }}'
-    battery_new: '{{ scan["new"] if scan.initialized else [] }}'
+    battery_acknowledged: '{{ scan.acknowledged }}'
+    battery_new: '{{ scan.new }}'
     battery_count: '{{ scan["items"] | count }}'
     weekday: '{{ [''mon'',''tue'',''wed'',''thu'',''fri'',''sat'',''sun''][now().weekday()] }}'
     lines_source: '{{ scan["items"] }}'
@@ -399,14 +454,6 @@ actions:
       logger: battery_watch
       level: info
       message: '{{ this.entity_id }} : {{ battery_new | map(attribute="e") | join(", ") }}'
-- if: '{{ scan.overflow }}'
-  then:
-  - action: system_log.write
-    data:
-      logger: battery_watch
-      level: warning
-      message: '{{ this.entity_id }} : plus de 36 appareils en alerte ; les suivants n’apparaissent que dans le
-        récapitulatif et la notification persistante.'
 - if: '{{ persistent_notification and (changed or mode_run != "scan") }}'
   then:
   - if: '{{ battery_count > 0 }}'
@@ -422,7 +469,7 @@ actions:
         notification_id: '{{ notification_id }}'
 - if:
   - condition: template
-    value_template: '{{ mode_run == "scan" and immediate and battery_new | count > 0 }}'
+    value_template: '{{ immediate and battery_new | count > 0 }}'
   - condition: and
     conditions: !input 'notification_conditions'
   then:

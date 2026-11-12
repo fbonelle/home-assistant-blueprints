@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-only
-"""Native Home Assistant 2026.10.4: blueprint schema, registries, input_text, notifications.
+"""Native Home Assistant 2026.10.4: blueprint schema, registries, Local To-do memory, notifications.
 
-Battery entities are plain states attached to real config entries, devices and labels.
-Only the notification target is a recording service; nothing contacts a device or a provider.
+Battery entities are plain states attached to real config entries, devices and labels. The memory is a
+real Local To-do list stored in the temporary configuration directory. Only the notification target is
+a recording service; nothing contacts a device or a provider.
 """
 import asyncio
 import logging
@@ -18,7 +19,6 @@ from homeassistant import core, loader
 from homeassistant.bootstrap import async_load_base_functionality
 from homeassistant.components.automation.config import AUTOMATION_BLUEPRINT_SCHEMA, PLATFORM_SCHEMA
 from homeassistant.components.blueprint.models import Blueprint, BlueprintInputs
-from homeassistant.components.input_text import CONFIG_SCHEMA as TEXT_SCHEMA
 from homeassistant.config_entries import ConfigEntries, ConfigEntry, ConfigEntryState
 from homeassistant.helpers import device_registry as dr, entity as entity_helper
 from homeassistant.helpers import entity_registry as er, label_registry as lr
@@ -29,13 +29,13 @@ from homeassistant.util.yaml import load_yaml
 ROOT = Path(__file__).resolve().parent.parent
 BP = ROOT / 'blueprints/automation/battery_watch/surveillance_piles.yaml'
 EXAMPLES = ROOT / 'examples/battery_watch'
-MEMORY = 'input_text.battery_watch_house'
+MEMORY = 'todo.piles_et_batteries'
 AUTOMATION = 'automation.surveillance_des_piles_et_batteries_maison'
 WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 
 
 class BatteryEnv:
-    async def setup(self, path, overrides=None, max_length=255):
+    async def setup(self, path, overrides=None):
         # A fixed Wednesday morning keeps the weekday tests deterministic.
         self.now = datetime(2026, 11, 11, 6, 0, tzinfo=UTC)
         self.hass = core.HomeAssistant(str(path))
@@ -51,9 +51,16 @@ class BatteryEnv:
         ]
         for p in self.patches:
             p.start()
-        helpers = load_yaml(str(EXAMPLES / 'helpers.yaml'))
-        helpers['input_text']['battery_watch_house']['max'] = max_length
-        assert await async_setup_component(self.hass, 'input_text', helpers)
+        # The to-do panel depends on the HTTP server; it is not needed to call the to-do services.
+        self.hass.config.components.add('http')
+        todo_entry = ConfigEntry(domain='local_todo', entry_id='entry_local_todo', title='Piles et batteries',
+                                 version=1, minor_version=1, source='user', unique_id='piles_et_batteries',
+                                 data={'todo_list_name': 'Piles et batteries', 'storage_key': 'piles_et_batteries'},
+                                 options={}, discovery_keys={}, subentries_data=None)
+        self.hass.config_entries._entries[todo_entry.entry_id] = todo_entry
+        assert await self.hass.config_entries.async_setup(todo_entry.entry_id)
+        await self.hass.async_block_till_done()
+        assert self.hass.states.get(MEMORY) is not None
         assert await async_setup_component(self.hass, 'persistent_notification', {})
         assert await async_setup_component(self.hass, 'system_log', {})
         self.sent = []
@@ -145,12 +152,19 @@ class BatteryEnv:
         await self.auto.async_trigger(variables, skip_condition=True)
         await self.drain()
 
-    def memory(self):
-        return self.hass.states.get(MEMORY).state
+    async def items(self):
+        response = await self.hass.services.async_call(
+            'todo', 'get_items', {'entity_id': MEMORY, 'status': ['needs_action', 'completed']},
+            blocking=True, return_response=True)
+        return response[MEMORY]['items']
+
+    async def todo(self, service, **data):
+        await self.hass.services.async_call('todo', service, {'entity_id': MEMORY, **data}, blocking=True)
+        await self.drain()
 
     def notice(self):
         from homeassistant.components.persistent_notification import DOMAIN
-        return next((n for n in self.hass.data[DOMAIN].values()
+        return next((n for n in self.hass.data.get(DOMAIN, {}).values()
                      if n['notification_id'].startswith('battery_watch_')), None)
 
     async def close(self):
@@ -172,7 +186,7 @@ async def make(tmp_path, **kw):
     return await BatteryEnv().setup(tmp_path, **kw)
 
 
-async def test_native_schema_example_and_helper(env):
+async def test_native_schema_and_example(env):
     bp = Blueprint(load_yaml(str(BP)), expected_domain='automation', schema=AUTOMATION_BLUEPRINT_SCHEMA)
     assert bp.name.startswith('Surveillance des piles et batteries — ')
     assert bp.name.endswith((ROOT / 'src/battery_watch/VERSION').read_text().strip())
@@ -180,7 +194,6 @@ async def test_native_schema_example_and_helper(env):
         args = BlueprintInputs(bp, example)
         args.validate()
         PLATFORM_SCHEMA(args.async_substitute())
-    TEXT_SCHEMA(load_yaml(str(EXAMPLES / 'helpers.yaml')))
     minimal = BlueprintInputs(bp, {'use_blueprint': {'path': 'x.yaml', 'input': {'memory': MEMORY}}})
     minimal.validate()
     defaults = minimal.async_substitute()
@@ -189,26 +202,20 @@ async def test_native_schema_example_and_helper(env):
     assert defaults['variables']['excluded_manufacturers'] == ['Apple']
 
 
-async def test_first_scan_initializes_silently(env):
-    env.battery('sensor.remote_battery', 12)
+async def test_new_low_battery_is_reported_once_and_listed(env):
     await env.run()
-    assert env.memory().startswith('bw1:') and len(env.memory()) == 4 + 6
-    assert env.sent == []
-    assert 'Remote battery — 12 %' in env.notice()['message']
-
-
-async def test_new_low_battery_is_reported_once(env):
-    await env.run()
-    assert env.memory() == 'bw1:' and env.sent == []
+    assert await env.items() == [] and env.sent == []
     env.battery('sensor.remote_battery', 18)
     await env.run()
-    assert len(env.sent) == 1
-    assert env.sent[0]['title'] == '🔋 Pile ou batterie à remplacer (1)'
-    assert env.sent[0]['message'] == '• Remote battery — 18 %'
+    assert env.sent == [{'title': '🔋 Pile ou batterie à remplacer (1)', 'message': '• Remote battery — 18 %'}]
+    items = await env.items()
+    assert [(i['summary'], i['description'], i['status']) for i in items] == [
+        ('Remote battery — 18 %', 'battery_watch:sensor.remote_battery', 'needs_action')]
     for level in [17, 15, 9]:
         env.battery('sensor.remote_battery', level)
         await env.run()
     assert len(env.sent) == 1
+    assert [i['summary'] for i in await env.items()] == ['Remote battery — 9 %']
 
 
 async def test_recovery_margin_and_replacement(env):
@@ -217,15 +224,51 @@ async def test_recovery_margin_and_replacement(env):
     await env.run()
     env.battery('sensor.remote_battery', 22)
     await env.run()
+    assert len(await env.items()) == 1, 'within the recovery margin the item is kept'
     env.battery('sensor.remote_battery', 19)
     await env.run()
     assert len(env.sent) == 1, 'oscillation around the threshold must not alert again'
     env.battery('sensor.remote_battery', 100)
     await env.run()
-    assert env.memory() == 'bw1:' and env.notice() is None
+    assert await env.items() == [] and env.notice() is None
     env.battery('sensor.remote_battery', 10)
     await env.run()
     assert len(env.sent) == 2
+
+
+async def test_checked_item_is_acknowledged_until_replacement(env):
+    await env.run()
+    env.battery('sensor.remote_battery', 10)
+    env.battery('sensor.smoke_battery', 12)
+    await env.run()
+    assert len(env.sent) == 1 and env.notice()['title'] == 'Piles et batteries à vérifier (2)'
+    remote = next(i for i in await env.items() if i['summary'].startswith('Remote'))
+    await env.todo('update_item', item=remote['uid'], status='completed')
+    # The state change of the list refreshes the persistent notification at once.
+    await env.run('list', advance=0)
+    assert env.notice()['title'] == 'Piles et batteries à vérifier (1)'
+    assert 'Remote' not in env.notice()['message']
+    env.battery('sensor.remote_battery', 6)
+    await env.run()
+    env.sent.clear()
+    await env.run(None, advance=0)
+    assert env.sent == [{'title': 'Piles et batteries à vérifier (1)', 'message': '• Smoke battery — 12 %'}]
+    completed = [i for i in await env.items() if i['status'] == 'completed']
+    assert [i['summary'] for i in completed] == ['Remote battery — 6 %']
+    env.battery('sensor.remote_battery', 100)
+    await env.run()
+    env.battery('sensor.remote_battery', 8)
+    await env.run()
+    assert env.sent[-1]['message'] == '• Remote battery — 8 %', 'a replaced battery is reported again later'
+
+
+async def test_manual_items_are_left_untouched(env):
+    await env.todo('add_item', item='Acheter des piles AAA')
+    env.battery('sensor.remote_battery', 10)
+    await env.run()
+    env.battery('sensor.remote_battery', 100)
+    await env.run()
+    assert [i['summary'] for i in await env.items()] == ['Acheter des piles AAA']
 
 
 async def test_silent_device_after_delay_and_no_repeat_when_flapping(env):
@@ -236,14 +279,14 @@ async def test_silent_device_after_delay_and_no_repeat_when_flapping(env):
     env.battery('sensor.smoke_battery', 'unavailable', age=7 * 3600)
     await env.run(advance=0)
     assert env.sent[-1]['message'] == '• Smoke battery — muet depuis 7 h'
-    # A restart makes the device unavailable again with a fresh timestamp: it stays remembered.
+    # A restart makes the device unavailable again with a fresh timestamp: it stays listed.
     env.battery('sensor.smoke_battery', 'unavailable', age=0)
     await env.run()
     env.battery('sensor.smoke_battery', 'unknown')
     await env.run()
     env.battery('sensor.smoke_battery', 'unavailable', age=8 * 3600)
     await env.run(advance=0)
-    assert len(env.sent) == 1
+    assert len(env.sent) == 1 and len(await env.items()) == 1
 
 
 async def test_binary_low_battery_alert(env):
@@ -259,7 +302,7 @@ async def test_binary_alerts_can_be_ignored(tmp_path):
         await e.run()
         e.battery('binary_sensor.leak_battery_low', 'on')
         await e.run()
-        assert e.sent == [] and e.memory() == 'bw1:'
+        assert e.sent == [] and await e.items() == []
     finally:
         await e.close()
 
@@ -270,7 +313,7 @@ async def test_personal_devices_and_ups_never_reported(env):
         env.battery(entity_id, 'unavailable', age=48 * 3600)
     env.battery('sensor.phone_battery', 3)
     await env.run(advance=0)
-    assert env.sent == [] and env.memory() == 'bw1:' and env.notice() is None
+    assert env.sent == [] and await env.items() == [] and env.notice() is None
 
 
 async def test_labels_and_entities_exclusions(tmp_path):
@@ -317,18 +360,19 @@ async def test_summary_when_empty(tmp_path):
     e = await make(tmp_path, overrides={'summary_when_empty': True})
     try:
         await e.run('summary', advance=0)
-        assert e.sent == [{'title': 'Piles et batteries : rien à signaler', 'message': 'Aucune pile ni batterie à remplacer.'}]
+        assert e.sent == [{'title': 'Piles et batteries : rien à signaler',
+                           'message': 'Aucune pile ni batterie à remplacer.'}]
     finally:
         await e.close()
 
 
-async def test_invalid_helper_reports_configuration(tmp_path):
-    e = await make(tmp_path, max_length=100)
+async def test_missing_list_reports_configuration(tmp_path):
+    e = await make(tmp_path, overrides={'memory': 'todo.absente'})
     try:
         e.battery('sensor.remote_battery', 5)
         await e.run()
-        assert e.sent == [] and e.memory() == 'unknown'
-        assert 'longueur minimale 0 et maximale 255' in e.notice()['message']
+        assert e.sent == [] and await e.items() == []
+        assert 'Liste de tâches locale' in e.notice()['message']
     finally:
         await e.close()
 
@@ -340,25 +384,23 @@ async def test_notification_conditions_keep_memory_up_to_date(tmp_path):
         await e.run()
         e.battery('sensor.remote_battery', 5)
         await e.run()
-        assert e.sent == [] and e.memory() != 'bw1:'
+        assert e.sent == [] and len(await e.items()) == 1
         assert 'Remote battery — 5 %' in e.notice()['message']
     finally:
         await e.close()
 
 
-async def test_memory_overflow_stays_within_255_and_does_not_repeat(env, caplog):
+async def test_no_size_limit_and_no_repeat_with_many_devices(env):
     await env.run()
-    for i in range(40):
+    for i in range(80):
         env.battery(f'sensor.extra_{i:02d}_battery', 5)
-    with caplog.at_level(logging.WARNING, logger='battery_watch'):
-        await env.run()
-    assert len(env.memory()) <= 255
-    assert env.sent[-1]['title'] == '🔋 Pile ou batterie à remplacer (36)'
-    assert any('plus de 36 appareils' in r.getMessage() for r in caplog.records)
+    await env.run()
+    assert env.sent[-1]['title'] == '🔋 Pile ou batterie à remplacer (80)'
+    assert len(await env.items()) == 80
     count = len(env.sent)
     await env.run()
     assert len(env.sent) == count
-    assert env.notice()['title'] == 'Piles et batteries à vérifier (40)'
+    assert env.notice()['title'] == 'Piles et batteries à vérifier (80)'
 
 
 async def test_entity_without_registry_entry_is_watched(env):
@@ -377,4 +419,3 @@ async def test_summary_disabled_and_no_actions_configured(tmp_path):
         assert e.sent == [] and 'Remote battery — 5 %' in e.notice()['message']
     finally:
         await e.close()
-
