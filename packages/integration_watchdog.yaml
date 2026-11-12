@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# Version 1.0.1 — fichier de configuration commun à installer une seule fois.
+# Version 1.0.0 — fichier de configuration commun à installer une seule fois.
 script:
   surveillance_ecrire_memoire:
     alias: Surveillance — Enregistrer l’historique

@@ -22,7 +22,7 @@ Les coordonnées numériques des 20 préréglages TRÅDFRI proviennent du [relev
 
 Les noms IKEA, TRÅDFRI et STYRBAR désignent les appareils compatibles ; ce projet n’est pas affilié à IKEA. Les micrologiciels, la radio et le rendu physique des ampoules ne sont pas certifiés par les tests simulés.
 
-## Surveillance des piles
+## Surveillance des piles et batteries
 
 Implémentation distincte, publiée sous la licence GPL-3.0 de cette collection. Ses fonctions de récapitulatif à heure fixe, de choix des jours et de notification persistante reprennent des idées du blueprint **Low Battery Notifications & Actions** de **Blackshome**. Aucun code n’en a été copié : ce blueprint est diffusé sans licence indiquée.
 

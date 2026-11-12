@@ -41,8 +41,7 @@ def build():
                    yaml.dump(blueprint, Dumper=Dumper, allow_unicode=True, sort_keys=False, width=110))
     examples = ROOT / 'examples/battery_watch'
     examples.mkdir(parents=True, exist_ok=True)
-    for name in ['automations.yaml', 'helpers.yaml']:
-        (examples / name).write_text((BASE / name).read_text())
+    (examples / 'automations.yaml').write_text((BASE / 'automations.yaml').read_text())
 
 if __name__ == '__main__':
     build()

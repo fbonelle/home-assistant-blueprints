@@ -2,7 +2,7 @@
 
 [Français](ikea_styrbar_light.md) · **English** · [Home](../README.en.md)
 
-Version **1.2.0**. One blueprint per light replaces the controller + hook pair. Fast holds use a small shared script written in standard Home Assistant YAML, with no custom integration. The form uses French labels; key labels are included below.
+Version **1.0.0**. One blueprint per light replaces the controller + hook pair. Fast holds use a small shared script written in standard Home Assistant YAML, with no custom integration. The form uses French labels; key labels are included below.
 
 ## Installation
 
@@ -107,4 +107,4 @@ Configuration errors are reported on use or reload. Command failures remain repo
 
 Tests run this blueprint in an **isolated Home Assistant 2026.10.4**, with actual automations, native light services and Text helpers. Radio and rendering are simulated, using a linear fade model independent of blueprint memory. Coverage includes different capability modes, diagnostics without commands, mid-fade release, direction reversal, cadence, double presses, brightness bounds, repeated or delayed packets, missing release, command failures, external changes and independent remotes. These tests do not prove physical radio reception or bulb color output. Publishing this repository does not modify a real installation's automations.
 
-Updating from 1.0.0 or 1.1.0 preserves existing inputs and the Text helper. **Install the shared script file before reloading blueprint 1.2.0.** Set the additional recall gesture to **Aucun** (None) for cycling on both lateral holds. Reloading cancels the current gesture without changing the light.
+Updating the blueprint preserves existing inputs and the Text helper. **Install the shared script file before reloading the blueprint.** Set the additional recall gesture to **Aucun** (None) for cycling on both lateral holds. Reloading cancels the current gesture without changing the light.

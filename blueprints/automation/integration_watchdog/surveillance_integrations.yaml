@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# Version 1.0.1 — marqueurs f=0 réservé, 1 admis, 2 démarré, >2 fin conservatrice.
+# Version 1.0.0 — marqueurs f=0 réservé, 1 admis, 2 démarré, >2 fin conservatrice.
 # Toutes les écritures internes passent par le même service comparé ; événements = réveils uniquement.
 blueprint:
-  name: Surveillance et relance des intégrations — 1.0.1
+  name: Surveillance et relance des intégrations — 1.0.0
   description: Surveille les entités d’une intégration et tente de la relancer en cas de panne. Le nombre de tentatives,
     les délais, les notifications et les journaux sont réglables. Installer le fichier de configuration commun fourni,
     puis créer une automatisation et un assistant Texte par configuration d’intégration.

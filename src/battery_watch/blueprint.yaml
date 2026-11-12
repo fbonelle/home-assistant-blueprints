@@ -1,11 +1,12 @@
 blueprint:
-  name: Surveillance des piles
+  name: Surveillance des piles et batteries
   description: >-
-    Signale tout de suite chaque pile qui passe sous le seuil, chaque appareil devenu muet et chaque alerte
+    Signale tout de suite chaque pile ou batterie qui passe sous le seuil, chaque appareil devenu muet et chaque alerte
     « pile faible », puis envoie un récapitulatif à l’heure choisie. Téléphones, montres, ordinateurs et
     onduleurs sont exclus par défaut (intégrations mobile_app, icloud, icloud3, nut et fabricant Apple).
-    Un assistant Texte réservé à cette automatisation (longueur 0 à 255) mémorise les appareils déjà
-    signalés : une pile n’est pas signalée à nouveau tant qu’elle n’a pas été remplacée.
+    Une liste de tâches locale réservée à cette automatisation, sans limite de taille, mémorise les
+    appareils signalés : une pile n’est pas signalée à nouveau tant qu’elle n’a pas été remplacée. Cocher
+    un élément de la liste le retire du récapitulatif jusqu’au remplacement.
     Menu → Exécuter les actions envoie le récapitulatif immédiatement.
     Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/battery_watch.md
   domain: automation
@@ -18,14 +19,17 @@ blueprint:
       name: Détection
       input:
         memory:
-          name: Assistant Texte réservé à cette automatisation
+          name: Liste de tâches réservée à cette automatisation
           description: >-
-            Créer un assistant Texte de longueur minimale 0 et maximale 255. Il retient les appareils déjà
-            signalés, y compris après un redémarrage. Ne pas le partager avec une autre automatisation.
+            Ajouter l’intégration « Liste de tâches locale » et créer une liste dédiée. Chaque appareil
+            signalé y devient un élément, retiré automatiquement après remplacement de la pile. Cocher un
+            élément indique que la pile est prise en compte : il quitte le récapitulatif, sans nouvelle alerte.
+            Les éléments ajoutés à la main sont ignorés.
           selector:
             entity:
               filter:
-              - domain: input_text
+              - domain: todo
+                integration: local_todo
         threshold:
           name: Seuil de pile faible
           description: Un niveau strictement inférieur à ce seuil déclenche une alerte.
@@ -125,8 +129,9 @@ blueprint:
           name: Actions d’alerte immédiate
           description: >-
             Exécutées lorsqu’au moins un appareil vient d’être détecté. Variables disponibles :
-            battery_title, battery_message (nouveaux appareils, une ligne chacun), battery_new et
-            battery_all (listes de dictionnaires e, n, r, v, h), battery_count.
+            battery_title, battery_message (nouveaux appareils, une ligne chacun), battery_new,
+            battery_all (appareils non cochés) et battery_acknowledged (appareils cochés), listes de
+            dictionnaires e, n, r, v, h ; battery_count.
           default: []
           selector: {action: {}}
         summary_enabled:
@@ -186,6 +191,9 @@ triggers:
 - trigger: time
   at: !input summary_time
   id: summary
+- trigger: state
+  entity_id: !input memory
+  id: list
 variables:
   memory_entity: !input memory
   threshold: !input threshold
@@ -216,7 +224,7 @@ actions:
   - action: persistent_notification.create
     data:
       notification_id: '{{ notification_id }}'
-      title: Surveillance des piles — configuration
+      title: Surveillance des piles et batteries — configuration
       message: '{{ errors | join("\n") }}'
   - action: system_log.write
     data:
@@ -224,19 +232,41 @@ actions:
       level: warning
       message: '{{ this.entity_id }} : {{ errors | join(" ") }}'
   - stop: Configuration invalide ; mémoire inchangée.
+- action: todo.get_items
+  target: {entity_id: '{{ memory_entity }}'}
+  data:
+    status: [needs_action, completed]
+  response_variable: memory_items
+- variables:
+    listed: '{{ memory_items[memory_entity]["items"] | default([], true) }}'
 - variables:
     scan: '@template:scan'
-    previous: '{{ states(memory_entity) }}'
-    next_memory: '{{ "bw1:" ~ scan["keys"] | join(",") }}'
-- if: '{{ next_memory != previous }}'
+- if: '{{ scan.removals | count > 0 }}'
   then:
-  - action: input_text.set_value
+  - action: todo.remove_item
     target: {entity_id: '{{ memory_entity }}'}
-    data: {value: '{{ next_memory }}'}
+    data: {item: '{{ scan.removals }}'}
+- repeat:
+    for_each: '{{ scan.new }}'
+    sequence:
+    - action: todo.add_item
+      target: {entity_id: '{{ memory_entity }}'}
+      data:
+        item: '{{ repeat.item.summary }}'
+        description: 'battery_watch:{{ repeat.item.e }}'
+- repeat:
+    for_each: '{{ scan.renames }}'
+    sequence:
+    - action: todo.update_item
+      target: {entity_id: '{{ memory_entity }}'}
+      data:
+        item: '{{ repeat.item.uid }}'
+        rename: '{{ repeat.item.summary }}'
 - variables:
-    changed: '{{ next_memory != previous }}'
+    changed: '{{ (scan.new | count + scan.renames | count + scan.removals | count) > 0 }}'
     battery_all: '{{ scan["items"] }}'
-    battery_new: '{{ scan["new"] if scan.initialized else [] }}'
+    battery_acknowledged: '{{ scan.acknowledged }}'
+    battery_new: '{{ scan.new }}'
     battery_count: '{{ scan["items"] | count }}'
     weekday: "{{ ['mon','tue','wed','thu','fri','sat','sun'][now().weekday()] }}"
     lines_source: '{{ scan["items"] }}'
@@ -252,15 +282,7 @@ actions:
       logger: battery_watch
       level: info
       message: '{{ this.entity_id }} : {{ battery_new | map(attribute="e") | join(", ") }}'
-- if: '{{ scan.overflow }}'
-  then:
-  - action: system_log.write
-    data:
-      logger: battery_watch
-      level: warning
-      message: >-
-        {{ this.entity_id }} : plus de 36 appareils en alerte ; les suivants n’apparaissent que dans le
-        récapitulatif et la notification persistante.
+# Le déclencheur « list » couvre un élément coché ou décoché à la main : la notification est actualisée.
 - if: '{{ persistent_notification and (changed or mode_run != "scan") }}'
   then:
   - if: '{{ battery_count > 0 }}'
@@ -268,19 +290,19 @@ actions:
     - action: persistent_notification.create
       data:
         notification_id: '{{ notification_id }}'
-        title: 'Piles à vérifier ({{ battery_count }})'
+        title: 'Piles et batteries à vérifier ({{ battery_count }})'
         message: '{{ summary_text }}'
     else:
     - action: persistent_notification.dismiss
       data: {notification_id: '{{ notification_id }}'}
 - if:
   - condition: template
-    value_template: '{{ mode_run == "scan" and immediate and battery_new | count > 0 }}'
+    value_template: '{{ immediate and battery_new | count > 0 }}'
   - condition: and
     conditions: !input notification_conditions
   then:
   - variables:
-      battery_title: '🔋 Pile à remplacer ({{ battery_new | count }})'
+      battery_title: '🔋 Pile ou batterie à remplacer ({{ battery_new | count }})'
       battery_message: '{{ new_text }}'
   - sequence: !input alert_actions
 - if:
@@ -294,6 +316,6 @@ actions:
   then:
   - variables:
       battery_title: >-
-        {{ 'Piles à vérifier (' ~ battery_count ~ ')' if battery_count > 0 else 'Piles : rien à signaler' }}
-      battery_message: '{{ summary_text if battery_count > 0 else "Aucune pile à remplacer." }}'
+        {{ 'Piles et batteries à vérifier (' ~ battery_count ~ ')' if battery_count > 0 else 'Piles et batteries : rien à signaler' }}
+      battery_message: '{{ summary_text if battery_count > 0 else "Aucune pile ni batterie à remplacer." }}'
   - sequence: !input summary_actions
