@@ -1,0 +1,18 @@
+{%- set ns = namespace(errors=[]) -%}
+{%- if not memory_entity.startswith('input_text.') or states[memory_entity] is none
+      or states(memory_entity) == 'unavailable'
+      or state_attr(memory_entity, 'min') != 0 or state_attr(memory_entity, 'max') != 255 -%}
+  {%- set ns.errors = ns.errors + ['Créer un assistant Texte réservé à cette automatisation, de longueur minimale 0 et maximale 255.'] -%}
+{%- endif -%}
+{%- for value, lower, upper in [(threshold, 1, 100), (recovery_margin, 0, 50), (unavailable_hours, 0, 168)] -%}
+  {%- if value is not number or value is boolean or not lower <= value <= upper -%}
+    {%- set ns.errors = ns.errors + ['Un réglage numérique dépasse ses limites.'] -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- for value in [excluded_integrations, excluded_manufacturers, excluded_entities, excluded_devices,
+                  excluded_labels, summary_weekdays] -%}
+  {%- if value is not sequence or value is string or value is mapping -%}
+    {%- set ns.errors = ns.errors + ['Une liste d’exclusions ou de jours n’est pas une liste.'] -%}
+  {%- endif -%}
+{%- endfor -%}
+{{ ns.errors | unique | list }}

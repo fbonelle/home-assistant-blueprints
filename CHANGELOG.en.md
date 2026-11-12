@@ -2,6 +2,17 @@
 
 [Français](CHANGELOG.md) · **English**
 
+## Battery monitoring — 1.0.0 — 12 November 2026
+
+First published version of **Battery monitoring** (*Surveillance des piles*).
+
+- Immediate alert, once per device: battery below the threshold, device silent beyond a delay, binary “battery low” alert.
+- Memory in a Text helper: no new alert when a battery keeps dropping, oscillates around the threshold or becomes unavailable during a restart.
+- Summary at the selected time and days, manual sending through “Run actions”, persistent notification kept up to date.
+- Default exclusion of phones, watches, computers and UPS units (mobile_app, icloud, icloud3, nut, Apple), extendable by entity, device or label.
+- Free notification actions with title, message and lists provided; optional additional conditions.
+- Native Home Assistant 2026.10.4 tests: real registries, memory, exclusions, summary and the 36-device capacity.
+
 ## STYRBAR light — 1.2.0 — 4 November 2026
 
 - Explicit brightness speed in percentage points/second, initially 35: approximately 3 seconds across the full range.

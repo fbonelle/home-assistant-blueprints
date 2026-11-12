@@ -1,0 +1,62 @@
+{#- Analyse des piles. Résultat : dict(items, new, keys, initialized, overflow).
+    items : appareils en alerte, dict(e=entité, n=nom, r=raison, v=niveau, h=heures).
+    new : sous-ensemble de items absent de la mémoire (à signaler tout de suite).
+    keys : empreintes à conserver dans l’assistant Texte (6 caractères chacune).
+    Une empreinte reste en mémoire tant que l’appareil n’est pas revenu à un état
+    sûr (niveau au moins égal au seuil plus la marge, alerte binaire à off) ; un
+    appareil muet ou inconnu n’est donc jamais signalé deux fois. -#}
+{%- set raw = states(memory_entity) -%}
+{%- set initialized = raw.startswith('bw1:') -%}
+{%- set stored = raw[4:].split(',') | reject('eq', '') | list if initialized else [] -%}
+{%- set domains = excluded_integrations | map('lower') | list -%}
+{%- set makers = excluded_manufacturers | map('lower') | list -%}
+{%- set ex = namespace(entities=excluded_entities | list, devices=excluded_devices | list) -%}
+{%- for d in domains -%}{%- set ex.entities = ex.entities + integration_entities(d) -%}{%- endfor -%}
+{%- for l in excluded_labels -%}
+  {%- set ex.entities = ex.entities + label_entities(l) -%}
+  {%- set ex.devices = ex.devices + label_devices(l) -%}
+{%- endfor -%}
+{%- set silent_limit = now() - timedelta(hours=unavailable_hours) -%}
+{%- set candidates = (states.sensor | selectattr('attributes.device_class', 'defined')
+     | selectattr('attributes.device_class', 'eq', 'battery') | list)
+   + ((states.binary_sensor | selectattr('attributes.device_class', 'defined')
+     | selectattr('attributes.device_class', 'eq', 'battery') | list) if include_binary else []) -%}
+{%- set ns = namespace(items=[], keys=[], new=[]) -%}
+{%- for s in candidates if s.entity_id not in ex.entities -%}
+  {%- set entry = config_entry_id(s.entity_id) -%}
+  {%- set domain = (config_entry_attr(entry, 'domain') or '') | lower if entry else '' -%}
+  {%- set device = device_id(s.entity_id) -%}
+  {%- set maker = (device_attr(device, 'manufacturer') or '') | lower if device else '' -%}
+  {%- if domain not in domains and maker not in makers and (not device or device not in ex.devices) -%}
+    {%- set key = sha256(s.entity_id)[:6] -%}
+    {%- if s.domain == 'binary_sensor' -%}
+      {%- set alert = s.state == 'on' -%}
+      {%- set safe = s.state == 'off' -%}
+      {%- set item = dict(e=s.entity_id, n=s.name, r='alert', v=none, h=none) -%}
+    {%- else -%}
+      {%- set number = s.state | is_number -%}
+      {%- set value = s.state | float(0) -%}
+      {%- set low = number and value < threshold -%}
+      {%- set silent = unavailable_hours > 0 and s.state == 'unavailable' and s.last_changed < silent_limit -%}
+      {%- set alert = low or silent -%}
+      {%- set safe = number and value >= threshold + recovery_margin -%}
+      {%- set item = dict(e=s.entity_id, n=s.name, r=('level' if low else 'silent'),
+           v=(value | round(0) | int if low else none),
+           h=((now() - s.last_changed).total_seconds() // 3600) | int if silent and not low else none) -%}
+    {%- endif -%}
+    {%- if alert -%}
+      {%- set ns.items = ns.items + [dict(item, k=key)] -%}
+      {%- set ns.keys = ns.keys + [key] -%}
+    {%- elif key in stored and not safe -%}
+      {%- set ns.keys = ns.keys + [key] -%}
+    {%- endif -%}
+  {%- endif -%}
+{%- endfor -%}
+{#- 36 empreintes de 6 caractères tiennent dans 255 caractères avec le préfixe bw1:. -#}
+{%- set ordered = ns.keys | unique | sort | list -%}
+{%- set kept = ordered[:36] -%}
+{%- for item in ns.items if item.k in kept and item.k not in stored -%}
+  {%- set ns.new = ns.new + [item] -%}
+{%- endfor -%}
+{{ dict(items=ns.items | sort(attribute='n'), new=ns.new | sort(attribute='n'), keys=kept,
+        initialized=initialized, overflow=(ordered | count > 36)) }}
