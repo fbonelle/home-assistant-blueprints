@@ -93,10 +93,10 @@ In the collapsed section **Réglages de variation et de couleur**. Values in bra
 | Recall colour | RGB 255, 192, 140 | — |
 | Colours may switch on · Recall may switch on | yes · yes | Otherwise no effect on a lamp that is off. |
 | Double press delay | 800 ms | Memory helper required. |
-| Ignore events too close together | 0 (STYRBAR: 50 ms) | Must stay below the double press delay. |
+| Ignore events too close together | 0 (STYRBAR: 50 ms; Tap Dial: 100 ms) | Must stay below the double press delay. |
 | Logging | no | INFO level, `lighting_remote` logger. |
 
-On the Tap Dial, **Sensibilité de la molette** scales each dial notch (1 by default).
+On the Tap Dial, the dial sends an amount that grows with rotation speed: about 3 % for a slow notch, up to 80 % for a fast spin. **Sensibilité de la molette** scales it (1 by default). The 100 ms filter drops presses received twice and contradictory rotation reports a few milliseconds apart.
 
 An inconsistent configuration (minimum above maximum, unknown preset, black recall colour, filter longer than the double press delay, helper too short) blocks every command. It is reported by a notification and in the log.
 
@@ -106,7 +106,7 @@ An inconsistent configuration (minimum above maximum, unknown preset, black reca
 - **Philips remotes repeat the hold event.** Each repetition makes one step. IKEA remotes send only a start and an end, so the change runs at the configured interval.
 - **The lamp state is read again at every step.** A lamp switched off during a hold is not switched back on by it. A lamp that becomes unavailable ends the change. A change made elsewhere is respected and the release does not overwrite it.
 - **Colours stop a running effect** (colorloop) when the lamp allows it.
-- **The Tap Dial dial** drives the lamp switched on most recently among the four; if all are off, the lamp switched most recently.
+- **The Tap Dial dial** drives the lamp switched on most recently among the four; if all are off, the lamp switched most recently; an unavailable lamp is never chosen. When lamps follow one another, such as a group and its members, the lamp the remote commanded wins: a member’s button then the dial drives that member alone, the group’s button then the dial drives the group. A lamp switched on otherwise more than 2 seconds later still comes first.
 - **The eWeLink button** is read from its commands (single, double, long). `attribute_updated` state reports are ignored: the button can send them with no press.
 
 ## Automatic switch-off

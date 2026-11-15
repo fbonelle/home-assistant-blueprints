@@ -6,7 +6,7 @@
 # jamais un maintien en cours. Les actions forment le moteur commun, identique pour
 # toutes les télécommandes ; ses commentaires détaillés sont dans src/lighting/engine.yaml.
 blueprint:
-  name: Télécommande Philips Hue Dimmer (RWL022) — ZHA — 1.0.1
+  name: Télécommande Philips Hue Dimmer (RWL022) — ZHA — 1.0.3
   description: 'Quatre boutons (Marche/Arrêt, Plus, Moins, Hue). Pour chaque appui court ou maintenu, choisir l''action
     dans la liste commune ou une action personnalisée. Actions et réglages communs à toutes les télécommandes de
     la famille ; variations continues bornées. Assistant de mémoire facultatif, nécessaire au double appui. Menu
@@ -855,7 +855,7 @@ variables:
              else (value | int if value is integer else (value | float if value is float else value | string))))}) %}
       {% endfor %}
     {% endif %}{{ ns.fields }}
-  dial_step: '{{ params.get(''step_size'', 0) | float(0) if params is mapping else 0 }}'
+  dial_step: '{{ ((params.get(''step_size'', 0) | float(0)) / 2.55) | round(2) if params is mapping else 0 }}'
   now_ts: '{{ as_timestamp(now()) }}'
   event_ts: |-
     {{ as_timestamp(trigger.event.time_fired, now_ts)
@@ -1134,8 +1134,10 @@ variables:
   ignore_reason: |-
     {% if manual %} {% elif gesture_raw == '' %}événement sans geste {% elif now_ts - event_ts > 5 %}événement trop ancien {% elif use_memory and event_ts < m.t - 0.001 %}événement arrivé dans le désordre {% elif debounce_ms > 0 and use_memory and m.g in [gesture_raw, gesture_raw | replace('_press', '_double')]
             and 0 <= event_ts - m.t < debounce_ms / 1000 %}doublon radio
+    {# Sans mémoire, l'exécution précédente peut être horodatée quelques millisecondes après
+       l'émission de cet événement si Home Assistant est occupé : l'écart est pris sans signe. #}
     {% elif debounce_ms > 0 and not use_memory and this is defined and this.attributes.get('last_triggered')
-            and 0 <= event_ts - as_timestamp(this.attributes.last_triggered, 0) < debounce_ms / 1000 %}doublon radio
+            and (event_ts - as_timestamp(this.attributes.last_triggered, 0)) | abs < debounce_ms / 1000 %}doublon radio
     {% elif continuous and use_memory and m.h == gesture and 0 <= event_ts - m.s < hold_limit %}répétition du maintien en cours {% elif continuous and not use_memory and loop_running %}maintien déjà en cours {% elif gesture == 'stop' or action == 'custom' %} {% elif action == 'none' %}geste sans action {% elif not (lamp is string and lamp.startswith('light.')) %}geste sans lampe {% endif %}
 conditions:
 - condition: template

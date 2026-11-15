@@ -93,10 +93,10 @@ Dans la section repliée **Réglages de variation et de couleur**. Les valeurs e
 | Couleur de rappel | RGB 255, 192, 140 | — |
 | Les couleurs peuvent allumer · Le rappel peut allumer | oui · oui | Sinon, sans effet sur une lampe éteinte. |
 | Délai du double appui | 800 ms | Assistant de mémoire nécessaire. |
-| Ignorer les événements trop rapprochés | 0 (STYRBAR : 50 ms) | Doit rester inférieur au délai du double appui. |
+| Ignorer les événements trop rapprochés | 0 (STYRBAR : 50 ms ; Tap Dial : 100 ms) | Doit rester inférieur au délai du double appui. |
 | Journaliser | non | Niveau INFO, journal `lighting_remote`. |
 
-Sur le Tap Dial, **Sensibilité de la molette** multiplie l’amplitude de chaque cran (1 par défaut).
+Sur le Tap Dial, la molette transmet une amplitude qui grandit avec la vitesse de rotation : environ 3 % pour un cran lent, jusqu’à 80 % pour une rotation rapide. **Sensibilité de la molette** la multiplie (1 par défaut). Le filtre de 100 ms écarte les appuis reçus deux fois et les rapports de rotation contradictoires émis à quelques millisecondes d’intervalle.
 
 Une configuration incohérente (minimum au-dessus du maximum, palette inconnue, couleur de rappel noire, filtre plus long que le double appui, assistant trop court) bloque toute commande. Elle est signalée par une notification et dans le journal.
 
@@ -106,7 +106,7 @@ Une configuration incohérente (minimum au-dessus du maximum, palette inconnue, 
 - **Les télécommandes Philips répètent le maintien.** Chaque répétition produit un seul pas. Les télécommandes IKEA n’envoient qu’un début et une fin : la variation tourne alors à la cadence réglée.
 - **L’état de la lampe est relu à chaque pas.** Une lampe éteinte pendant un maintien n’est pas rallumée par lui. Une lampe devenue indisponible arrête la variation. Un changement fait ailleurs est respecté, et le relâchement ne l’écrase pas.
 - **Les couleurs arrêtent un effet en cours** (colorloop), si la lampe le permet.
-- **La molette du Tap Dial** agit sur la dernière lampe allumée parmi les quatre. Si toutes sont éteintes, elle agit sur la dernière actionnée.
+- **La molette du Tap Dial** agit sur la dernière lampe allumée parmi les quatre. Si toutes sont éteintes, elle agit sur la dernière actionnée ; une lampe indisponible n’est jamais choisie. Quand des lampes se suivent, comme un groupe et ses membres, celle que la télécommande a commandée l’emporte : bouton de la lampe du haut puis molette agit sur la lampe du haut seule, bouton du groupe puis molette agit sur le groupe. Une lampe allumée autrement plus de 2 secondes après reste prioritaire.
 - **Le bouton eWeLink** est lu dans ses commandes (simple, double, long). Les rapports d’état `attribute_updated` sont ignorés : le bouton peut en émettre sans aucun appui.
 
 ## Extinction automatique
