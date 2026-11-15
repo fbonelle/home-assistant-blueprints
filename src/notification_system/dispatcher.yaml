@@ -1,0 +1,545 @@
+# Source du blueprint « Notifications — Répartiteur ».
+# tools/build_notifications.py ajoute la version au nom et écrit le fichier publié.
+blueprint:
+  name: Notifications — Répartiteur
+  description: >-
+    Point d’entrée unique de toutes les notifications : choisit les canaux selon le niveau
+    (info, warning, critical, technical), adapte liens et pièces jointes à chaque canal,
+    écarte les doublons, rend les notifications silencieuses la nuit, bascule de ntfy vers
+    l’application mobile si ntfy échoue, et déclenche la lecture vocale. Les envois passent
+    par le script « Notifications — Envoi sur un canal », qui isole chaque canal.
+    Créer ce script avec l’identifiant voulu (par exemple notify_dispatch_global) : ses
+    champs title, message, level, target, entity_id, tts et data forment l’interface
+    appelée par les automatisations.
+    Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/notification_system.md
+  domain: script
+  homeassistant:
+    min_version: 2026.10.0
+  source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/script/notification_system/repartiteur.yaml
+  author: fbonelle
+  input:
+    scripts:
+      name: Scripts utilisés
+      input:
+        sender_script:
+          name: Script d’envoi sur un canal
+          description: Script créé à partir du blueprint « Notifications — Envoi sur un canal ».
+          selector:
+            entity:
+              filter:
+                - domain: script
+        tts_script:
+          name: Script de lecture vocale
+          description: >-
+            Script créé à partir du blueprint « Notifications — Lecture vocale ». Laisser vide
+            pour ne jamais lire les notifications à voix haute.
+          default: ''
+          selector:
+            entity:
+              filter:
+                - domain: script
+    routing:
+      name: Canaux par niveau
+      input:
+        mobile_levels:
+          name: Niveaux envoyés à l’application mobile
+          default: [info, warning, critical]
+          selector:
+            select:
+              multiple: true
+              options: [info, warning, critical, technical]
+        ntfy_levels:
+          name: Niveaux envoyés à ntfy
+          default: [technical]
+          selector:
+            select:
+              multiple: true
+              options: [info, warning, critical, technical]
+        ntfy_fallback:
+          name: Basculer sur l’application mobile si ntfy échoue
+          description: >-
+            Si l’envoi ntfy échoue, le message part sur l’application mobile, titre précédé de
+            « 🚨 FALLBACK NTFY : ».
+          default: true
+          selector:
+            boolean: {}
+        email_levels:
+          name: Niveaux envoyés par e-mail
+          default: [critical]
+          selector:
+            select:
+              multiple: true
+              options: [info, warning, critical, technical]
+        logbook_levels:
+          name: Niveaux inscrits dans le journal de bord
+          default: [warning, critical, technical]
+          selector:
+            select:
+              multiple: true
+              options: [info, warning, critical, technical]
+        ntfy_tags:
+          name: Étiquettes ntfy par défaut
+          description: Étiquettes émoji ntfy quand le message n’en fournit pas (data.tags).
+          default: [hammer_and_wrench, server]
+          selector:
+            object: {}
+    links:
+      name: Liens et pièces jointes
+      input:
+        home_url:
+          name: Adresse de Home Assistant
+          description: >-
+            Adresse utilisée pour les liens web (e-mail), les icônes et les pièces jointes
+            envoyées à ntfy et à l’application mobile. Sans barre oblique finale.
+          default: http://homeassistant.local:8123
+          selector:
+            text:
+              type: url
+        default_link:
+          name: Page ouverte par défaut
+          description: Chemin ouvert par une notification qui n’indique ni lien ni entité.
+          default: /lovelace/0
+          selector:
+            text: {}
+        technical_link:
+          name: Page ouverte par une notification technique
+          default: /config/logs
+          selector:
+            text: {}
+        media_root:
+          name: Racine média des images jointes
+          description: >-
+            Racine media source du dossier /config/www, utilisée pour joindre les images à
+            l’e-mail. Elle doit correspondre à configuration.yaml (homeassistant > media_dirs).
+          default: media-source://media_source/local
+          selector:
+            text: {}
+    quiet:
+      name: Nuit et lecture vocale
+      input:
+        night_start_hour:
+          name: Début de la nuit
+          description: Heure à partir de laquelle les notifications mobiles sont silencieuses.
+          default: 21
+          selector:
+            number: {min: 0, max: 23, step: 1, unit_of_measurement: h, mode: box}
+        night_end_hour:
+          name: Fin de la nuit
+          default: 8
+          selector:
+            number: {min: 0, max: 23, step: 1, unit_of_measurement: h, mode: box}
+        speak_levels:
+          name: Niveaux toujours lus à voix haute
+          default: [critical]
+          selector:
+            select:
+              multiple: true
+              options: [info, warning, critical, technical]
+        speak_present_levels:
+          name: Niveaux lus à voix haute en journée quand quelqu’un est présent
+          default: [warning]
+          selector:
+            select:
+              multiple: true
+              options: [info, warning, critical, technical]
+        presence_entity:
+          name: Présence
+          description: Zone ou entité dont la valeur numérique est le nombre de personnes présentes.
+          default: zone.home
+          selector:
+            entity:
+              filter:
+                - domain: zone
+    dedup:
+      name: Anti-doublon
+      input:
+        dedup_memory:
+          name: Mémoire anti-doublon
+          description: >-
+            Assistant Texte réservé à cette mémoire, longueur maximale 255. Il retient les
+            empreintes des dernières notifications envoyées.
+          selector:
+            entity:
+              filter:
+                - domain: input_text
+        dedup_window:
+          name: Fenêtre anti-doublon
+          description: Un message identique (même niveau, titre et texte) n’est pas renvoyé pendant ce délai.
+          default: 300
+          selector:
+            number: {min: 0, max: 3600, step: 10, unit_of_measurement: s, mode: box}
+        dedup_slots:
+          name: Nombre de messages mémorisés
+          description: 21 caractères par message ; 10 tiennent dans un assistant Texte de 255 caractères.
+          default: 10
+          selector:
+            number: {min: 1, max: 11, step: 1, mode: box}
+# Point d’entrée de toutes les notifications : le plafond par défaut de 10 exécutions se
+# ferait sentir ici en premier, d’autant que le répartiteur attend le retour de l’e-mail
+# (SMTP prend plusieurs secondes).
+mode: parallel
+max: 25
+icon: mdi:call-split
+fields:
+  title:
+    name: Titre
+    example: Lave-linge
+    selector:
+      text: {}
+  message:
+    name: Message
+    example: Le cycle est terminé.
+    selector:
+      text:
+        multiline: true
+  level:
+    name: Niveau
+    default: info
+    selector:
+      select:
+        options: [info, warning, critical, technical]
+  target:
+    name: Destinataire
+    description: >-
+      « all » : toute la famille. Toute autre valeur (par défaut « principal ») : le
+      téléphone principal.
+    default: principal
+    selector:
+      select:
+        options: [principal, all]
+  entity_id:
+    name: Entité concernée
+    description: Sans lien explicite, la notification ouvre l’historique de cette entité.
+    selector:
+      entity: {}
+  tts:
+    name: Forcer la lecture vocale
+    default: false
+    selector:
+      boolean: {}
+  data:
+    name: Données avancées
+    description: >-
+      click (lien), icon (icône ntfy), snapshot_file (image), actions (boutons), priority
+      et tags (ntfy), html (ajout à l’e-mail), notif_id (identifiant), skip_trace (pas de
+      notification persistante).
+    default: {}
+    selector:
+      object: {}
+variables:
+  sender_script: !input sender_script
+  tts_script: !input tts_script
+  mobile_levels: !input mobile_levels
+  ntfy_levels: !input ntfy_levels
+  ntfy_fallback: !input ntfy_fallback
+  email_levels: !input email_levels
+  logbook_levels: !input logbook_levels
+  ntfy_tags: !input ntfy_tags
+  domain_url: !input home_url
+  default_link: !input default_link
+  technical_link: !input technical_link
+  snapshot_media_root: !input media_root
+  night_start_hour: !input night_start_hour
+  night_end_hour: !input night_end_hour
+  speak_levels: !input speak_levels
+  speak_present_levels: !input speak_present_levels
+  presence_entity: !input presence_entity
+  dedup_memory: !input dedup_memory
+  dedup_window_s: !input dedup_window
+  dedup_max_slots: !input dedup_slots
+sequence:
+  # Les valeurs par défaut des champs ne s’appliquent qu’à l’interface : un appel qui omet
+  # un champ le laisse indéfini. Chaque champ est donc normalisé ici, une fois.
+  - variables:
+      title: "{{ title | default('', true) }}"
+      message: "{{ message | default('', true) }}"
+      level: >
+        {% set l = level | default('info', true) | string | lower | trim %}
+        {{ l if l in ['info', 'warning', 'critical', 'technical'] else 'info' }}
+      target: "{{ target | default('principal', true) }}"
+      tts: "{{ tts | default(false) | bool }}"
+      sdata: "{{ data if data is defined and data is mapping else {} }}"
+  - variables:
+      current_hour: "{{ now().hour | int(0) }}"
+      is_night: >
+        {% set s = night_start_hour | int(21) %}{% set e = night_end_hour | int(8) %}
+        {{ (current_hour >= s or current_hour < e) if s > e else (current_hour >= s and current_hour < e) }}
+      is_occupied: "{{ states(presence_entity) | int(0) > 0 }}"
+      send_ha: "{{ level in mobile_levels }}"
+      send_ntfy: "{{ level in ntfy_levels }}"
+      send_email: "{{ level in email_levels }}"
+      # Lecture vocale : les niveaux « toujours lus » sont inconditionnels, `tts: true`
+      # force la lecture quel que soit le niveau, et les niveaux « présence » ne sont lus
+      # qu’en journée quand quelqu’un est là. Sans ce filtre, les messages spontanés de
+      # Home Assistant relayés par le relais seraient lus à voix haute.
+      should_speak: >
+        {{ tts_script | default('') | string | trim != ''
+           and (level in speak_levels
+                or (tts | default(false) | bool)
+                or (is_occupied and not is_night and level in speak_present_levels)) }}
+      color_hex: >
+        {% if level == 'critical' %}#D32F2F
+        {% elif level == 'warning' %}#FF9800
+        {% elif level == 'technical' %}#607D8B
+        {% else %}#2196F3{% endif %}
+      ios_subtitle: >
+        {% if level == 'critical' %}🚨 URGENCE
+        {% elif level == 'warning' %}⚠️ AVERTISSEMENT
+        {% elif level == 'technical' %}🔧 SYSTÈME
+        {% else %}ℹ️ INFO{% endif %}
+      notify_group: "ha_{{ level }}"
+      link_path: >
+        {% if sdata.get('click') %}{{ sdata.get('click') }}
+        {% elif entity_id is defined and entity_id is not none and entity_id | string not in ['', 'None'] %}/history?entity_id={{ entity_id }}
+        {% elif level == 'technical' %}{{ technical_link }}
+        {% else %}{{ default_link }}{% endif %}
+      link_clean: "{{ link_path | trim }}"
+      web_url: "{{ link_clean if link_clean.startswith('http') else domain_url ~ (link_clean if link_clean.startswith('/') else '/' ~ link_clean) }}"
+      app_url: "{{ link_clean if link_clean.startswith('http') else 'homeassistant://navigate' ~ (link_clean if link_clean.startswith('/') else '/' ~ link_clean) }}"
+      icon_url: "{{ sdata.get('icon', domain_url ~ '/static/icons/favicon-192x192.png') }}"
+      # ------------------------------------------------------------------------
+      # PIÈCE JOINTE — SOURCE UNIQUE
+      # data.snapshot_file est partagé par trois canaux qui n’attendent pas le même
+      # format : ntfy veut une URL absolue, l’application mobile une URL ou un chemin
+      # /local/…, et SMTP un URI media source. Les deux formes utiles sont dérivées ici.
+      # ------------------------------------------------------------------------
+      attach_raw: "{{ sdata.get('snapshot_file', '') | string | trim }}"
+      # Discriminant textuel : une variable rendue à « False » resterait une chaîne vraie
+      # si le typage natif ne s’appliquait pas. La comparaison de chaînes est sûre.
+      attach_kind: >
+        {% if attach_raw in ['', 'None'] %}none
+        {% elif attach_raw.startswith('http') %}remote
+        {% elif attach_raw.startswith('media-source://') %}media
+        {% else %}local{% endif %}
+      # Chemin relatif à /config/www, sous-dossiers préservés :
+      #   /config/www/snapshots/cam.jpg, /local/snapshots/cam.jpg ou www/snapshots/cam.jpg
+      #   donnent tous /snapshots/cam.jpg.
+      attach_path: >
+        {% set p = attach_raw %}
+        {% if p.startswith('/config/www') %}{% set p = p[11:] %}
+        {% elif p.startswith('/local') %}{% set p = p[6:] %}
+        {% elif p.startswith('www/') %}{% set p = p[3:] %}
+        {% endif %}
+        {{ p if p.startswith('/') else '/' ~ p }}
+      # Forme URL absolue : ntfy (attach) et application mobile (image).
+      attach_url: >
+        {% if attach_kind == 'remote' %}{{ attach_raw }}
+        {% elif attach_kind == 'local' %}{{ domain_url ~ '/local' ~ attach_path }}
+        {% endif %}
+      # Forme media source : e-mail. Une URL distante passe telle quelle : l’envoi par
+      # e-mail la cite dans le HTML, SMTP ne sachant pas joindre une URL.
+      attach_media: >
+        {% if attach_kind in ['remote', 'media'] %}{{ attach_raw }}
+        {% elif attach_kind == 'local' %}{{ snapshot_media_root ~ attach_path }}
+        {% endif %}
+      actions: "{{ sdata.get('actions', []) }}"
+      skip_trace: "{{ sdata.get('skip_trace', false) | bool }}"
+      # ------------------------------------------------------------------------
+      # FILTRE ANTI-DOUBLON
+      # Neutralise toutes les causes de répétition quel que soit le chemin d’entrée :
+      # double producteur, double enregistrement de l’application mobile, republication
+      # du même identifiant et rebouclage relais -> répartiteur. C’est aussi le garde-fou
+      # contre l’inondation par un capteur qui bat de l’aile.
+      # Réserve : deux exécutions réellement simultanées (mode parallel) peuvent lire la
+      # mémoire avant que l’une n’écrive ; Home Assistant n’offre pas de
+      # comparaison-et-échange atomique. Le relais étant en file d’attente, le chemin
+      # principal est sérialisé.
+      # ------------------------------------------------------------------------
+      dedup_now: "{{ as_timestamp(now()) | int(0) }}"
+      # Empreinte : md5 tronqué à 10 caractères hexadécimaux (40 bits), soit une
+      # probabilité de collision de l’ordre de 1e-11 par envoi sur 10 créneaux. Le niveau
+      # fait partie de l’empreinte : une escalade info -> critical du même texte passe.
+      dedup_fp: "{{ ((level ~ '::' ~ title ~ '::' ~ message) | md5)[:10] }}"
+      dedup_state: "{{ states(dedup_memory) | default('', true) }}"
+      # Relecture défensive : un créneau malformé, non numérique ou expiré est écarté.
+      # Un état corrompu, « unknown » ou « unavailable » donne une liste vide, donc jamais
+      # d’étouffement à tort.
+      dedup_fresh: >
+        {% set ns = namespace(slots=[]) %}
+        {% for item in dedup_state.split('|') %}
+          {% if ':' in item %}
+            {% set ts = item.split(':')[0] | int(0) %}
+            {% set fp = item.split(':')[1] %}
+            {% if ts > 0 and fp != '' and (dedup_now | int(0)) - ts < (dedup_window_s | int(300)) %}
+              {% set ns.slots = ns.slots + [item] %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.slots }}
+      # Doublon si l’empreinte figure dans un créneau encore valide, quel que soit son
+      # rang : c’est ce qui attrape l’alternance A, B, A, B. Une seule boucle donne à la
+      # fois le verdict et l’âge du créneau correspondant.
+      dedup_match_age: >
+        {% set ns = namespace(age=-1) %}
+        {% for item in dedup_fresh %}
+          {% if item.split(':')[1] == dedup_fp and ns.age < 0 %}
+            {% set ns.age = (dedup_now | int(0)) - (item.split(':')[0] | int(0)) %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.age }}
+      is_duplicate: "{{ (dedup_match_age | int(-1)) >= 0 }}"
+      # Nouveau créneau en tête, anciens conservés, purgés et plafonnés. La fenêtre est
+      # FIXE : l’horodatage d’un doublon n’est pas rafraîchi, sinon une source qui bat de
+      # l’aile en continu resterait muette indéfiniment ; elle repasse une fois par
+      # fenêtre, ce qui signale qu’elle flanche toujours.
+      dedup_next_state: >
+        {{ ([dedup_now | string ~ ':' ~ dedup_fp] + dedup_fresh)[:dedup_max_slots | int(10)] | join('|') }}
+      notif_uid_in: "{{ sdata.get('notif_id', '') }}"
+  # Sortie immédiate sur doublon, AVANT tout envoi et avant toute notification
+  # persistante : aucun canal n’est sollicité.
+  - if:
+      - condition: template
+        value_template: "{{ is_duplicate }}"
+    then:
+      - action: system_log.write
+        data:
+          level: warning
+          logger: notification_system
+          message: >-
+            [Répartiteur] Doublon écarté après {{ dedup_match_age }} s (fenêtre
+            {{ dedup_window_s }} s) — niveau {{ level }} : {{ title }}
+      - stop: Doublon écarté
+  # Mémoire mise à jour seulement une fois le doublon écarté.
+  - action: input_text.set_value
+    target:
+      entity_id: "{{ dedup_memory }}"
+    data:
+      value: "{{ dedup_next_state }}"
+  - if:
+      - condition: template
+        value_template: "{{ level in logbook_levels }}"
+    then:
+      - action: logbook.log
+        data:
+          name: "Notification {{ level | upper }}"
+          message: "{{ title }} - {{ message }}"
+          entity_id: "{{ this.entity_id }}"
+          domain: script
+  - parallel:
+      # ======================================================================
+      # NTFY, puis bascule de secours sur l’application mobile
+      # ======================================================================
+      - if:
+          - condition: template
+            value_template: "{{ send_ntfy }}"
+        then:
+          # Appel du script d’envoi : une erreur y interrompt le script appelé, et
+          # continue_on_error la retient ici. L’absence de « success » signale l’échec.
+          - action: "{{ sender_script }}"
+            continue_on_error: true
+            response_variable: res_ntfy
+            data:
+              channel: ntfy
+              title: "{{ title }}"
+              message: "{{ message }}"
+              click_url: "{{ app_url }}"
+              icon_url: "{{ icon_url }}"
+              attach_file: "{{ attach_url }}"
+              priority: "{{ sdata.get('priority', 3) | int(3) }}"
+              tags: "{{ sdata.get('tags', ntfy_tags) }}"
+              actions: "{{ actions }}"
+          - if:
+              - condition: template
+                value_template: >
+                  {% if res_ntfy is defined and res_ntfy %}
+                    {{ res_ntfy.status | default('error', true) != 'success' }}
+                  {% else %}true{% endif %}
+            then:
+              - action: system_log.write
+                data:
+                  level: warning
+                  logger: notification_system
+                  message: >-
+                    [Répartiteur] Échec ntfy{{ ' ; bascule sur l’application mobile' if ntfy_fallback else '' }}.
+              - if:
+                  - condition: template
+                    value_template: "{{ ntfy_fallback }}"
+                then:
+                  - action: "{{ sender_script }}"
+                    continue_on_error: true
+                    data:
+                      channel: mobile
+                      target: "{{ target }}"
+                      title: "🚨 FALLBACK NTFY : {{ title }}"
+                      message: "{{ message }}"
+                      click_url: "{{ link_clean }}"
+                      group_tag: "{{ notify_group }}"
+                      color_hex: "{{ color_hex }}"
+                      subtitle: "{{ ios_subtitle }}"
+                      sound_name: default
+                      is_critical: false
+                      attach_file: "{{ attach_url }}"
+                      skip_trace: "{{ skip_trace }}"
+                      notif_id: "{{ notif_uid_in }}"
+                      actions: "{{ actions }}"
+      # ======================================================================
+      # APPLICATION MOBILE
+      # ======================================================================
+      - if:
+          - condition: template
+            value_template: "{{ send_ha }}"
+        then:
+          - action: "{{ sender_script }}"
+            continue_on_error: true
+            data:
+              channel: mobile
+              target: "{{ target }}"
+              title: "{{ title }}"
+              message: "{{ message }}"
+              click_url: "{{ link_clean }}"
+              group_tag: "{{ notify_group }}"
+              color_hex: "{{ color_hex }}"
+              subtitle: "{{ ios_subtitle }}"
+              sound_name: "{{ 'none' if is_night else 'default' }}"
+              is_critical: "{{ level == 'critical' }}"
+              attach_file: "{{ attach_url }}"
+              skip_trace: "{{ skip_trace }}"
+              notif_id: "{{ notif_uid_in }}"
+              actions: "{{ actions }}"
+      # ======================================================================
+      # E-MAIL
+      # ======================================================================
+      - if:
+          - condition: template
+            value_template: "{{ send_email }}"
+        then:
+          - action: "{{ sender_script }}"
+            continue_on_error: true
+            response_variable: res_email
+            data:
+              channel: email
+              title: "{{ title }}"
+              message: "{{ message }}"
+              click_url: "{{ web_url }}"
+              color_hex: "{{ color_hex }}"
+              attach_file: "{{ attach_media }}"
+              extra_html: "{{ sdata.get('html', '') }}"
+          - if:
+              - condition: template
+                value_template: >
+                  {% if res_email is defined and res_email %}
+                    {{ res_email.status | default('error', true) != 'success' }}
+                  {% else %}true{% endif %}
+            then:
+              - action: system_log.write
+                data:
+                  level: warning
+                  logger: notification_system
+                  message: >-
+                    [Répartiteur] Échec de l’e-mail ; les autres canaux ont été servis.
+      # ======================================================================
+      # LECTURE VOCALE
+      # Lancée sans attendre (script.turn_on) : le script de lecture vocale est en file
+      # d’attente et peut durer ; le répartiteur ne doit pas en dépendre.
+      # ======================================================================
+      - if:
+          - condition: template
+            value_template: "{{ should_speak }}"
+        then:
+          - action: script.turn_on
+            target:
+              entity_id: "{{ tts_script }}"
+            data:
+              variables:
+                message: "{{ title }}. {{ message }}"
+                level: "{{ level }}"

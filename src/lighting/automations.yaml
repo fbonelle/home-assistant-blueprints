@@ -1,0 +1,113 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Fictional identifiers. Replace remotes, lights, helpers and the timer before enabling.
+# One example per typical use; every input that differs from the default is shown.
+
+# Philips Hue Dimmer: Marche/Arrêt bascule, Plus et Moins varient d'un pas ou en continu,
+# Hue allume à pleine luminosité. Tous les réglages par défaut.
+- id: living_room_lamp_hue_dimmer
+  alias: Lampe du salon — télécommande Hue Dimmer
+  use_blueprint:
+    path: fbonelle/telecommande_hue_dimmer.yaml
+    input:
+      remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1
+      light: light.living_room_lamp
+
+# Philips Hue Dimmer dont le bouton Hue ne fait rien.
+- id: desk_lamp_hue_dimmer
+  alias: Lampe rétro — télécommande Hue Dimmer
+  use_blueprint:
+    path: fbonelle/telecommande_hue_dimmer.yaml
+    input:
+      remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2
+      light: light.retro_lamp
+      hue_press_action: none
+
+# Philips Hue Tap Dial: une lampe par bouton ; la molette agit sur la dernière lampe allumée.
+- id: bedroom_tap_dial
+  alias: Chambre — télécommande Hue Tap Dial
+  use_blueprint:
+    path: fbonelle/telecommande_hue_tap_dial.yaml
+    input:
+      remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3
+      light_1: light.bedroom_ceiling
+      light_2: light.bedroom_lamp
+      light_3: light.bedroom_shelf_top
+      light_4: light.bedroom_shelf_bottom
+      dial_scale: 1
+
+# Interrupteur IKEA marche/arrêt : fondu d'une seconde, maintien par pas de 10 % chaque seconde.
+- id: wardrobe_ikea_on_off
+  alias: Armoire — interrupteur IKEA
+  use_blueprint:
+    path: fbonelle/telecommande_ikea_marche_arret.yaml
+    input:
+      remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4
+      light: light.wardrobe
+      hold_step_pct: 10
+      hold_interval: 1
+      hold_limit: 10
+      transition: 1
+
+# Télécommande IKEA 5 boutons sur une lampe couleur : Gauche et Droite parcourent la
+# palette ; le maintien du bouton central rétablit la couleur de référence à 100 %.
+- id: bedside_ikea_5_buttons_colours
+  alias: Lampe de chevet — télécommande IKEA 5 boutons
+  use_blueprint:
+    path: fbonelle/telecommande_ikea_5_boutons.yaml
+    input:
+      remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa5
+      light: light.bedside_lamp
+      palette: [default, warm_amber, candlelight, warm_glow, warm_white, sunrise, cool_white,
+                peach, dark_peach, saturated_red, pink, light_pink, saturated_pink,
+                light_purple, saturated_purple, blue, light_blue, cold_sky, cool_daylight, lime, yellow]
+
+# Télécommande IKEA 5 boutons sur une lampe à blanc réglable : Gauche réchauffe et Droite
+# refroidit le blanc ; le maintien du bouton central revient au blanc de référence.
+- id: decoration_ikea_5_buttons_whites
+  alias: Lampe déco — télécommande IKEA 5 boutons
+  use_blueprint:
+    path: fbonelle/telecommande_ikea_5_boutons.yaml
+    input:
+      remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6
+      light: light.decoration_lamp
+      left_press_action: warmer
+      left_hold_action: warmer_hold
+      right_press_action: cooler
+      right_hold_action: cooler_hold
+      kelvin_step: 150
+      reference_kelvin: 2500
+
+# Télécommande IKEA STYRBAR avec assistant de mémoire : réglages de l'ancien blueprint
+# STYRBAR (valeurs par défaut) ; le double appui en haut rappelle la couleur choisie.
+- id: bedside_styrbar
+  alias: Lampe de chevet — télécommande STYRBAR
+  use_blueprint:
+    path: fbonelle/telecommande_ikea_styrbar.yaml
+    input:
+      remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa8
+      light: light.bedside_left
+      memory: input_text.bedside_left_remote
+      recall_color: [255, 192, 140]
+
+# Bouton eWeLink : clic simple bascule (allumage à 25 %), double clic alterne entre 25 % et 100 %.
+- id: garden_ewelink_button
+  alias: Jardin — bouton eWeLink
+  use_blueprint:
+    path: fbonelle/bouton_ewelink.yaml
+    input:
+      remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7
+      light: light.garden_lamps
+      single_press_action: toggle_level
+      double_press_action: alternate
+      on_level_pct: 25
+      high_level_pct: 100
+
+# Extinction automatique de l'escalier trois minutes après chaque allumage.
+- id: stairs_auto_off
+  alias: Escalier — extinction automatique
+  use_blueprint:
+    path: fbonelle/extinction_automatique.yaml
+    input:
+      entities: [light.stairs]
+      duration: {hours: 0, minutes: 3, seconds: 0}
+      timer: timer.stairs

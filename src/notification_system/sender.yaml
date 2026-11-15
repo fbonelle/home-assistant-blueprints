@@ -1,0 +1,481 @@
+# Source du blueprint « Notifications — Envoi sur un canal ».
+# tools/build_notifications.py ajoute la version au nom et écrit le fichier publié.
+blueprint:
+  name: Notifications — Envoi sur un canal
+  description: >-
+    Envoie un message sur UN canal (application mobile, ntfy ou e-mail) et renvoie
+    « success » seulement si l’envoi a abouti. Ce script est appelé par le
+    « Répartiteur de notifications » : il isole chaque canal, pour qu’un canal en panne
+    soit détecté et compensé sans bloquer les autres. Créer un seul script à partir de ce
+    blueprint, puis le choisir dans le répartiteur.
+    Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/notification_system.md
+  domain: script
+  homeassistant:
+    min_version: 2026.10.0
+  source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/script/notification_system/envoi_canal.yaml
+  author: fbonelle
+  input:
+    mobile:
+      name: Application mobile
+      input:
+        mobile_service:
+          name: Action de notification du téléphone principal
+          description: >-
+            Action notify de l’application mobile qui reçoit les messages du destinataire
+            « principal », par exemple notify.mobile_app_mon_telephone.
+          selector:
+            text: {}
+        family_service:
+          name: Action de notification de toute la famille
+          description: >-
+            Action notify utilisée pour la cible « all », souvent un groupe de notification,
+            par exemple notify.famille. Laisser vide pour envoyer au téléphone principal.
+          default: ''
+          selector:
+            text: {}
+        default_link:
+          name: Page ouverte par défaut
+          description: Chemin ouvert quand on touche une notification qui n’indique pas de lien.
+          default: /lovelace/0
+          selector:
+            text: {}
+    ntfy:
+      name: ntfy
+      input:
+        ntfy_entity:
+          name: Entité ntfy
+          description: >-
+            Entité de notification de l’intégration ntfy (sujet de publication). Laisser vide si
+            ntfy n’est pas utilisé : un envoi ntfy échoue alors, et le répartiteur bascule sur
+            l’application mobile.
+          default: ''
+          selector:
+            entity:
+              filter:
+                - domain: notify
+    email:
+      name: E-mail
+      input:
+        email_entity:
+          name: Entité de notification SMTP
+          description: >-
+            Entité de l’intégration SMTP qui reçoit l’e-mail (action smtp.send_message). Laisser
+            vide si l’e-mail n’est pas utilisé : un envoi par e-mail échoue alors et le
+            répartiteur le signale dans le journal.
+          default: ''
+          selector:
+            entity:
+              filter:
+                - domain: notify
+        home_url:
+          name: Adresse de Home Assistant
+          description: Adresse ouverte par le bouton de l’e-mail quand le message n’indique pas de lien.
+          default: http://homeassistant.local:8123
+          selector:
+            text:
+              type: url
+        media_root:
+          name: Racine média des images jointes
+          description: >-
+            Racine media source des fichiers joints par leur seul nom ou chemin local. Elle doit
+            correspondre au dossier déclaré dans configuration.yaml (homeassistant > media_dirs).
+          default: media-source://media_source/local
+          selector:
+            text: {}
+        email_heading:
+          name: Bandeau de l’e-mail
+          default: 🚨 ALERTE DOMOTIQUE
+          selector:
+            text: {}
+        email_title_prefix:
+          name: Début de l’objet de l’e-mail
+          description: Placé devant le titre, séparé par une espace ; vide, l’objet est le titre seul.
+          default: '🚨 ALERTE :'
+          selector:
+            text: {}
+        email_button:
+          name: Texte du bouton de l’e-mail
+          default: OUVRIR L’APPLICATION
+          selector:
+            text: {}
+        email_logo:
+          name: Logo affiché en tête de l’e-mail
+          default: https://brands.home-assistant.io/_/homeassistant/icon.png
+          selector:
+            text:
+              type: url
+# `parallel` sans `max:` plafonne à 10 exécutions simultanées. Le répartiteur peut
+# appeler trois canaux à la fois pour plusieurs notifications : 25 laisse de la marge.
+mode: parallel
+max: 25
+icon: mdi:send-check
+fields:
+  channel:
+    name: Canal
+    description: Canal à utiliser pour cet envoi.
+    required: true
+    selector:
+      select:
+        options:
+          - mobile
+          - ntfy
+          - email
+  title:
+    name: Titre
+    default: Notification
+    selector:
+      text: {}
+  message:
+    name: Message
+    default: Pas de détail
+    selector:
+      text:
+        multiline: true
+  click_url:
+    name: Lien
+    description: >-
+      Lien ouvert depuis la notification. Vide : page par défaut pour l’application
+      mobile, adresse de Home Assistant pour l’e-mail, aucun lien pour ntfy.
+    default: ''
+    selector:
+      text: {}
+  attach_file:
+    name: Pièce jointe
+    description: >-
+      Image jointe, dans la forme attendue par le canal : URL pour ntfy, URL ou chemin
+      /local/… pour l’application mobile, URI media source, nom de fichier ou URL distante
+      pour l’e-mail.
+    default: ''
+    selector:
+      text: {}
+  actions:
+    name: Boutons
+    description: Boutons interactifs, au format du canal (ntfy ou application mobile).
+    default: []
+    selector:
+      object: {}
+  target:
+    name: Destinataire (application mobile)
+    description: >-
+      « all » envoie à toute la famille ; toute autre valeur (par défaut « principal »)
+      envoie au téléphone principal.
+    default: principal
+    selector:
+      select:
+        options:
+          - principal
+          - all
+  group_tag:
+    name: Groupe de notifications (application mobile)
+    default: ha_info
+    selector:
+      text: {}
+  color_hex:
+    name: Couleur
+    default: '#2196F3'
+    selector:
+      text: {}
+  subtitle:
+    name: Sous-titre iOS (application mobile)
+    default: ℹ️ INFO
+    selector:
+      text: {}
+  sound_name:
+    name: Son iOS (application mobile)
+    description: « none » rend la notification silencieuse.
+    default: default
+    selector:
+      text: {}
+  is_critical:
+    name: Percer le mode silencieux (application mobile)
+    default: false
+    selector:
+      boolean: {}
+  skip_trace:
+    name: Ne pas créer de notification persistante (application mobile)
+    description: >-
+      Activé par le relais, dont le message est déjà une notification persistante : sans
+      cela, la même notification existerait deux fois.
+    default: false
+    selector:
+      boolean: {}
+  notif_id:
+    name: Identifiant de la notification (application mobile)
+    description: >-
+      Identifiant imposé pour l’effacement 1:1 depuis le téléphone. Vide : identifiant
+      automatique sys_disp_<horodatage>.
+    default: ''
+    selector:
+      text: {}
+  icon_url:
+    name: Icône (ntfy)
+    default: ''
+    selector:
+      text: {}
+  priority:
+    name: Priorité (ntfy)
+    default: 3
+    selector:
+      number:
+        min: 1
+        max: 5
+        mode: box
+  tags:
+    name: Étiquettes émoji (ntfy)
+    default: []
+    selector:
+      object: {}
+  extra_html:
+    name: HTML ajouté au corps (e-mail)
+    default: ''
+    selector:
+      text:
+        multiline: true
+variables:
+  mobile_service: !input mobile_service
+  family_service: !input family_service
+  default_link: !input default_link
+  ntfy_entity: !input ntfy_entity
+  email_entity: !input email_entity
+  home_url: !input home_url
+  media_root: !input media_root
+  email_heading: !input email_heading
+  email_title_prefix: !input email_title_prefix
+  email_button: !input email_button
+  email_logo: !input email_logo
+sequence:
+  # Les valeurs par défaut des champs ne s’appliquent qu’à l’interface : un appel qui omet
+  # un champ le laisse indéfini. Chaque champ est donc normalisé ici, une fois.
+  - variables:
+      channel: "{{ channel | default('', true) }}"
+      title: "{{ title | default('Notification', true) }}"
+      message: "{{ message | default('Pas de détail', true) }}"
+      click_url: "{{ click_url | default('', true) }}"
+      attach_file: "{{ attach_file | default('', true) }}"
+      actions: "{{ actions | default([], true) }}"
+      target: "{{ target | default('principal', true) }}"
+      group_tag: "{{ group_tag | default('ha_info', true) }}"
+      color_hex: "{{ color_hex | default('#2196F3', true) }}"
+      subtitle: "{{ subtitle | default('ℹ️ INFO', true) }}"
+      sound_name: "{{ sound_name | default('default', true) }}"
+      is_critical: "{{ is_critical | default(false) | bool }}"
+      skip_trace: "{{ skip_trace | default(false) | bool }}"
+      notif_id: "{{ notif_id | default('', true) }}"
+      icon_url: "{{ icon_url | default('', true) }}"
+      priority: "{{ priority | default(3) | int(3) }}"
+      tags: "{{ tags | default([], true) }}"
+      extra_html: "{{ extra_html | default('', true) }}"
+  - choose:
+      # ======================================================================
+      # NTFY
+      # ======================================================================
+      - conditions:
+          - condition: template
+            value_template: "{{ channel == 'ntfy' }}"
+        sequence:
+          - variables:
+              # Charge utile construite en un seul dictionnaire : les clés optionnelles
+              # (pièce jointe, boutons) ne sont ajoutées que si elles ont une valeur,
+              # car ntfy refuse une pièce jointe ou une liste de boutons vide.
+              payload: >
+                {% set p = {
+                  "entity_id": ntfy_entity,
+                  "title": title,
+                  "message": message,
+                  "priority": priority | int(3),
+                  "tags": tags,
+                  "click": click_url,
+                  "icon": icon_url,
+                  "markdown": true
+                } %}
+                {% if attach_file is defined and attach_file | string not in ['', 'None'] %}
+                  {% set p = dict(p, attach=attach_file) %}
+                {% endif %}
+                {% if actions is defined and actions | string not in ['[]', '', 'None'] %}
+                  {% set p = dict(p, actions=actions) %}
+                {% endif %}
+                {{ p }}
+          # Pas de continue_on_error : une erreur doit remonter jusqu’au répartiteur,
+          # qui bascule alors sur l’application mobile. Une entité ntfy vide fait
+          # échouer l’action de la même façon.
+          - action: ntfy.publish
+            data: "{{ payload }}"
+          - variables:
+              result:
+                status: success
+          - stop: ntfy envoyé
+            response_variable: result
+      # ======================================================================
+      # APPLICATION MOBILE
+      # ======================================================================
+      - conditions:
+          - condition: template
+            value_template: "{{ channel == 'mobile' }}"
+        sequence:
+          - variables:
+              # Normalisation IDEMPOTENTE de l’identifiant. Sans elle, un appelant qui
+              # fournit un identifiant sans préfixe fait créer une notification
+              # persistante non préfixée, que le relais renvoie : second envoi complet,
+              # donc lecture vocale, e-mail et ntfy en double. Le préfixe n’est jamais
+              # appliqué deux fois, ce qui permet au relais d’appliquer la même règle à
+              # l’effacement et de retomber sur le même tag.
+              notif_uid: >
+                {% set n = notif_id | default('') | string | trim %}
+                {% if n in ['', 'None'] %}sys_disp_{{ as_timestamp(now()) | replace('.', '') }}
+                {% elif n.startswith('sys_disp_') %}{{ n }}
+                {% else %}sys_disp_{{ n }}{% endif %}
+              link: >
+                {% set l = click_url | default('') | string | trim %}
+                {{ default_link if l in ['', 'None'] else l }}
+              service: >
+                {% set f = family_service | default('') | string | trim %}
+                {{ f if target == 'all' and f != '' else mobile_service }}
+          # Trace consultable dans Home Assistant. Son échec ne doit pas empêcher le push.
+          - if:
+              - condition: template
+                value_template: "{{ not (skip_trace | default(false) | bool) }}"
+            then:
+              - action: persistent_notification.create
+                continue_on_error: true
+                data:
+                  title: "{{ title }}"
+                  message: "{{ message }}"
+                  notification_id: "{{ notif_uid }}"
+          - variables:
+              ha_data: >
+                {% if is_critical | default(false) | bool %}
+                  {% set sound_dict = {"name": sound_name, "critical": 1, "volume": 1.0} %}
+                {% else %}
+                  {% set sound_dict = {"name": sound_name} %}
+                {% endif %}
+                {% set p = {
+                  "group": group_tag,
+                  "tag": notif_uid,
+                  "url": link,
+                  "clickAction": link,
+                  "color": color_hex,
+                  "subtitle": subtitle,
+                  "push": {"sound": sound_dict}
+                } %}
+                {#- `push` et `subtitle` ne sont lus que par iOS. Les clés ci-dessous sont
+                    l’équivalent Android ; les deux jeux cohabitent, chaque plateforme
+                    ignorant l’autre. Sur Android, franchir le mode Ne pas déranger
+                    demande aussi d’autoriser le canal dans les réglages du téléphone. -#}
+                {% if is_critical | default(false) | bool %}
+                  {% set p = dict(p, ttl=0, priority='high', channel='Alerte critique', importance='high') %}
+                {% endif %}
+                {% if attach_file is defined and attach_file | string not in ['', 'None'] %}
+                  {% set p = dict(p, image=attach_file) %}
+                {% endif %}
+                {% if actions is defined and actions | string not in ['[]', '', 'None'] %}
+                  {% set p = dict(p, actions=actions) %}
+                {% endif %}
+                {{ p }}
+          - action: "{{ service }}"
+            data:
+              title: "{{ title }}"
+              message: "{{ message }}"
+              data: "{{ ha_data }}"
+          - variables:
+              result:
+                status: success
+          - stop: Application mobile notifiée
+            response_variable: result
+      # ======================================================================
+      # E-MAIL (smtp.send_message)
+      # ======================================================================
+      - conditions:
+          - condition: template
+            value_template: "{{ channel == 'email' }}"
+        sequence:
+          - variables:
+              # La pièce jointe arrive sous l’une de trois formes : URL distante,
+              # URI media source, ou nom de fichier / chemin local.
+              attach_raw: "{{ attach_file | default('') | string | trim }}"
+              # Discriminant TEXTUEL et non booléen : une variable rendue à « False »
+              # resterait une chaîne vraie si le typage natif ne s’appliquait pas.
+              #   none   -> aucune pièce jointe
+              #   remote -> URL distante, que SMTP ne sait pas joindre : citée dans le HTML
+              #   local  -> fichier joint et affiché par cid:snapshot
+              attach_kind: >
+                {% if attach_raw in ['', 'None'] %}none
+                {% elif attach_raw.startswith('http') %}remote
+                {% else %}local{% endif %}
+              # Nom de fichier : retrait de la query string, puis du chemin.
+              attach_name: "{{ attach_raw.split('?')[0].split('/')[-1] }}"
+              attach_mime: >
+                {% set ext = attach_name.split('.')[-1] | lower %}
+                {% if ext == 'png' %}image/png
+                {% elif ext in ['jpg', 'jpeg'] %}image/jpeg
+                {% elif ext == 'gif' %}image/gif
+                {% elif ext == 'webp' %}image/webp
+                {% else %}application/octet-stream{% endif %}
+              # URI media source : reprise telle quelle, ou reconstruite depuis le nom de
+              # fichier et la racine média.
+              attach_uri: >
+                {% if attach_raw.startswith('media-source://') %}{{ attach_raw }}
+                {% else %}{{ media_root ~ '/' ~ attach_name }}{% endif %}
+              img_src: "{{ attach_raw if attach_kind == 'remote' else 'cid:snapshot' }}"
+              link: >
+                {% set l = click_url | default('') | string | trim %}
+                {{ home_url if l in ['', 'None'] else l }}
+              html_content: >
+                <!DOCTYPE html>
+                <html>
+                <body style="font-family: Arial, sans-serif; color: #333; margin: 0; padding: 20px; background-color: #f4f4f4;">
+                <div style="background-color: #fff; border: 1px solid #ddd; max-width: 600px; margin: 0 auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">
+                <div style="text-align: center; padding: 20px; background-color: #ffffff; border-bottom: 1px solid #eee;">
+                <img src="{{ email_logo }}" width="64" height="64" alt="Home Assistant" style="display: inline-block;">
+                </div>
+                <div style="background-color: {{ color_hex }}; color: white; padding: 15px; text-align: center;">
+                <h2 style="margin: 0; text-transform: uppercase; font-size: 20px;">{{ email_heading }}</h2>
+                </div>
+                <div style="padding: 25px;">
+                <h3 style="color: {{ color_hex }}; margin-top: 0; font-size: 18px;">{{ title }}</h3>
+                <p style="font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+                {{ message | replace('\n', '<br>') }}
+                {% if extra_html | default('') | string | length > 0 %}
+                <br><br>{{ extra_html }}
+                {% endif %}
+                </p>
+                {% if attach_kind != 'none' %}
+                <div style="text-align: center; margin-bottom: 25px;">
+                <img src="{{ img_src }}" alt="Instantané" style="max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #eee;">
+                </div>
+                {% endif %}
+                <div style="text-align: center; margin-bottom: 30px;">
+                <a href="{{ link }}" style="background-color: {{ color_hex }}; color: white; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 4px; font-size: 14px;">{{ email_button }}</a>
+                </div>
+                </div>
+                </div>
+                </body>
+                </html>
+              # smtp.send_message : `title`, `message` et `html` au premier niveau ; la
+              # pièce jointe est un URI media source, jamais un chemin de fichier.
+              payload: >
+                {% set p = {
+                  "title": (email_title_prefix | trim ~ ' ' ~ title) if email_title_prefix | trim != '' else title,
+                  "message": message,
+                  "html": html_content
+                } %}
+                {% if attach_kind == 'local' %}
+                  {% set p = dict(p, attachments=[{
+                    "media_source": {"media_content_id": attach_uri, "media_content_type": attach_mime},
+                    "filename": attach_name,
+                    "content_id": "snapshot"
+                  }]) %}
+                {% endif %}
+                {{ p }}
+          - action: smtp.send_message
+            target:
+              entity_id: "{{ email_entity }}"
+            data: "{{ payload }}"
+          - variables:
+              result:
+                status: success
+          - stop: E-mail envoyé
+            response_variable: result
+    # Canal inconnu : erreur explicite, que le répartiteur traite comme un échec.
+    default:
+      - stop: Canal inconnu
+        error: true

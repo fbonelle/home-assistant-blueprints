@@ -1,0 +1,9 @@
+{#- Une ligne par appareil, triée par nom. Variable d’entrée : lines_source. -#}
+{%- set ns = namespace(lines=[]) -%}
+{%- for item in lines_source -%}
+  {%- if item.r == 'level' -%}{%- set detail = item.v ~ ' %' -%}
+  {%- elif item.r == 'silent' -%}{%- set detail = 'muet depuis ' ~ item.h ~ ' h' -%}
+  {%- else -%}{%- set detail = 'alerte pile faible' -%}{%- endif -%}
+  {%- set ns.lines = ns.lines + ['• ' ~ item.n ~ ' — ' ~ detail] -%}
+{%- endfor -%}
+{{ ns.lines | join('\n') }}

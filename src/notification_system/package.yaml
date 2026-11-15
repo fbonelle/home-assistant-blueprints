@@ -1,0 +1,69 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# ==============================================================================
+# Exemple de package : système de notifications complet
+# ==============================================================================
+# À copier dans /config/packages/ (homeassistant: packages: !include_dir_named packages)
+# après avoir importé les quatre blueprints. Remplacer les entités d’exemple par les
+# vôtres. Les identifiants des scripts sont libres ; ceux-ci sont repris par les
+# automatisations qui envoient des notifications (script.notify_dispatch_global).
+# ==============================================================================
+
+# Interrupteur de silence de la lecture vocale.
+input_boolean:
+  tts_muted:
+    name: Lecture vocale coupée
+    icon: mdi:volume-mute
+
+# Mémoire anti-doublon du répartiteur : jusqu’à 10 créneaux « <epoch>:<md5 tronqué> »
+# séparés par « | », soit 219 caractères. `max: 255` est indispensable : la valeur par
+# défaut d’un assistant Texte est 100 caractères, ce qui tronquerait la mémoire à
+# 4 créneaux sans erreur visible.
+input_text:
+  notify_dedup_slots:
+    name: Notifications — mémoire anti-doublon
+    icon: mdi:fingerprint
+    max: 255
+
+script:
+  # Un seul script d’envoi pour les trois canaux.
+  notify_send_channel:
+    alias: Notifications — Envoi sur un canal
+    use_blueprint:
+      path: fbonelle/notification_system/envoi_canal.yaml
+      input:
+        mobile_service: notify.mobile_app_mon_telephone
+        family_service: notify.famille
+        default_link: /lovelace/0
+        ntfy_entity: notify.ntfy_technique
+        email_entity: notify.smtp_alertes
+        home_url: https://ha.example.org
+  # Point d’entrée appelé par toutes les automatisations.
+  notify_dispatch_global:
+    alias: Notifications — Répartiteur
+    use_blueprint:
+      path: fbonelle/notification_system/repartiteur.yaml
+      input:
+        sender_script: script.notify_send_channel
+        tts_script: script.tts_engine
+        dedup_memory: input_text.notify_dedup_slots
+        home_url: https://ha.example.org
+        default_link: /lovelace/0
+  tts_engine:
+    alias: Notifications — Lecture vocale
+    use_blueprint:
+      path: fbonelle/notification_system/lecture_vocale.yaml
+      input:
+        tts_entity: tts.piper
+        speaker_label: tts
+        mute_entity: input_boolean.tts_muted
+
+automation:
+  - id: notifications_relay_mobile
+    alias: Notifications — Relais vers le mobile
+    use_blueprint:
+      path: fbonelle/notification_system/relais_mobile.yaml
+      input:
+        dispatcher_script: script.notify_dispatch_global
+        clear_service: notify.mobile_app_mon_telephone
+        dismissed_prefixes:
+          - capfile_energy_manual_

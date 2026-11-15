@@ -1,0 +1,813 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Version 1.0.0 — marqueurs f=0 réservé, 1 admis, 2 démarré, >2 fin conservatrice.
+# Toutes les écritures internes passent par le même service comparé ; événements = réveils uniquement.
+blueprint:
+  name: Surveillance et relance des intégrations — 1.0.0
+  description: Surveille les entités d’une intégration et tente de la relancer en cas de panne. Le nombre de tentatives,
+    les délais, les notifications et les journaux sont réglables. Installer le fichier de configuration commun fourni,
+    puis créer une automatisation et un assistant Texte par configuration d’intégration.
+  domain: automation
+  homeassistant:
+    min_version: 2026.10.0
+  input:
+    surveillance:
+      name: Intégration et entités à surveiller
+      input:
+        name:
+          selector:
+            text: {}
+          name: Nom dans les notifications
+          default: Intégration surveillée
+        entry_id:
+          selector:
+            config_entry: {}
+          name: Configuration de l’intégration à surveiller
+          description: Choisir le compte ou la passerelle concernés. Deux comptes ou deux passerelles d’une même
+            intégration se configurent séparément.
+        entities:
+          selector:
+            entity:
+              multiple: true
+          name: Entités à surveiller
+          description: 'Choisir des entités actives de cette intégration : par exemple une température, un volet
+            ou un thermostat. Leur état permet de détecter une panne.'
+        memory:
+          selector:
+            entity:
+              filter:
+              - domain: input_text
+          name: Assistant Texte pour conserver l’historique
+          description: Créer un assistant Texte dans Home Assistant, longueur minimale 0 et maximale 255. Il conserve
+            les tentatives et leur état après un redémarrage. Utiliser un assistant différent pour chaque configuration
+            surveillée.
+        policy:
+          default: all
+          selector:
+            select:
+              options:
+              - label: Lorsque toutes les entités sont en erreur
+                value: all
+              - label: Lorsqu’au moins une entité est en erreur
+                value: any
+          name: Quand faut-il relancer l’intégration ?
+        max_age:
+          selector:
+            number:
+              min: 0
+              max: 604800
+              step: 1
+              mode: box
+          default: 0
+          name: Délai maximal sans nouvelles données (secondes)
+          description: 0 désactive ce contrôle. À utiliser pour des mesures envoyées régulièrement. Sans date de
+            mesure fournie par l’intégration, le contrôle repose sur les données reçues par Home Assistant.
+        stagger_seconds:
+          selector:
+            number:
+              min: 0
+              max: 600
+              step: 1
+              mode: box
+          default: 0
+          name: Délai supplémentaire avant une relance (secondes)
+          description: Permet de décaler les relances de plusieurs intégrations pour éviter de toutes les solliciter
+            au même moment.
+        source_time_entity:
+          selector:
+            entity: {}
+          name: Entité indiquant la date de la dernière mesure (facultatif)
+          default: ''
+          description: À renseigner seulement si une entité fournit la date réelle de la mesure. Le délai sans nouvelles
+            données doit alors être supérieur à 0.
+        source_time_attribute:
+          selector:
+            text: {}
+          name: Attribut contenant la date de mesure (facultatif)
+          default: ''
+          description: Laisser vide si la date est directement dans l’état de l’entité choisie au-dessus.
+        uptime_entity:
+          name: Capteur Uptime de Home Assistant
+          selector:
+            entity:
+              filter:
+              - domain: sensor
+                integration: uptime
+        scan_minutes:
+          name: Fréquence de vérification
+          default: /1
+          selector:
+            select:
+              options:
+              - label: Toutes les minutes
+                value: /1
+              - label: Toutes les 2 minutes
+                value: /2
+              - label: Toutes les 5 minutes
+                value: /5
+              - label: Toutes les 10 minutes
+                value: /10
+        fault_seconds:
+          name: Durée minimale de la panne avant une relance (secondes)
+          default: 300
+          selector:
+            number:
+              min: 30
+              max: 86400
+              step: 1
+              mode: box
+        include_unknown:
+          name: Considérer l’état « inconnu » comme une panne
+          description: L’état unknown signifie que Home Assistant ne connaît pas la valeur. Cette option permet
+            de déclencher une relance si cet état dure suffisamment longtemps. Il ne confirme jamais un retour à
+            la normale.
+          default: false
+          selector:
+            boolean: {}
+        startup_seconds:
+          name: Attente après le démarrage de Home Assistant (secondes)
+          default: 600
+          selector:
+            number:
+              min: 60
+              max: 86400
+              step: 1
+              mode: box
+          description: Laisser le temps aux intégrations de se connecter avant de tenter une relance.
+    recuperation:
+      name: Relances et nombre de tentatives
+      input:
+        observation_only:
+          name: Observer sans relancer l’intégration
+          default: false
+          selector:
+            boolean: {}
+        logging_enabled:
+          name: Enregistrer les événements dans les journaux
+          default: true
+          selector:
+            boolean: {}
+        detailed_logging:
+          name: Activer les journaux détaillés
+          default: false
+          description: Ajoute une ligne à chaque vérification. À réserver au diagnostic ; les messages ne contiennent
+            pas les valeurs des capteurs.
+          selector:
+            boolean: {}
+        excluded_instances:
+          name: Configurations à exclure
+          default: []
+          selector:
+            object:
+              multiple: true
+              fields:
+                entry_id:
+                  label: Configuration à exclure
+                  required: true
+                  selector:
+                    config_entry: {}
+        max_attempts:
+          name: Nombre maximal de tentatives pour une même panne
+          default: 3
+          selector:
+            number:
+              min: 1
+              max: 10
+              step: 1
+              mode: box
+          description: Une fois cette limite atteinte, les relances s’arrêtent et une notification est envoyée.
+            Le compteur est réinitialisé après un retour durable à la normale ou une action manuelle.
+        max_daily:
+          name: Nombre maximal de tentatives sur les dernières 24 heures
+          default: 6
+          selector:
+            number:
+              min: 1
+              max: 6
+              step: 1
+              mode: box
+          description: 'Cette limite reste valable après une nouvelle panne ou un redémarrage normal de Home Assistant.
+            Maximum : 6 tentatives pour conserver l’historique dans un seul assistant Texte.'
+        recovery_seconds:
+          name: Temps laissé à l’intégration pour récupérer après une relance (secondes)
+          default: 600
+          selector:
+            number:
+              min: 60
+              max: 3600
+              step: 1
+              mode: box
+          description: Doit être au moins égal au délai de confirmation du retour à la normale.
+        stable_seconds:
+          name: Durée de fonctionnement normal avant confirmation (secondes)
+          default: 180
+          selector:
+            number:
+              min: 60
+              max: 3600
+              step: 1
+              mode: box
+          description: Toutes les entités surveillées doivent rester disponibles pendant cette durée. Un nouvel
+            état inconnu ou indisponible recommence cette attente.
+        incident_reset_seconds:
+          name: Durée de fonctionnement normal avant remise à zéro des tentatives (secondes)
+          default: 1800
+          selector:
+            number:
+              min: 60
+              max: 86400
+              step: 1
+              mode: box
+          description: Ce délai évite de remettre le compteur à zéro après une amélioration très brève. La limite
+            des dernières 24 heures reste conservée.
+        retry_seconds:
+          name: Attente avant une nouvelle tentative (secondes)
+          default: 300
+          selector:
+            number:
+              min: 60
+              max: 86400
+              step: 1
+              mode: box
+        max_backoff:
+          name: Attente maximale entre deux tentatives (secondes)
+          default: 3600
+          selector:
+            number:
+              min: 60
+              max: 86400
+              step: 1
+              mode: box
+          description: L’attente augmente après chaque échec, jusqu’à cette valeur.
+        reload_timeout:
+          name: Délai avant alerte si une relance ne se termine pas (secondes)
+          default: 180
+          selector:
+            number:
+              min: 30
+              max: 3600
+              step: 1
+              mode: box
+          description: Une alerte est envoyée si la demande n’a pas de fin enregistrée. Aucune nouvelle demande
+            n’est lancée pour cette intégration tant que la situation n’est pas résolue. Ce délai n’annule pas la
+            relance.
+        native_timeout:
+          name: Délai avant alerte si Home Assistant essaie déjà de reconnecter l’intégration (secondes)
+          default: 1800
+          selector:
+            number:
+              min: 60
+              max: 86400
+              step: 1
+              mode: box
+          description: La surveillance laisse Home Assistant poursuivre sa reconnexion et signale seulement une
+            attente trop longue.
+        additional_conditions:
+          name: Conditions supplémentaires pour autoriser les relances
+          description: Les vérifications et les alertes continuent lorsque ces conditions empêchent une nouvelle
+            relance.
+          default: []
+          selector:
+            condition: {}
+    notifications:
+      name: Notifications
+      input:
+        failure_actions:
+          name: Actions lorsqu’une intervention est nécessaire
+          description: 'Par défaut : une notification dans Home Assistant. Variables disponibles pour personnaliser
+            le message : entry_id, integration_title, reason, attempts_used, daily_attempts, failed_entities, status.
+            Une notification en erreur est retentée lors d’un contrôle suivant.'
+          selector:
+            action: {}
+          default:
+          - action: persistent_notification.create
+            data:
+              notification_id: integration_watchdog_{{ entry_id }}
+              title: 'Intégration à vérifier : {{ integration_title }}'
+              message: |-
+                {{ reason }}
+                Tentatives pour cette panne : {{ attempts_used }} ; sur les dernières 24 h : {{ daily_attempts }}.
+                Entités en erreur : {{ failed_entities | join(", ") }}.
+        success_actions:
+          name: Actions après le retour à la normale
+          description: Par défaut, efface la notification de panne. Les mêmes variables que pour l’alerte sont disponibles.
+          selector:
+            action: {}
+          default:
+          - action: persistent_notification.dismiss
+            data:
+              notification_id: integration_watchdog_{{ entry_id }}
+        configuration_error_actions:
+          name: Actions si la configuration de la surveillance est incorrecte
+          description: 'Par défaut : une notification expliquant les réglages à corriger. Variable disponible :
+            configuration_errors.'
+          selector:
+            action: {}
+          default:
+          - action: persistent_notification.create
+            data:
+              notification_id: integration_watchdog_configuration_{{ owner_id }}
+              title: Surveillance des intégrations indisponible
+              message: '{{ configuration_errors | join("\n") }}'
+        configuration_resolved_actions:
+          name: Actions lorsque la configuration est correcte
+          description: 'Par défaut, efface l’alerte de configuration. Ces actions sont exécutées à chaque contrôle
+            valide : elles doivent être rapides et supporter plusieurs exécutions.'
+          selector:
+            action: {}
+          default:
+          - action: persistent_notification.dismiss
+            data:
+              notification_id: integration_watchdog_configuration_{{ owner_id }}
+  source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/automation/integration_watchdog/surveillance_integrations.yaml
+  author: fbonelle
+mode: queued
+max: 100
+max_exceeded: warning
+trace:
+  stored_traces: 20
+variables:
+  name: !input 'name'
+  entry_id: !input 'entry_id'
+  entities: !input 'entities'
+  policy: !input 'policy'
+  max_age: !input 'max_age'
+  stagger_seconds: !input 'stagger_seconds'
+  source_time_entity: !input 'source_time_entity'
+  source_time_attribute: !input 'source_time_attribute'
+  uptime_entity: !input 'uptime_entity'
+  scan_minutes: !input 'scan_minutes'
+  fault_seconds: !input 'fault_seconds'
+  include_unknown: !input 'include_unknown'
+  startup_seconds: !input 'startup_seconds'
+  observation_only: !input 'observation_only'
+  logging_enabled: !input 'logging_enabled'
+  detailed_logging: !input 'detailed_logging'
+  excluded_instances: !input 'excluded_instances'
+  max_attempts: !input 'max_attempts'
+  max_daily: !input 'max_daily'
+  recovery_seconds: !input 'recovery_seconds'
+  stable_seconds: !input 'stable_seconds'
+  incident_reset_seconds: !input 'incident_reset_seconds'
+  retry_seconds: !input 'retry_seconds'
+  max_backoff: !input 'max_backoff'
+  reload_timeout: !input 'reload_timeout'
+  native_timeout: !input 'native_timeout'
+  memory_entity: !input 'memory'
+  legacy_owner: w_{{ this.attributes.id | default(this.entity_id,true) }}
+  owner_id: w_{{ sha256(this.attributes.id | default(this.entity_id,true) | string)[:16] }}
+  entry_key: e_{{ sha256(entry_id | string)[:16] }}
+triggers:
+- trigger: time_pattern
+  minutes: !input 'scan_minutes'
+  id: scan
+- trigger: state
+  entity_id: !input 'entities'
+  id: availability
+- trigger: homeassistant
+  event: start
+  id: start
+- trigger: event
+  event_type:
+  - integration_watchdog_completed
+  - integration_watchdog_wake
+  event_data:
+    memory_entity: !input 'memory'
+  id: completed
+- trigger: event
+  event_type: integration_watchdog_rearm
+  event_data:
+    memory_entity: !input 'memory'
+  id: rearm
+conditions:
+- condition: template
+  value_template: '{{ trigger is not defined or trigger.id != ''availability'' or trigger.from_state is none or
+    trigger.to_state is none or ((trigger.from_state.state in [''unknown'',''unavailable''] or trigger.from_state.attributes.get(''restored'',false))
+    != (trigger.to_state.state in [''unknown'',''unavailable''] or trigger.to_state.attributes.get(''restored'',false)))
+    }}'
+actions:
+- variables:
+    clock_ts: '{{ as_timestamp(now()) | int }}'
+    reservation_ts: '{{ (as_timestamp(now()) * 1000000) | int }}'
+- repeat:
+    sequence:
+    - &id001
+      variables:
+        read: |
+          {# Only this validated record may be sent to the common compare-and-set writer. #}
+          {% set ns = namespace(errors=[],data=none) %}
+          {% set raw = states(memory_entity) if memory_entity is string else '' %}
+          {% if memory_entity is not string or not memory_entity.startswith('input_text.') %}
+            {% set ns.errors = ns.errors + ['Choisir un assistant Texte réservé à cette surveillance.'] %}
+          {% elif states[memory_entity] is none or raw == 'unavailable' or state_attr(memory_entity,'min') | int(-1) != 0 or state_attr(memory_entity,'max') | int(0) != 255 %}
+            {% set ns.errors = ns.errors + ['Assistant Texte absent ou mal configuré : longueur minimale 0 et maximale 255 requises.'] %}
+          {% elif raw in ['', 'unknown'] %}
+            {% set ns.data = {'v':3,'o':owner_id,'e':entry_key,'a':[],'i':0,'n':0,'p':0,'f':0,'h':0,'t':0,'s':'new','k':''} %}
+          {% else %}
+            {% set d = raw[4:] | from_json(none) if raw.startswith('iw3:') or raw.startswith('iw2:') else none %}
+            {% if d is not mapping %}
+              {% set ns.errors = ns.errors + ['L’historique contenu dans l’assistant Texte est illisible. Il n’a pas été effacé.'] %}
+            {% elif (d.get('v') == 3 and (not raw.startswith('iw3:') or d.get('o') != owner_id or d.get('e') != entry_key)) or (d.get('v') == 2 and (not raw.startswith('iw2:') or d.get('o') != legacy_owner)) or d.get('v') not in [2,3] %}
+              {% set ns.errors = ns.errors + ['L’assistant Texte contient l’historique d’une autre surveillance ou un format non reconnu.'] %}
+            {% elif d.get('s') not in ['new','startup','healthy','degraded','waiting','running','verify','limited','suspended','auth','fatal','timeout','paused','disabled','native','observation','deferred','duplicate'] or d.get('k') is not string %}
+              {% set ns.errors = ns.errors + ['L’état enregistré dans l’historique est incorrect.'] %}
+            {% else %}
+              {% for key in ['i','n','p','f','h','t'] %}
+                {% set value = d.get(key) %}
+                {% set upper = 4294967295000000 if key == 'p' and d.v == 3 else 4294967295 %}
+                {% if value is not number or value is boolean or not (0 <= value <= upper) %}
+                  {% set ns.errors = ns.errors + ['Compteur ou horodatage invalide : ' ~ key] %}
+                {% elif value != value | int or (key == 'i' and value > 10) or (key in ['h','t'] and value > clock_ts + 60) or (key == 'f' and value > clock_ts + 60) or (key == 'p' and value > (clock_ts + 60) * (1000000 if d.v == 3 else 1)) %}
+                  {% set ns.errors = ns.errors + ['Historique ou horloge incohérents : ' ~ key] %}
+                {% endif %}
+              {% endfor %}
+              {% if d.get('a') is not sequence or d.get('a') is string or d.get('a') is mapping or d.a | count > 6 %}
+                {% set ns.errors = ns.errors + ['Historique de demandes invalide.'] %}
+              {% else %}
+                {% for value in d.a %}
+                  {% if value is not number or value is boolean or not (0 <= value <= clock_ts + 60) %}
+                    {% set ns.errors = ns.errors + ['Historique ou horloge incohérente.'] %}
+                  {% elif value != value | int %}
+                    {% set ns.errors = ns.errors + ['Horodatage non entier.'] %}
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+              {% if ns.errors | count == 0 %}
+                {% if d.v == 2 %}
+                  {% set ns.data = dict(d,v=3,o=owner_id,e=entry_key,p=d.p * 1000000,f=(2 if d.p > 0 else d.f + 1 if d.f > 0 else 0)) %}
+                {% else %}{% set ns.data = d %}{% endif %}
+              {% endif %}
+            {% endif %}
+          {% endif %}
+          {{ {'raw':raw,'data':ns.data,'errors':ns.errors} }}
+    - &id002
+      if: '{{ read.errors | count > 0 }}'
+      then:
+      - variables:
+          configuration_errors: '{{ read.errors }}'
+      - sequence: !input 'configuration_error_actions'
+      - stop: Mémoire non valide ; aucune remise à zéro.
+    - variables:
+        normalized: |-
+          {% set d=read.data %}
+          {% set window = recovery_seconds if recovery_seconds is number and recovery_seconds is not boolean and 60 <= recovery_seconds <= 3600 else 600 %}
+          {% if d.p > 0 and d.f > 2 %}
+           {{ dict(d,p=0,h=0,n=clock_ts+window,s='verify') }}
+          {% elif d.p > 0 and trigger is defined and trigger.id == 'start' and is_state('script.surveillance_recharger_instance','off') %}
+           {{ dict(d,p=0,f=clock_ts+1,h=0,n=clock_ts+window,s='verify') }}
+          {% else %}{{ d }}{% endif %}
+    - if: '{{ read.raw in ['''', ''unknown''] or read.raw == ''iw3:'' ~ (normalized | to_json) }}'
+      then:
+      - variables:
+          write_result:
+            ok: true
+      else:
+      - action: script.surveillance_ecrire_memoire
+        data:
+          memory_entity: '{{ memory_entity }}'
+          expected: '{{ read.raw }}'
+          value: iw3:{{ normalized | to_json }}
+          guard_off: '{{ ''script.surveillance_recharger_instance'' if trigger is defined and trigger.id == ''start''
+            and read.data.p > 0 and read.data.f <= 2 else '''' }}'
+        response_variable: write_result
+    until: '{{ (write_result is mapping and write_result.get(''ok'',false)) or repeat.index >= 5 }}'
+- if: '{{ write_result is not mapping or not write_result.get(''ok'',false) }}'
+  then: &id003
+  - variables:
+      configuration_errors:
+      - L’historique n’a pas pu être enregistré. Aucune nouvelle relance n’a été lancée.
+  - sequence: !input 'configuration_error_actions'
+  - stop: Écriture de mémoire non confirmée.
+- variables:
+    configuration_errors: |
+      {% set ns = namespace(errors=[]) %}
+      {% for name, value, lo, hi in [
+       ('fault_seconds',fault_seconds,30,86400),('startup_seconds',startup_seconds,60,86400),
+       ('max_attempts',max_attempts,1,10),('max_daily',max_daily,1,6),
+       ('recovery_seconds',recovery_seconds,60,3600),('stable_seconds',stable_seconds,60,3600),
+       ('incident_reset_seconds',incident_reset_seconds,60,86400),('retry_seconds',retry_seconds,60,86400),
+       ('max_backoff',max_backoff,60,86400),('reload_timeout',reload_timeout,30,3600),
+       ('native_timeout',native_timeout,60,86400),('max_age',max_age,0,604800),('stagger_seconds',stagger_seconds,0,600)] %}
+       {% if value is not number or value is boolean or not (lo <= value <= hi) %}
+        {% set ns.errors = ns.errors + ['Paramètre numérique invalide : ' ~ name] %}
+       {% elif value != value | int %}{% set ns.errors = ns.errors + ['Un entier est requis : ' ~ name] %}{% endif %}
+      {% endfor %}
+      {% if ns.errors | count == 0 and (recovery_seconds < stable_seconds or incident_reset_seconds < stable_seconds or max_backoff < retry_seconds) %}
+       {% set ns.errors = ns.errors + ['Les délais de retour à la normale et de remise à zéro des tentatives doivent couvrir le délai de confirmation. L’attente maximale doit être au moins égale à l’attente initiale.'] %}
+      {% endif %}
+      {% for value in [include_unknown,logging_enabled,detailed_logging,observation_only] %}
+       {% if value is not boolean %}{% set ns.errors = ns.errors + ['Les options doivent être activées ou désactivées.'] %}{% endif %}
+      {% endfor %}
+      {% if scan_minutes not in ['/1','/2','/5','/10'] or policy not in ['all','any'] or name is not string or not name | trim %}
+       {% set ns.errors = ns.errors + ['Fréquence, nom ou critère de panne invalide.'] %}
+      {% endif %}
+      {% if entry_id is not string or not entry_id or config_entry_attr(entry_id,'state') is none %}
+       {% set ns.errors = ns.errors + ['Choisir une configuration d’intégration existante.'] %}
+      {% endif %}
+      {% if issues is not defined %}{% set ns.errors = ns.errors + ['Fonction native issues() requise.'] %}{% endif %}
+      {% if uptime_entity is not string or not uptime_entity.startswith('sensor.') or as_timestamp(states(uptime_entity),none) is none %}
+       {% set ns.errors = ns.errors + ['Capteur Uptime indisponible.'] %}
+      {% elif as_timestamp(states(uptime_entity)) > clock_ts + 60 %}
+       {% set ns.errors = ns.errors + ['La date fournie par le capteur Uptime est incohérente.'] %}
+      {% endif %}
+      {% if entities is not sequence or entities is string or entities is mapping or entities | count == 0 %}
+       {% set ns.errors = ns.errors + ['Choisir au moins une entité à surveiller.'] %}
+      {% else %}
+       {% for entity in entities %}
+        {% if entity is not string or config_entry_id(entity) != entry_id %}
+         {% set ns.errors = ns.errors + ['Une entité sélectionnée n’appartient pas à l’intégration choisie.'] %}
+        {% elif states[entity] is none and config_entry_attr(entry_id,'state') == 'loaded' %}
+         {% set ns.errors = ns.errors + ['Entité sans valeur disponible : ' ~ entity] %}
+        {% endif %}
+       {% endfor %}
+      {% endif %}
+      {% if source_time_entity is not string or source_time_attribute is not string %}
+       {% set ns.errors = ns.errors + ['L’entité indiquant la date de mesure est incorrecte.'] %}
+      {% elif source_time_entity != '' and (states[source_time_entity] is none or max_age is not number or max_age <= 0) %}
+       {% set ns.errors = ns.errors + ['Vérifier l’entité indiquant la date de mesure et le délai maximal sans nouvelles données.'] %}
+      {% endif %}
+      {% if excluded_instances is not sequence or excluded_instances is string or excluded_instances is mapping %}
+       {% set ns.errors = ns.errors + ['Liste d’exclusions invalide.'] %}
+      {% else %}
+       {% for item in excluded_instances %}
+        {% if item is not mapping or item.get('entry_id') is not string or not item.get('entry_id') %}
+         {% set ns.errors = ns.errors + ['Une exclusion est invalide.'] %}
+        {% endif %}
+       {% endfor %}
+      {% endif %}
+      {% for helper in states.input_text %}
+       {% if helper.entity_id != memory_entity and helper.state.startswith('iw3:') %}
+        {% set other = helper.state[4:] | from_json({}) %}
+        {% if other is mapping and other.get('e') == entry_key %}
+         {% set ns.errors = ns.errors + ['Une autre surveillance utilise cette configuration avec l’assistant ' ~ helper.entity_id ~ '. Supprimer la copie et son assistant inutilisé après vérification.'] %}
+        {% endif %}
+       {% endif %}
+      {% endfor %}
+      {% if states('script.surveillance_ecrire_memoire') not in ['on','off'] or states('script.surveillance_recharger_instance') not in ['on','off'] or not is_state('automation.surveillance_admission','on') %}
+       {% set ns.errors = ns.errors + ['Le fichier de configuration commun manque ou son automatisation de planification est désactivée.'] %}
+      {% endif %}
+      {{ ns.errors | unique | list }}
+- if: '{{ configuration_errors | count > 0 }}'
+  then:
+  - sequence: !input 'configuration_error_actions'
+  - stop: Paramètres invalides ; confirmations conservées.
+- variables:
+    excluded: '{{ entry_id in (excluded_instances | map(attribute=''entry_id'') | list) }}'
+- if: '{{ excluded }}'
+  then:
+  - stop: Instance exclue ; confirmations déjà persistées.
+- sequence: !input 'configuration_resolved_actions'
+- variables:
+    interventions_allowed: false
+- if:
+  - condition: template
+    value_template: '{{ not observation_only }}'
+  - condition: and
+    conditions: !input 'additional_conditions'
+  then:
+  - variables:
+      interventions_allowed: true
+- variables:
+    row: '{{ dict(name=name,entry_id=entry_id,entities=entities,max_age=max_age,policy=policy,source_time_entity=source_time_entity,source_time_attribute=source_time_attribute,stagger_seconds=stagger_seconds)
+      }}'
+- repeat:
+    sequence:
+    - *id001
+    - *id002
+    - variables:
+        memory: '{{ read.data }}'
+    - if: '{{ trigger is defined and trigger.id == ''rearm'' and memory.p == 0 }}'
+      then:
+      - variables:
+          memory: '{{ dict(memory,i=0,n=0,h=0,s=''new'') }}'
+    - variables:
+        health: |
+          {% set ns = namespace(bad=[], recovered=true, source_invalid=false) %}
+          {% set started = as_timestamp(states(uptime_entity), clock_ts) %}
+          {% set age = row.get('max_age',0) | int %}
+          {% set after = memory.get('f',0) %}
+          {% set source = row.get('source_time_entity','') %}
+          {% for entity in row.entities | unique %}
+            {% set s = states[entity] %}
+            {% set bad_state = s is none or s.state == 'unavailable' or (include_unknown and s.state == 'unknown') %}
+            {% set since = as_timestamp(s.last_changed,started) if s is not none else started %}
+            {% set report = as_timestamp(s.last_reported,0) if s is not none else 0 %}
+            {% set stale = age > 0 and source == '' and (clock_ts - report >= age or report > clock_ts + 60) %}
+            {% if (bad_state and clock_ts - since >= fault_seconds) or stale %}
+              {% set ns.bad = ns.bad + [entity] %}
+            {% endif %}
+            {% if s is none or s.state in ['unknown','unavailable'] or s.attributes.get('restored',false) or (age > 0 and source == '' and (stale or (after > 0 and report <= after))) %}
+              {% set ns.recovered = false %}
+            {% endif %}
+          {% endfor %}
+          {% if source != '' %}
+            {% set attr = row.get('source_time_attribute','') %}
+            {% set stamp = as_timestamp(state_attr(source,attr) if attr != '' else states(source),none) %}
+            {% if stamp is none or stamp > clock_ts + 60 or clock_ts - stamp >= age %}
+              {% set ns.bad = ns.bad + [source] %}
+              {% set ns.recovered = false %}
+              {% if stamp is none or stamp > clock_ts + 60 %}{% set ns.source_invalid = true %}{% endif %}
+            {% elif after > 0 and stamp <= after %}
+              {% set ns.recovered = false %}
+            {% endif %}
+          {% endif %}
+          {% set witness_bad = ns.bad | reject('equalto',source) | list %}
+          {% set fault = (witness_bad | count > 0 if row.get('policy','all') == 'any' else witness_bad | count == row.entities | unique | list | count) or (source != '' and source in ns.bad) %}
+          {{ {'bad':ns.bad,'fault':fault,'source_invalid':ns.source_invalid,'recovered':ns.recovered and config_entry_attr(row.entry_id,'state') == 'loaded'} }}
+    - variables:
+        plan: |
+          {% set now_ts = clock_ts | int %}
+          {% set boot = as_timestamp(states(uptime_entity),now_ts) | int %}
+          {% set period = (scan_minutes[1:] | int) * 60 %}
+          {% set history = memory.get('a',[]) | select('gt',now_ts - 86400) | list %}
+          {% set old_status = memory.get('s','new') %}
+          {% set old_notice = memory.get('k','') %}
+          {% set ns = namespace(a=history,i=memory.get('i',0),n=memory.get('n',0),p=memory.get('p',0),f=memory.get('f',0),h=memory.get('h',0),s=old_status,reason='',reload=false,notice='none') %}
+          {% if boot > memory.get('t',0) or now_ts - memory.get('t',0) > period * 2 + 30 %}
+            {% set ns.h = 0 %}
+          {% endif %}
+          {% set worker_on = ns.p > 0 %}
+          {% if trigger is defined and trigger.id == 'availability' %}{% set ns.h = 0 %}{% endif %}
+          {% set entry_state = config_entry_attr(row.entry_id,'state') %}
+          {% set domain = config_entry_attr(row.entry_id,'domain') %}
+          {% set auth = ('homeassistant','config_entry_reauth_' ~ domain ~ '_' ~ row.entry_id) in issues() %}
+          {% set startup_ok = now_ts - boot >= startup_seconds %}
+          {% set alarm = false %}
+          {% if old_status == 'native' and entry_state == 'loaded' %}
+            {% set ns.n = 0 %}
+          {% endif %}
+          {% if worker_on %}
+            {% set ns.h = 0 %}
+            {% set ns.s = 'running' %}
+            {% set ns.reason = 'En attente d’une place pour relancer l’intégration.' if ns.f == 0 else 'La relance a été acceptée et va démarrer.' if ns.f == 1 else 'La relance est en cours.' %}
+            {% if now_ts - ns.p / 1000000 >= reload_timeout %}
+              {% set ns.s = 'timeout' %}
+              {% set ns.reason = 'La relance ne s’est pas terminée dans le délai prévu. Vérifier les traces avant de confirmer sa fin. Les nouvelles tentatives sont suspendues.' %}
+              {% set alarm = true %}
+            {% endif %}
+          {% elif auth %}
+            {% set ns.h = 0 %}
+            {% set ns.s = 'auth' %}
+            {% set ns.reason = 'Une réauthentification est requise. Renouveler la connexion dans Home Assistant ; aucun rechargement automatique.' %}
+            {% set alarm = true %}
+          {% elif config_entry_attr(row.entry_id,'disabled_by') is not none %}
+            {% set ns.h = 0 %}
+            {% set ns.s = 'disabled' %}
+            {% set ns.reason = 'Cette configuration d’intégration est désactivée.' %}
+          {% elif not startup_ok %}
+            {% set ns.h = 0 %}
+            {% set ns.s = 'startup' %}
+            {% set ns.reason = 'Attente après le démarrage de Home Assistant.' %}
+          {% elif entry_state in ['migration_error','failed_unload','setup_error','not_loaded'] %}
+            {% set ns.h = 0 %}
+            {% set ns.s = 'fatal' %}
+            {% set ns.reason = 'État ' ~ entry_state ~ ' : intervention manuelle nécessaire ; aucune relance forcée.' %}
+            {% set alarm = true %}
+          {% elif config_entry_attr(row.entry_id,'pref_disable_polling') %}
+            {% set ns.h = 0 %}
+            {% set ns.n = 0 %}
+            {% set ns.s = 'native' %}
+            {% set ns.reason = 'Interrogation désactivée volontairement ; aucune relance forcée.' %}
+          {% elif entry_state != 'loaded' %}
+            {% set ns.h = 0 %}
+            {% if old_status != 'native' or ns.n == 0 %}{% set ns.n = now_ts + native_timeout %}{% endif %}
+            {% set ns.s = 'native' %}
+            {% set ns.reason = 'Home Assistant essaie déjà de reconnecter l’intégration.' %}
+            {% if now_ts >= ns.n %}
+              {% set ns.reason = 'La reconnexion gérée par Home Assistant prend trop de temps. Vérifier les erreurs de l’intégration.' %}
+              {% set alarm = true %}
+            {% endif %}
+          {% elif health.source_invalid %}
+            {% set ns.h = 0 %}
+            {% set ns.s = 'fatal' %}
+            {% set ns.reason = 'L’horodatage source est absent ou incohérent : vérifier sa provenance et l’horloge. Relances suspendues.' %}
+            {% set alarm = true %}
+          {% elif health.recovered %}
+            {% if ns.h == 0 %}
+              {% set ns.h = now_ts %}
+            {% endif %}
+            {% if now_ts - ns.h >= stable_seconds %}
+              {% set ns.s = 'healthy' %}
+              {% set ns.reason = 'Toutes les entités surveillées fonctionnent depuis la durée de confirmation prévue.' %}
+              {% if old_notice != '' or (old_status != 'healthy' and ns.i > 0) %}
+                {% set ns.notice = 'success' %}
+              {% endif %}
+              {% if now_ts - ns.h >= incident_reset_seconds %}
+                {% set ns.i = 0 %}
+              {% endif %}
+              {% set ns.n = 0 %}
+            {% else %}
+              {% set ns.reason = 'Les entités sont à nouveau disponibles. Attente de confirmation du retour à la normale.' %}
+              {% if ns.s != 'verify' %}{% set ns.s = 'degraded' %}{% endif %}
+            {% endif %}
+          {% else %}
+            {% set ns.h = 0 %}
+            {% if ns.s == 'verify' and now_ts < ns.n %}
+              {% set ns.reason = 'Attente du retour des données après la relance.' %}
+            {% elif ns.s == 'verify' %}
+              {% set ns.s = 'waiting' %}
+              {% set ns.n = now_ts + [retry_seconds * (2 ** ([ns.i - 1,0] | max)),max_backoff] | min + row.get('stagger_seconds',0) %}
+              {% set ns.reason = 'Les données attendues ne sont pas revenues. Une nouvelle tentative sera proposée après le délai prévu.' %}
+              {% if ns.i >= max_attempts %}
+                {% set ns.s = 'suspended' %}
+                {% set ns.reason = 'Le nombre maximal de tentatives pour cette panne est atteint. Les relances sont suspendues jusqu’au retour durable à la normale ou à une réinitialisation manuelle.' %}
+                {% set alarm = true %}
+              {% endif %}
+            {% elif not health.fault and not (ns.i > 0 and old_status in ['verify','waiting','running','limited','suspended','timeout']) %}
+              {% set ns.s = 'degraded' %}
+              {% set ns.reason = 'Certaines entités sont en erreur, mais les conditions de relance ne sont pas encore réunies.' %}
+            {% elif ns.i >= max_attempts %}
+              {% set ns.s = 'suspended' %}
+              {% set ns.reason = 'Le nombre maximal de tentatives pour cette panne est atteint. Les relances sont suspendues jusqu’au retour durable à la normale ou à une réinitialisation manuelle.' %}
+              {% set alarm = true %}
+            {% elif not interventions_allowed %}
+              {% set ns.s = 'observation' if observation_only else 'paused' %}
+              {% set ns.reason = 'Observation seule ; aucune nouvelle demande de rechargement.' if observation_only else 'Interventions suspendues par les conditions supplémentaires.' %}
+            {% elif ns.a | count >= max_daily %}
+              {% set ns.s = 'limited' %}
+              {% set ns.n = (ns.a | min) + 86400 %}
+              {% set ns.reason = 'Le nombre maximal de tentatives sur les dernières 24 heures est atteint. Les relances reprendront lorsque cette limite le permettra.' %}
+              {% set alarm = true %}
+            {% elif now_ts < ns.n %}
+              {% set ns.s = 'waiting' %}
+              {% set ns.reason = 'Pause avant la prochaine demande autorisée.' %}
+            {% elif old_status not in ['waiting','limited','suspended','verify'] and ns.i == 0 and row.get('stagger_seconds',0) > 0 %}
+              {% set ns.s = 'waiting' %}
+              {% set ns.n = now_ts + row.get('stagger_seconds',0) %}
+              {% set ns.reason = 'Décalage initial entre les intégrations.' %}
+            {% else %}
+              {% set ns.s = 'running' %}
+              {% set ns.p = reservation_ts %}
+              {% set ns.f = 0 %}
+              {% set ns.reload = true %}
+              {% set ns.reason = 'Demande de relance enregistrée. La tentative sera comptée au démarrage accepté.' %}
+            {% endif %}
+          {% endif %}
+          {% if alarm and old_notice != ns.s %}{% set ns.notice = 'failure' %}{% endif %}
+          {% set data = {'v':3,'o':owner_id,'e':entry_key,'a':ns.a,'i':ns.i,'n':ns.n,'p':ns.p,'f':ns.f,'h':ns.h,'t':now_ts,'s':ns.s,'k':old_notice} %}
+          {% set acknowledged = dict(data,k=(ns.s if ns.notice == 'failure' else '' if ns.notice == 'success' else old_notice)) %}
+          {{ {'memory':data,'acknowledged':acknowledged,'reload':ns.reload,'notice':ns.notice,'reason':ns.reason,'status':ns.s,'bad':health.bad,'attempts':ns.i,'daily':ns.a | count} }}
+    - variables:
+        memory_json: iw3:{{ plan.memory | to_json }}
+        ack_json: iw3:{{ plan.acknowledged | to_json }}
+    - if: '{{ memory_json | length > 255 or ack_json | length > 255 }}'
+      then: *id003
+    - action: script.surveillance_ecrire_memoire
+      data:
+        memory_entity: '{{ memory_entity }}'
+        expected: '{{ read.raw }}'
+        value: '{{ memory_json }}'
+        guard_off: ''
+      response_variable: write_result
+    until: '{{ (write_result is mapping and write_result.get(''ok'',false)) or repeat.index >= 5 }}'
+- if: '{{ write_result is not mapping or not write_result.get(''ok'',false) }}'
+  then: *id003
+- if: '{{ plan.reload }}'
+  then:
+  - event: integration_watchdog_request
+    event_data:
+      entry_id: '{{ entry_id }}'
+      memory_entity: '{{ memory_entity }}'
+      owner_id: '{{ owner_id }}'
+      entry_key: '{{ entry_key }}'
+      max_attempts: '{{ max_attempts }}'
+      max_daily: '{{ max_daily }}'
+      reservation: '{{ plan.memory.p }}'
+- variables:
+    integration_title: '{{ name }}'
+    reason: '{{ plan.reason }}'
+    attempts_used: '{{ plan.attempts }}'
+    daily_attempts: '{{ plan.daily }}'
+    failed_entities: '{{ plan.bad }}'
+    status: '{{ plan.status }}'
+- if: '{{ logging_enabled and (detailed_logging or plan.reload or plan.notice != "none" or plan.status != memory.s)
+    }}'
+  then:
+  - event: integration_watchdog_log
+    event_data:
+      level: '{{ ''warning'' if plan.notice == ''failure'' else ''debug'' if detailed_logging and plan.status ==
+        memory.s and not plan.reload else ''info'' }}'
+      message: '{{ name }} [{{ entry_id }}] : {{ status }} ; incident={{ attempts_used }}, 24h={{ daily_attempts
+        }}. {{ reason }}'
+- if: '{{ plan.notice == ''failure'' }}'
+  then:
+  - sequence: !input 'failure_actions'
+  else:
+  - if: '{{ plan.notice == ''success'' }}'
+    then:
+    - sequence: !input 'success_actions'
+- if: '{{ plan.notice != ''none'' }}'
+  then:
+  - repeat:
+      sequence:
+      - *id001
+      - *id002
+      - variables:
+          acknowledged: '{{ dict(read.data,k=(status if plan.notice == ''failure'' else '''')) }}'
+      - action: script.surveillance_ecrire_memoire
+        data:
+          memory_entity: '{{ memory_entity }}'
+          expected: '{{ read.raw }}'
+          value: iw3:{{ acknowledged | to_json }}
+          guard_off: ''
+        response_variable: write_result
+      until: '{{ (write_result is mapping and write_result.get(''ok'',false)) or repeat.index >= 5 }}'

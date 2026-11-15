@@ -1,0 +1,32 @@
+{% set ns = namespace(bad=[], recovered=true, source_invalid=false) %}
+{% set started = as_timestamp(states(uptime_entity), clock_ts) %}
+{% set age = row.get('max_age',0) | int %}
+{% set after = memory.get('f',0) %}
+{% set source = row.get('source_time_entity','') %}
+{% for entity in row.entities | unique %}
+  {% set s = states[entity] %}
+  {% set bad_state = s is none or s.state == 'unavailable' or (include_unknown and s.state == 'unknown') %}
+  {% set since = as_timestamp(s.last_changed,started) if s is not none else started %}
+  {% set report = as_timestamp(s.last_reported,0) if s is not none else 0 %}
+  {% set stale = age > 0 and source == '' and (clock_ts - report >= age or report > clock_ts + 60) %}
+  {% if (bad_state and clock_ts - since >= fault_seconds) or stale %}
+    {% set ns.bad = ns.bad + [entity] %}
+  {% endif %}
+  {% if s is none or s.state in ['unknown','unavailable'] or s.attributes.get('restored',false) or (age > 0 and source == '' and (stale or (after > 0 and report <= after))) %}
+    {% set ns.recovered = false %}
+  {% endif %}
+{% endfor %}
+{% if source != '' %}
+  {% set attr = row.get('source_time_attribute','') %}
+  {% set stamp = as_timestamp(state_attr(source,attr) if attr != '' else states(source),none) %}
+  {% if stamp is none or stamp > clock_ts + 60 or clock_ts - stamp >= age %}
+    {% set ns.bad = ns.bad + [source] %}
+    {% set ns.recovered = false %}
+    {% if stamp is none or stamp > clock_ts + 60 %}{% set ns.source_invalid = true %}{% endif %}
+  {% elif after > 0 and stamp <= after %}
+    {% set ns.recovered = false %}
+  {% endif %}
+{% endif %}
+{% set witness_bad = ns.bad | reject('equalto',source) | list %}
+{% set fault = (witness_bad | count > 0 if row.get('policy','all') == 'any' else witness_bad | count == row.entities | unique | list | count) or (source != '' and source in ns.bad) %}
+{{ {'bad':ns.bad,'fault':fault,'source_invalid':ns.source_invalid,'recovered':ns.recovered and config_entry_attr(row.entry_id,'state') == 'loaded'} }}
