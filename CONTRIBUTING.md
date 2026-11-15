@@ -2,7 +2,7 @@
 
 **Français** · [English](CONTRIBUTING.en.md)
 
-Chaque nouveau blueprint doit avoir son propre dossier sous `blueprints/automation/` ou `blueprints/script/`, un guide français et anglais, ses exemples et ses tests. Les fichiers de configuration partagés vont dans `packages/`.
+Chaque nouveau blueprint doit avoir son propre dossier sous `blueprints/automation/` ou `blueprints/script/`, un guide français et anglais, ses exemples et ses tests. Un blueprint doit s’installer seul : pas de fichier de configuration à copier dans Home Assistant.
 
 - Utiliser les fonctions standard de Home Assistant et documenter les fichiers nécessaires à l’installation.
 - Employer des termes usuels : entités à surveiller, tentatives, historique, relance et retour à la normale. Expliquer les détails techniques dans une page séparée.
