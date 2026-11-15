@@ -228,12 +228,34 @@ variables:
   command: >-
     {{ trigger.event.data.get('command', '') | string
        if trigger is defined and trigger.event is defined and trigger.event.data is mapping else '' }}
+  # ZHA transmet certaines valeurs sous forme d'énumérations zigpy (StepMode.Down, MoveMode.Up…).
+  # Rendues telles quelles, elles rendraient la variable illisible et tout le contenu serait
+  # perdu : chaque valeur est donc convertie en entier, nombre, booléen, vide ou texte.
   args: >-
-    {{ trigger.event.data.get('args', [])
-       if trigger is defined and trigger.event is defined and trigger.event.data is mapping else [] }}
+    {% set raw = trigger.event.data.get('args', [])
+       if trigger is defined and trigger.event is defined and trigger.event.data is mapping else [] %}
+    {% set ns = namespace(items=[], fields={}) %}
+    {% if raw is mapping %}
+      {% for key, value in raw.items() %}
+        {% set ns.fields = dict(ns.fields, **{key | string: (none if value is none else (value if value is boolean
+             else (value | int if value is integer else (value | float if value is float else value | string))))}) %}
+      {% endfor %}{{ ns.fields }}
+    {% elif raw is sequence and raw is not string %}
+      {% for value in raw %}
+        {% set ns.items = ns.items + [none if value is none else (value if value is boolean
+             else (value | int if value is integer else (value | float if value is float else value | string)))] %}
+      {% endfor %}{{ ns.items }}
+    {% else %}{{ [] }}{% endif %}
   params: >-
-    {{ trigger.event.data.get('params', {})
-       if trigger is defined and trigger.event is defined and trigger.event.data is mapping else {} }}
+    {% set raw = trigger.event.data.get('params', {})
+       if trigger is defined and trigger.event is defined and trigger.event.data is mapping else {} %}
+    {% set ns = namespace(fields={}) %}
+    {% if raw is mapping %}
+      {% for key, value in raw.items() %}
+        {% set ns.fields = dict(ns.fields, **{key | string: (none if value is none else (value if value is boolean
+             else (value | int if value is integer else (value | float if value is float else value | string))))}) %}
+      {% endfor %}
+    {% endif %}{{ ns.fields }}
   # Amplitude d'un cran de molette, transmise par les télécommandes à molette.
   dial_step: >-
     {{ params.get('step_size', 0) | float(0) if params is mapping else 0 }}

@@ -8,6 +8,7 @@ zha-quirks profiles of the remotes in the house.
 """
 import asyncio
 import copy
+import enum
 from pathlib import Path
 
 import pytest
@@ -170,7 +171,8 @@ def test_published_blueprints_pass_native_schema(name):
     BLUEPRINT_SCHEMA(data)
     blueprint = Blueprint(data, expected_domain='automation', schema=BLUEPRINT_SCHEMA)
     assert blueprint.metadata['homeassistant']['min_version'] == '2026.10.0'
-    assert blueprint.metadata['name'].endswith('— 1.0.0')
+    version = (ROOT / 'src/lighting/VERSION').read_text().strip()
+    assert blueprint.metadata['name'].endswith(f'— {version}')
     assert blueprint.metadata['source_url'].endswith(name)
 
 
@@ -572,3 +574,81 @@ async def test_auto_off_start_rearms_forgotten_light(tmp_path):
         assert env.hass.states.get('timer.corridor').state == 'active'
     finally:
         await env.hass.async_stop(force=True)
+
+
+
+class ZigpyEnum(int, enum.Enum):
+    """Built like zigpy's enum8 (an int mixed into enum.Enum, not an IntEnum).
+
+    str() and format() give « StepMode.Down », repr() gives « <StepMode.Down: 1> ».
+    """
+
+    def __format__(self, format_spec):
+        return int.__format__(self, format_spec) if format_spec else f'{type(self).__name__}.{self.name}'
+
+    __str__ = __format__
+
+
+class StepMode(ZigpyEnum):
+    """Stand-in for zigpy's LevelControl.StepMode, as ZHA puts it in zha_event params."""
+    Up = 0
+    Down = 1
+
+
+class MoveMode(ZigpyEnum):
+    Up = 0
+    Down = 1
+
+
+async def test_tap_dial_reads_zigpy_enum_params(env):
+    """Real Hue Tap Dial event: step_mode is an enum and options are None."""
+    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
+                         light_2='light.two')
+    await env.press('button_2_press', settle=None)
+    before = env.pct('two')
+    real = {'step_mode': StepMode.Down, 'step_size': 8, 'transition_time': 4,
+            'options_mask': None, 'options_override': None}
+    await env.press('step_with_on_off', params=real, cluster_id=8, settle=None)
+    assert env.pct('two') == before - 8
+    await env.press('step_with_on_off', params=dict(real, step_mode=StepMode.Up, step_size=14), settle=None)
+    assert env.pct('two') == before + 6
+
+
+async def test_ikea_reads_zigpy_enum_params(env):
+    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.color',
+                         palette=['blue', 'lime'])
+    await env.press('press', args=[256, 13, 0],
+                    params={'param1': 256, 'param2': 13, 'param3': 0, 'extra': MoveMode.Down}, settle=None)
+    assert env.lamps['color'].calls[-1][1]['xy_color'] == pytest.approx(
+        color_util.color_hs_to_xy(247.559, 49.804), abs=1e-3)
+
+
+@pytest.mark.parametrize('name', REMOTES)
+async def test_event_fields_render_as_plain_literals(env, name):
+    """Home Assistant 2026.11 renders these variables to text before reading them back.
+
+    zigpy enums print as « <StepMode.Down: 1> », which cannot be read back: the whole value
+    would be lost. The text produced for args and params must therefore be a plain literal.
+    """
+    import ast
+    from homeassistant.helpers.template import Template
+    variables = load_yaml(str(FOLDER / name))['variables']
+    data = {'command': 'step_with_on_off', 'args': [StepMode.Down, 32, 4],
+            'params': {'step_mode': StepMode.Down, 'step_size': 32, 'transition_time': 4,
+                       'options_mask': None, 'options_override': None, 'on_off': True, 'rate': 1.5}}
+
+    class Event:
+        pass
+    event = Event()
+    event.data = data
+    context = {'trigger': {'event': event}}
+    args = Template(variables['args'], env.hass).async_render(context, parse_result=False)
+    params = Template(variables['params'], env.hass).async_render(context, parse_result=False)
+    assert ast.literal_eval(args.strip()) == [1, 32, 4]
+    assert ast.literal_eval(params.strip()) == {'step_mode': 1, 'step_size': 32, 'transition_time': 4,
+                                                'options_mask': None, 'options_override': None,
+                                                'on_off': True, 'rate': 1.5}
+    hue_args = Template(variables['args'], env.hass).async_render(
+        {'trigger': {'event': type('E', (), {'data': {'args': {'button': 'button_1', 'press_type': 'press',
+                                                                'args': [1, 3145728]}}})()}}, parse_result=False)
+    assert ast.literal_eval(hue_args.strip())['button'] == 'button_1'
