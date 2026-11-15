@@ -6,9 +6,10 @@
 # jamais un maintien en cours. Les actions forment le moteur commun, identique pour
 # toutes les télécommandes ; ses commentaires détaillés sont dans src/lighting/engine.yaml.
 blueprint:
-  name: Télécommande Philips Hue Tap Dial (RDM002) — ZHA — 1.0.2
+  name: Télécommande Philips Hue Tap Dial (RDM002) — ZHA — 1.0.3
   description: 'Quatre boutons, une lampe par bouton, et une molette. La molette agit sur la dernière lampe allumée
-    parmi les quatre (ou, si toutes sont éteintes, sur la dernière actionnée), sans assistant de mémoire. Actions
+    parmi les quatre (ou, si toutes sont éteintes, sur la dernière actionnée), sans assistant de mémoire. Quand
+    un groupe et ses membres changent ensemble, elle agit sur la lampe que la télécommande a commandée. Actions
     et réglages communs à toutes les télécommandes de la famille ; variations continues bornées. Assistant de mémoire
     facultatif, nécessaire au double appui. Menu → Exécuter les actions affiche un diagnostic sans commander la
     lampe. Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/lighting.md'
@@ -1210,8 +1211,9 @@ variables:
     dial_down: !input 'dial_down_action'
   gesture_raw: |-
     {% if command is match('^button_[1-4]_(press|hold)$') %}{{ command }} {% elif command is match('^button_[1-4]_long_release$') %}stop {% elif command == 'step_with_on_off' %}
-      {% set mode = (params.get('step_mode', 0) if params is mapping else 0) | string %}
-      {{ 'dial_up' if mode in ['0', 'StepMode.Up', 'Up', 'up'] else 'dial_down' }}
+      {% set mode = (params.get('step_mode') if params is mapping else none) | string %}
+      {% if mode in ['0', 'StepMode.Up', 'Up', 'up'] %}dial_up
+      {% elif mode in ['1', 'StepMode.Down', 'Down', 'down'] %}dial_down{% endif %}
     {% endif %}
   light_1: !input 'light_1'
   light_2: !input 'light_2'
@@ -1220,10 +1222,13 @@ variables:
   slots: '{{ [light_1, light_2, light_3, light_4] }}'
   lamps: '{{ slots | select(''string'') | select(''match'', ''^light[.]'') | list }}'
   lamp: '{% if gesture_raw is match(''^button_[1-4]_'') %}{{ slots[gesture_raw[7] | int - 1] if slots[gesture_raw[7]
-    | int - 1] is string else '''' }}{% else %}{% set lit = lamps | select(''is_state'', ''on'') | list %}{% set
-    ns = namespace(best='''', stamp=-1) %}{% for e in (lit if lit | count > 0 else lamps) %}{% set s = states[e]
-    %}{% set t = as_timestamp(s.last_changed, 0) if s is not none else 0 %}{% if t > ns.stamp %}{% set ns.best =
-    e %}{% set ns.stamp = t %}{% endif %}{% endfor %}{{ ns.best }}{% endif %}'
+    | int - 1] is string else '''' }}{% else %}{% set usable = lamps | select(''has_value'') | list %}{% set lit
+    = usable | select(''is_state'', ''on'') | list %}{% set pool = lit if lit | count > 0 else usable %}{% set ns
+    = namespace(best='''', stamp=-1, own='''', own_stamp=-1) %}{% for e in pool %}{% set t = as_timestamp(states[e].last_changed,
+    0) %}{% if t > ns.stamp %}{% set ns.best = e %}{% set ns.stamp = t %}{% endif %}{% endfor %}{% for e in pool
+    %}{% set s = states[e] %}{% set t = as_timestamp(s.last_changed, 0) %}{% if this is defined and s.context.id
+    == this.context.id and ns.stamp - t <= 2 and t > ns.own_stamp %}{% set ns.own = e %}{% set ns.own_stamp = t
+    %}{% endif %}{% endfor %}{{ ns.own if ns.own != '''' else ns.best }}{% endif %}'
   owner: '{{ ''a'' ~ sha256(this.entity_id if this is defined else ''manual'')[:10] }}'
   memory_raw: '{{ states(memory_entity) if memory_entity is string and memory_entity.startswith(''input_text.'')
     else '''' }}'
@@ -1279,8 +1284,10 @@ variables:
   ignore_reason: |-
     {% if manual %} {% elif gesture_raw == '' %}événement sans geste {% elif now_ts - event_ts > 5 %}événement trop ancien {% elif use_memory and event_ts < m.t - 0.001 %}événement arrivé dans le désordre {% elif debounce_ms > 0 and use_memory and m.g in [gesture_raw, gesture_raw | replace('_press', '_double')]
             and 0 <= event_ts - m.t < debounce_ms / 1000 %}doublon radio
+    {# Sans mémoire, l'exécution précédente peut être horodatée quelques millisecondes après
+       l'émission de cet événement si Home Assistant est occupé : l'écart est pris sans signe. #}
     {% elif debounce_ms > 0 and not use_memory and this is defined and this.attributes.get('last_triggered')
-            and 0 <= event_ts - as_timestamp(this.attributes.last_triggered, 0) < debounce_ms / 1000 %}doublon radio
+            and (event_ts - as_timestamp(this.attributes.last_triggered, 0)) | abs < debounce_ms / 1000 %}doublon radio
     {% elif continuous and use_memory and m.h == gesture and 0 <= event_ts - m.s < hold_limit %}répétition du maintien en cours {% elif continuous and not use_memory and loop_running %}maintien déjà en cours {% elif gesture == 'stop' or action == 'custom' %} {% elif action == 'none' %}geste sans action {% elif not (lamp is string and lamp.startswith('light.')) %}geste sans lampe {% endif %}
 conditions:
 - condition: template

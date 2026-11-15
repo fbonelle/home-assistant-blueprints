@@ -20,8 +20,11 @@ from homeassistant.components.blueprint.models import Blueprint, BlueprintInputs
 from homeassistant.components.blueprint.schemas import BLUEPRINT_SCHEMA
 from homeassistant.components.light import ColorMode, LightEntity, LightEntityFeature
 from homeassistant.config_entries import ConfigEntries
+from homeassistant.core import callback
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.setup import async_setup_component
 from homeassistant.util import color as color_util
+from homeassistant.util import dt as dt_util
 from homeassistant.util.yaml import load_yaml
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -680,3 +683,96 @@ async def test_dial_amplitude_is_converted_to_percent(env):
     assert env.pct('one') == round(1.2 + 8 / 2.55)
     await env.press('step_with_on_off', params={'step_mode': StepMode.Up, 'step_size': 226}, settle=.15)
     assert env.pct('one') == 93
+
+
+
+def follow(env, member, group):
+    """Make `group` mirror `member` like a Zigbee group: same on/off state, written just
+    after the member and with a context of its own (not the remote's)."""
+    lamp = env.lamps[group]
+
+    @callback
+    def mirror(event):
+        new = event.data['new_state']
+        if new is None or (new.state == 'on') == lamp.is_on:
+            return
+        lamp._attr_is_on = new.state == 'on'
+        lamp._context = None
+        lamp.async_write_ha_state()
+    return async_track_state_change_event(env.hass, [f'light.{member}'], mirror)
+
+
+async def test_tap_dial_prefers_the_member_over_a_following_group(env):
+    """Enzo's remote: button 2 drives a group, button 3 one of its members. Switching the
+    member on switches the group state on just after; the dial must stay on the member."""
+    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
+                         light_2='light.two', light_3='light.three')
+    follow(env, 'three', 'two')
+    await env.press('button_3_press', settle=.15)
+    assert env.state('two').state == 'on' and env.state('three').state == 'on'
+    assert env.state('two').last_changed >= env.state('three').last_changed
+    level = env.pct('three')
+    calls = len(env.lamps['two'].calls)
+    await env.press('step_with_on_off', params={'step_mode': StepMode.Up, 'step_size': 51}, settle=.15)
+    assert env.pct('three') == level + 20 and len(env.lamps['two'].calls) == calls
+    # Further notches stay on the member (its context is now the dial run's).
+    await env.press('step_with_on_off', params={'step_mode': StepMode.Down, 'step_size': 26}, settle=.15)
+    assert abs(env.pct('three') - (level + 10)) <= 1 and len(env.lamps['two'].calls) == calls
+
+
+async def test_tap_dial_prefers_the_group_when_its_button_was_pressed(env):
+    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
+                         light_2='light.two', light_3='light.three')
+    follow(env, 'two', 'three')
+    await env.press('button_2_press', settle=.15)
+    assert env.state('three').last_changed >= env.state('two').last_changed
+    await env.press('step_with_on_off', params={'step_mode': StepMode.Up, 'step_size': 51}, settle=.15)
+    assert len(env.lamps['two'].calls) == 2 and len(env.lamps['three'].calls) == 0
+
+
+async def test_tap_dial_lamp_switched_on_later_elsewhere_comes_first(env):
+    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
+                         light_2='light.two')
+    await env.press('button_1_press', settle=.15)
+    # Lamp two switched on from the app, more than 2 s later.
+    await asyncio.sleep(2.1)
+    await env.hass.services.async_call('light', 'turn_on', {'entity_id': 'light.two', 'brightness_pct': 30},
+                                       blocking=True)
+    await env.press('step_with_on_off', params={'step_mode': StepMode.Up, 'step_size': 51}, settle=.15)
+    assert env.pct('two') == 50
+
+
+async def test_tap_dial_never_chooses_an_unavailable_lamp(env):
+    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
+                         light_2='light.two')
+    await env.press('button_1_press', settle=.15)
+    await env.press('button_1_press', settle=.15)
+    assert env.state('one').state == 'off'
+    # Lamp two drops off the network after lamp one was used: the dial wakes lamp one.
+    env.lamps['two']._attr_available = False
+    env.lamps['two'].async_write_ha_state()
+    await env.press('step_with_on_off', params={'step_mode': StepMode.Up, 'step_size': 51}, settle=.15)
+    assert env.pct('one') == 20 and len(env.lamps['two'].calls) == 0
+
+
+async def test_tap_dial_ignores_unknown_direction(env):
+    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one')
+    await env.lamps['one'].async_turn_on(brightness=128)
+    for mode in [None, 7, 'sideways']:
+        await env.press('step_with_on_off', params={'step_mode': mode, 'step_size': 51}, settle=.15)
+    await env.press('step_with_on_off', params={'step_size': 51}, settle=.15)
+    assert len(env.lamps['one'].calls) == 1
+
+
+async def test_debounce_without_memory_tolerates_late_bookkeeping(env):
+    """The second report fired before the first run was recorded (Home Assistant busy)."""
+    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one')
+    await env.lamps['one'].async_turn_on(brightness=round(20 * 2.55))
+    await asyncio.sleep(.15)
+    # Both reports were radioed 50 ms ago, 5 ms apart; the first run is recorded only now.
+    fired = dt_util.utcnow().timestamp() - .05
+    await env.press('step_with_on_off', params={'step_mode': StepMode.Up, 'step_size': 51},
+                    time_fired=fired, settle=.03)
+    await env.press('step_with_on_off', params={'step_mode': StepMode.Down, 'step_size': 26},
+                    time_fired=fired + .005, settle=.15)
+    assert env.pct('one') == 40

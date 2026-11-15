@@ -106,7 +106,7 @@ An inconsistent configuration (minimum above maximum, unknown preset, black reca
 - **Philips remotes repeat the hold event.** Each repetition makes one step. IKEA remotes send only a start and an end, so the change runs at the configured interval.
 - **The lamp state is read again at every step.** A lamp switched off during a hold is not switched back on by it. A lamp that becomes unavailable ends the change. A change made elsewhere is respected and the release does not overwrite it.
 - **Colours stop a running effect** (colorloop) when the lamp allows it.
-- **The Tap Dial dial** drives the lamp switched on most recently among the four; if all are off, the lamp switched most recently.
+- **The Tap Dial dial** drives the lamp switched on most recently among the four; if all are off, the lamp switched most recently; an unavailable lamp is never chosen. When lamps follow one another, such as a group and its members, the lamp the remote commanded wins: a member’s button then the dial drives that member alone, the group’s button then the dial drives the group. A lamp switched on otherwise more than 2 seconds later still comes first.
 - **The eWeLink button** is read from its commands (single, double, long). `attribute_updated` state reports are ignored: the button can send them with no press.
 
 ## Automatic switch-off

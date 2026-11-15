@@ -106,7 +106,7 @@ Une configuration incohérente (minimum au-dessus du maximum, palette inconnue, 
 - **Les télécommandes Philips répètent le maintien.** Chaque répétition produit un seul pas. Les télécommandes IKEA n’envoient qu’un début et une fin : la variation tourne alors à la cadence réglée.
 - **L’état de la lampe est relu à chaque pas.** Une lampe éteinte pendant un maintien n’est pas rallumée par lui. Une lampe devenue indisponible arrête la variation. Un changement fait ailleurs est respecté, et le relâchement ne l’écrase pas.
 - **Les couleurs arrêtent un effet en cours** (colorloop), si la lampe le permet.
-- **La molette du Tap Dial** agit sur la dernière lampe allumée parmi les quatre. Si toutes sont éteintes, elle agit sur la dernière actionnée.
+- **La molette du Tap Dial** agit sur la dernière lampe allumée parmi les quatre. Si toutes sont éteintes, elle agit sur la dernière actionnée ; une lampe indisponible n’est jamais choisie. Quand des lampes se suivent, comme un groupe et ses membres, celle que la télécommande a commandée l’emporte : bouton de la lampe du haut puis molette agit sur la lampe du haut seule, bouton du groupe puis molette agit sur le groupe. Une lampe allumée autrement plus de 2 secondes après reste prioritaire.
 - **Le bouton eWeLink** est lu dans ses commandes (simple, double, long). Les rapports d’état `attribute_updated` sont ignorés : le bouton peut en émettre sans aucun appui.
 
 ## Extinction automatique

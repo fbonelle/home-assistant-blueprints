@@ -2,6 +2,12 @@
 
 **Français** · [English](CHANGELOG.en.md)
 
+## Télécommandes d’éclairage — 1.0.3 — 15 novembre 2026
+
+- Correction : quand un groupe et ses membres sont tous sur le Tap Dial, la molette pouvait agir sur le groupe après l’allumage d’un seul membre, et allumer les autres. Parmi les lampes changées presque en même temps, celle que la télécommande a commandée l’emporte.
+- Tap Dial : une lampe indisponible n’est plus choisie par la molette ; un sens de rotation inconnu est ignoré au lieu d’être lu comme une rotation vers la gauche.
+- Filtre des événements trop rapprochés sans assistant de mémoire : un doublon n’échappe plus au filtre quand Home Assistant enregistre l’exécution précédente quelques millisecondes après son arrivée.
+
 ## Télécommandes d’éclairage — 1.0.2 — 15 novembre 2026
 
 - Correction : l’amplitude de la molette du Hue Tap Dial était lue en pour cent alors que la commande Zigbee l’exprime en unités de luminosité (0 à 255) ; une rotation rapide sautait directement au maximum ou au minimum. Elle est maintenant convertie : environ 3 % pour un cran lent, jusqu’à 80 % pour une rotation rapide.

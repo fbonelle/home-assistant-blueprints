@@ -83,7 +83,8 @@ hue_tap_dial:
   description: >-
     Quatre boutons, une lampe par bouton, et une molette. La molette agit sur la dernière
     lampe allumée parmi les quatre (ou, si toutes sont éteintes, sur la dernière actionnée),
-    sans assistant de mémoire.
+    sans assistant de mémoire. Quand un groupe et ses membres changent ensemble, elle agit
+    sur la lampe que la télécommande a commandée.
   filter:
     integration: zha
     manufacturer: Signify Netherlands B.V.
@@ -94,8 +95,9 @@ hue_tap_dial:
     {% if command is match('^button_[1-4]_(press|hold)$') %}{{ command }}
     {% elif command is match('^button_[1-4]_long_release$') %}stop
     {% elif command == 'step_with_on_off' %}
-      {% set mode = (params.get('step_mode', 0) if params is mapping else 0) | string %}
-      {{ 'dial_up' if mode in ['0', 'StepMode.Up', 'Up', 'up'] else 'dial_down' }}
+      {% set mode = (params.get('step_mode') if params is mapping else none) | string %}
+      {% if mode in ['0', 'StepMode.Up', 'Up', 'up'] %}dial_up
+      {% elif mode in ['1', 'StepMode.Down', 'Down', 'down'] %}dial_down{% endif %}
     {% endif %}
   sections:
   - key: button_1

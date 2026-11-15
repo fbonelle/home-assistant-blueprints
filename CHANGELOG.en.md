@@ -2,6 +2,12 @@
 
 [Français](CHANGELOG.md) · **English**
 
+## Lighting remotes — 1.0.3 — 15 November 2026
+
+- Fix: when a group and its members are all on the Tap Dial, the dial could drive the group after a single member was switched on, and switch the others on. Among lamps changed almost together, the lamp the remote commanded wins.
+- Tap Dial: an unavailable lamp is no longer chosen by the dial; an unknown rotation direction is ignored instead of being read as a left turn.
+- Filter for events too close together without a memory helper: a duplicate no longer slips through when Home Assistant records the previous run a few milliseconds after it arrives.
+
 ## Lighting remotes — 1.0.2 — 15 November 2026
 
 - Fix: the Hue Tap Dial dial amount was read as a percentage, whereas the Zigbee command expresses it in brightness units (0 to 255); a fast spin jumped straight to maximum or minimum. It is now converted: about 3 % for a slow notch, up to 80 % for a fast spin.

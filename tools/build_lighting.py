@@ -194,18 +194,29 @@ def build_remote(key, model, engine, palette, version):
         variables['slots'] = '{{ [light_1, light_2, light_3, light_4] }}'
         variables['lamps'] = "{{ slots | select('string') | select('match', '^light[.]') | list }}"
         # A button drives its own lamp. The dial drives the lamp switched on most recently
-        # among those that are on, or the lamp switched most recently if all are off.
+        # among those that are on, or the lamp switched most recently if all are off;
+        # unavailable lamps are never chosen. Lamps can follow one another (a group and its
+        # members change together): among the lamps changed less than 2 s before the most
+        # recent one, the lamp still carrying the context of this automation's previous run,
+        # i.e. the lamp the remote actually commanded, wins.
         variables['lamp'] = (
             "{% if gesture_raw is match('^button_[1-4]_') %}"
             "{{ slots[gesture_raw[7] | int - 1] if slots[gesture_raw[7] | int - 1] is string else '' }}"
             "{% else %}"
-            "{% set lit = lamps | select('is_state', 'on') | list %}"
-            "{% set ns = namespace(best='', stamp=-1) %}"
-            "{% for e in (lit if lit | count > 0 else lamps) %}"
-            "{% set s = states[e] %}"
-            "{% set t = as_timestamp(s.last_changed, 0) if s is not none else 0 %}"
+            "{% set usable = lamps | select('has_value') | list %}"
+            "{% set lit = usable | select('is_state', 'on') | list %}"
+            "{% set pool = lit if lit | count > 0 else usable %}"
+            "{% set ns = namespace(best='', stamp=-1, own='', own_stamp=-1) %}"
+            "{% for e in pool %}"
+            "{% set t = as_timestamp(states[e].last_changed, 0) %}"
             "{% if t > ns.stamp %}{% set ns.best = e %}{% set ns.stamp = t %}{% endif %}"
-            "{% endfor %}{{ ns.best }}"
+            "{% endfor %}"
+            "{% for e in pool %}"
+            "{% set s = states[e] %}"
+            "{% set t = as_timestamp(s.last_changed, 0) %}"
+            "{% if this is defined and s.context.id == this.context.id and ns.stamp - t <= 2"
+            " and t > ns.own_stamp %}{% set ns.own = e %}{% set ns.own_stamp = t %}{% endif %}"
+            "{% endfor %}{{ ns.own if ns.own != '' else ns.best }}"
             "{% endif %}")
     else:
         variables['lamp'] = Input('light')
