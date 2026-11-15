@@ -2,6 +2,12 @@
 
 **Français** · [English](CHANGELOG.en.md)
 
+## Télécommandes d’éclairage — 1.0.2 — 15 novembre 2026
+
+- Correction : l’amplitude de la molette du Hue Tap Dial était lue en pour cent alors que la commande Zigbee l’exprime en unités de luminosité (0 à 255) ; une rotation rapide sautait directement au maximum ou au minimum. Elle est maintenant convertie : environ 3 % pour un cran lent, jusqu’à 80 % pour une rotation rapide.
+- Tap Dial : filtre des événements trop rapprochés activé par défaut (100 ms). Il écarte les appuis reçus deux fois et les rapports de rotation de sens opposés émis à quelques millisecondes d’intervalle.
+- Tests reprenant les valeurs relevées sur une vraie télécommande.
+
 ## Télécommandes d’éclairage — 1.0.1 — 15 novembre 2026
 
 - Correction : la molette du Hue Tap Dial était toujours lue dans le même sens, avec un pas fixe. ZHA transmet le sens de rotation et d’autres champs sous forme d’énumérations zigpy (`StepMode.Down`), que Home Assistant 2026.11 ne savait pas relire : tous les paramètres de l’événement étaient perdus. Les valeurs sont maintenant converties en nombres, booléens ou textes avant usage, pour toutes les télécommandes.

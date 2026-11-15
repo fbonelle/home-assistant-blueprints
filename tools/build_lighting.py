@@ -158,7 +158,8 @@ def build_remote(key, model, engine, palette, version):
         if section['key'] == 'dial':
             content['dial_scale'] = {
                 'name': 'Sensibilité de la molette',
-                'description': 'Multiplie l\'amplitude transmise par chaque cran de molette.',
+                'description': ('Multiplie l\'amplitude transmise par la molette, convertie en pour cent : '
+                                'un cran lent vaut environ 3 %, une rotation rapide jusqu\'à 80 %.'),
                 'default': 1,
                 'selector': {'number': {'min': 0.1, 'max': 5, 'step': 0.1, 'mode': 'box'}},
             }

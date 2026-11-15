@@ -93,10 +93,10 @@ In the collapsed section **Réglages de variation et de couleur**. Values in bra
 | Recall colour | RGB 255, 192, 140 | — |
 | Colours may switch on · Recall may switch on | yes · yes | Otherwise no effect on a lamp that is off. |
 | Double press delay | 800 ms | Memory helper required. |
-| Ignore events too close together | 0 (STYRBAR: 50 ms) | Must stay below the double press delay. |
+| Ignore events too close together | 0 (STYRBAR: 50 ms; Tap Dial: 100 ms) | Must stay below the double press delay. |
 | Logging | no | INFO level, `lighting_remote` logger. |
 
-On the Tap Dial, **Sensibilité de la molette** scales each dial notch (1 by default).
+On the Tap Dial, the dial sends an amount that grows with rotation speed: about 3 % for a slow notch, up to 80 % for a fast spin. **Sensibilité de la molette** scales it (1 by default). The 100 ms filter drops presses received twice and contradictory rotation reports a few milliseconds apart.
 
 An inconsistent configuration (minimum above maximum, unknown preset, black recall colour, filter longer than the double press delay, helper too short) blocks every command. It is reported by a notification and in the log.
 

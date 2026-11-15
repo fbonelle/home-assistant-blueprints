@@ -6,7 +6,7 @@
 # jamais un maintien en cours. Les actions forment le moteur commun, identique pour
 # toutes les télécommandes ; ses commentaires détaillés sont dans src/lighting/engine.yaml.
 blueprint:
-  name: Télécommande Philips Hue Tap Dial (RDM002) — ZHA — 1.0.1
+  name: Télécommande Philips Hue Tap Dial (RDM002) — ZHA — 1.0.2
   description: 'Quatre boutons, une lampe par bouton, et une molette. La molette agit sur la dernière lampe allumée
     parmi les quatre (ou, si toutes sont éteintes, sur la dernière actionnée), sans assistant de mémoire. Actions
     et réglages communs à toutes les télécommandes de la famille ; variations continues bornées. Assistant de mémoire
@@ -606,7 +606,8 @@ blueprint:
             action: {}
         dial_scale:
           name: Sensibilité de la molette
-          description: Multiplie l'amplitude transmise par chaque cran de molette.
+          description: 'Multiplie l''amplitude transmise par la molette, convertie en pour cent : un cran lent vaut
+            environ 3 %, une rotation rapide jusqu''à 80 %.'
           default: 1
           selector:
             number:
@@ -939,7 +940,7 @@ blueprint:
           name: Ignorer les événements trop rapprochés
           description: Écarte un doublon radio. Avec l'assistant de mémoire, seul un geste identique est écarté
             ; sans assistant, tout geste trop proche du précédent. 0 désactive ce filtre.
-          default: 0
+          default: 100
           selector:
             number:
               min: 0
@@ -988,7 +989,7 @@ variables:
              else (value | int if value is integer else (value | float if value is float else value | string))))}) %}
       {% endfor %}
     {% endif %}{{ ns.fields }}
-  dial_step: '{{ params.get(''step_size'', 0) | float(0) if params is mapping else 0 }}'
+  dial_step: '{{ ((params.get(''step_size'', 0) | float(0)) / 2.55) | round(2) if params is mapping else 0 }}'
   now_ts: '{{ as_timestamp(now()) }}'
   event_ts: |-
     {{ as_timestamp(trigger.event.time_fired, now_ts)

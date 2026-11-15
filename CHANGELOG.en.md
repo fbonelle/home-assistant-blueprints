@@ -2,6 +2,12 @@
 
 [Français](CHANGELOG.md) · **English**
 
+## Lighting remotes — 1.0.2 — 15 November 2026
+
+- Fix: the Hue Tap Dial dial amount was read as a percentage, whereas the Zigbee command expresses it in brightness units (0 to 255); a fast spin jumped straight to maximum or minimum. It is now converted: about 3 % for a slow notch, up to 80 % for a fast spin.
+- Tap Dial: filter for events too close together enabled by default (100 ms). It drops presses received twice and opposite-direction rotation reports a few milliseconds apart.
+- Tests using values recorded on a real remote.
+
 ## Lighting remotes — 1.0.1 — 15 November 2026
 
 - Fix: the Hue Tap Dial dial was always read in the same direction with a fixed step. ZHA sends the rotation direction and other fields as zigpy enums (`StepMode.Down`), which Home Assistant 2026.11 could not read back: every event parameter was lost. Values are now converted to numbers, booleans or text before use, for every remote.

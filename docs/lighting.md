@@ -93,10 +93,10 @@ Dans la section repliée **Réglages de variation et de couleur**. Les valeurs e
 | Couleur de rappel | RGB 255, 192, 140 | — |
 | Les couleurs peuvent allumer · Le rappel peut allumer | oui · oui | Sinon, sans effet sur une lampe éteinte. |
 | Délai du double appui | 800 ms | Assistant de mémoire nécessaire. |
-| Ignorer les événements trop rapprochés | 0 (STYRBAR : 50 ms) | Doit rester inférieur au délai du double appui. |
+| Ignorer les événements trop rapprochés | 0 (STYRBAR : 50 ms ; Tap Dial : 100 ms) | Doit rester inférieur au délai du double appui. |
 | Journaliser | non | Niveau INFO, journal `lighting_remote`. |
 
-Sur le Tap Dial, **Sensibilité de la molette** multiplie l’amplitude de chaque cran (1 par défaut).
+Sur le Tap Dial, la molette transmet une amplitude qui grandit avec la vitesse de rotation : environ 3 % pour un cran lent, jusqu’à 80 % pour une rotation rapide. **Sensibilité de la molette** la multiplie (1 par défaut). Le filtre de 100 ms écarte les appuis reçus deux fois et les rapports de rotation contradictoires émis à quelques millisecondes d’intervalle.
 
 Une configuration incohérente (minimum au-dessus du maximum, palette inconnue, couleur de rappel noire, filtre plus long que le double appui, assistant trop court) bloque toute commande. Elle est signalée par une notification et dans le journal.
 

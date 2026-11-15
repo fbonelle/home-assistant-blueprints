@@ -128,10 +128,13 @@ hue_tap_dial:
     gestures:
     - {key: dial_up, label: Rotation vers la droite, default: brighter}
     - {key: dial_down, label: Rotation vers la gauche, default: dimmer}
+  # La télécommande envoie parfois le même appui deux fois à quelques dizaines de
+  # millisecondes ; la molette émet au plus un événement toutes les 0,5 s.
   settings:
     step_pct: 10
     hold_step_pct: 10
     transition: 1
+    debounce_ms: 100
 
 ikea_on_off:
   file: telecommande_ikea_marche_arret.yaml

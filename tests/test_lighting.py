@@ -479,31 +479,32 @@ async def test_tap_dial_buttons_and_duplicate_scene_events(env):
 async def test_tap_dial_rotation_follows_last_lamp_switched_on(env):
     await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
                          light_2='light.two', light_3='light.three', dial_scale=1)
-    await env.press('button_1_press', settle=None)
-    await asyncio.sleep(.05)
-    await env.press('button_3_press', settle=None)
+    # Real gestures are at least 0.15 s apart; closer ones are radio duplicates (filtered).
+    await env.press('button_1_press', settle=.15)
+    await env.press('button_3_press', settle=.15)
     before = env.pct('three')
-    await env.press('step_with_on_off', params={'step_mode': 'StepMode.Up', 'step_size': 8, 'transition_time': 4},
-                    cluster_id=8, settle=None)
-    assert env.pct('three') == before + 8
+    # step_size is in brightness units (0-255): 51 is 20 %.
+    await env.press('step_with_on_off', params={'step_mode': 'StepMode.Up', 'step_size': 51, 'transition_time': 4},
+                    cluster_id=8, settle=.15)
+    assert env.pct('three') == before + 20
     assert env.lamps['three'].calls[-1][1]['transition'] == 1
-    await env.press('step_with_on_off', params={'step_mode': 1, 'step_size': 4}, settle=None)
-    assert env.pct('three') == before + 4
+    await env.press('step_with_on_off', params={'step_mode': 1, 'step_size': 26}, settle=.15)
+    assert abs(env.pct('three') - (before + 10)) <= 1
     # Lamp three switched off: the dial goes back to lamp one, still on.
-    await env.press('button_3_press', settle=None)
+    await env.press('button_3_press', settle=.15)
     level = env.pct('one')
-    await env.press('step_with_on_off', params={'step_mode': 0, 'step_size': 10}, settle=None)
-    assert env.pct('one') == level + 10
+    await env.press('step_with_on_off', params={'step_mode': 0, 'step_size': 51}, settle=.15)
+    assert env.pct('one') == level + 20
     assert env.state('three').state == 'off'
 
 
 async def test_tap_dial_with_all_lamps_off_wakes_last_used(env):
     await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
                          light_2='light.two')
-    await env.press('button_2_press', settle=None)
-    await env.press('button_2_press', settle=None)
-    await env.press('step_with_on_off', params={'step_mode': 0, 'step_size': 12}, settle=None)
-    assert env.pct('two') == 12 and env.state('one').state == 'off'
+    await env.press('button_2_press', settle=.15)
+    await env.press('button_2_press', settle=.15)
+    await env.press('step_with_on_off', params={'step_mode': 0, 'step_size': 51}, settle=.15)
+    assert env.pct('two') == 20 and env.state('one').state == 'off'
 
 
 # ---------------------------------------------------------------- Automatic switch-off
@@ -604,14 +605,14 @@ async def test_tap_dial_reads_zigpy_enum_params(env):
     """Real Hue Tap Dial event: step_mode is an enum and options are None."""
     await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
                          light_2='light.two')
-    await env.press('button_2_press', settle=None)
+    await env.press('button_2_press', settle=.15)
     before = env.pct('two')
-    real = {'step_mode': StepMode.Down, 'step_size': 8, 'transition_time': 4,
+    real = {'step_mode': StepMode.Down, 'step_size': 51, 'transition_time': 4,
             'options_mask': None, 'options_override': None}
-    await env.press('step_with_on_off', params=real, cluster_id=8, settle=None)
-    assert env.pct('two') == before - 8
-    await env.press('step_with_on_off', params=dict(real, step_mode=StepMode.Up, step_size=14), settle=None)
-    assert env.pct('two') == before + 6
+    await env.press('step_with_on_off', params=real, cluster_id=8, settle=.15)
+    assert env.pct('two') == before - 20
+    await env.press('step_with_on_off', params=dict(real, step_mode=StepMode.Up, step_size=102), settle=.15)
+    assert env.pct('two') == before + 20
 
 
 async def test_ikea_reads_zigpy_enum_params(env):
@@ -652,3 +653,30 @@ async def test_event_fields_render_as_plain_literals(env, name):
         {'trigger': {'event': type('E', (), {'data': {'args': {'button': 'button_1', 'press_type': 'press',
                                                                 'args': [1, 3145728]}}})()}}, parse_result=False)
     assert ast.literal_eval(hue_args.strip())['button'] == 'button_1'
+
+
+
+async def test_tap_dial_drops_radio_duplicates(env):
+    """Recorded on 15 November: button 2 received twice, 50 ms apart; then two rotation
+    reports of opposite directions 5 ms apart."""
+    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
+                         light_2='light.two')
+    await env.press('button_2_press', settle=.05)
+    await env.press('button_2_press', settle=.15)
+    assert env.state('two').state == 'on' and len(env.lamps['two'].calls) == 1
+    await env.lamps['two'].async_turn_on(brightness=round(20 * 2.55))
+    await asyncio.sleep(.15)
+    await env.press('step_with_on_off', params={'step_mode': StepMode.Up, 'step_size': 111}, settle=.005)
+    await env.press('step_with_on_off', params={'step_mode': StepMode.Down, 'step_size': 26}, settle=.15)
+    assert env.pct('two') == round(20 + 111 / 2.55)
+
+
+async def test_dial_amplitude_is_converted_to_percent(env):
+    """Recorded range of the dial: 8 (slow notch) to 226 (fast spin)."""
+    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one')
+    await env.lamps['one'].async_turn_on(brightness=3)
+    await asyncio.sleep(.15)
+    await env.press('step_with_on_off', params={'step_mode': StepMode.Up, 'step_size': 8}, settle=.15)
+    assert env.pct('one') == round(1.2 + 8 / 2.55)
+    await env.press('step_with_on_off', params={'step_mode': StepMode.Up, 'step_size': 226}, settle=.15)
+    assert env.pct('one') == 93

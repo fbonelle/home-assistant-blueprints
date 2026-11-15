@@ -6,7 +6,7 @@
 # jamais un maintien en cours. Les actions forment le moteur commun, identique pour
 # toutes les télécommandes ; ses commentaires détaillés sont dans src/lighting/engine.yaml.
 blueprint:
-  name: Interrupteur IKEA TRÅDFRI marche/arrêt — ZHA — 1.0.1
+  name: Interrupteur IKEA TRÅDFRI marche/arrêt — ZHA — 1.0.2
   description: 'Deux boutons (I et O). Appui court et maintien configurables ; un maintien est arrêté au relâchement
     ou, si le relâchement radio est perdu, après la durée maximale. Actions et réglages communs à toutes les télécommandes
     de la famille ; variations continues bornées. Assistant de mémoire facultatif, nécessaire au double appui. Menu
@@ -729,7 +729,7 @@ variables:
              else (value | int if value is integer else (value | float if value is float else value | string))))}) %}
       {% endfor %}
     {% endif %}{{ ns.fields }}
-  dial_step: '{{ params.get(''step_size'', 0) | float(0) if params is mapping else 0 }}'
+  dial_step: '{{ ((params.get(''step_size'', 0) | float(0)) / 2.55) | round(2) if params is mapping else 0 }}'
   now_ts: '{{ as_timestamp(now()) }}'
   event_ts: |-
     {{ as_timestamp(trigger.event.time_fired, now_ts)
