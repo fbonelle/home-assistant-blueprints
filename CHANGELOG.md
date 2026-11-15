@@ -2,6 +2,11 @@
 
 **Français** · [English](CHANGELOG.en.md)
 
+## Télécommandes d’éclairage — 1.0.1 — 15 novembre 2026
+
+- Correction : la molette du Hue Tap Dial était toujours lue dans le même sens, avec un pas fixe. ZHA transmet le sens de rotation et d’autres champs sous forme d’énumérations zigpy (`StepMode.Down`), que Home Assistant 2026.11 ne savait pas relire : tous les paramètres de l’événement étaient perdus. Les valeurs sont maintenant converties en nombres, booléens ou textes avant usage, pour toutes les télécommandes.
+- Test reproduisant les valeurs zigpy réelles.
+
 ## Télécommandes d’éclairage et extinction automatique — 1.0.0 — 15 novembre 2026
 
 Première version publiée de la famille **Télécommandes d’éclairage** et du blueprint **Extinction automatique de l’éclairage**.

@@ -2,6 +2,11 @@
 
 [Français](CHANGELOG.md) · **English**
 
+## Lighting remotes — 1.0.1 — 15 November 2026
+
+- Fix: the Hue Tap Dial dial was always read in the same direction with a fixed step. ZHA sends the rotation direction and other fields as zigpy enums (`StepMode.Down`), which Home Assistant 2026.11 could not read back: every event parameter was lost. Values are now converted to numbers, booleans or text before use, for every remote.
+- Test reproducing the real zigpy values.
+
 ## Lighting remotes and automatic switch-off — 1.0.0 — 15 November 2026
 
 First published version of the **Lighting remotes** family (*Télécommandes d’éclairage*) and of the **Automatic lighting switch-off** blueprint (*Extinction automatique de l’éclairage*).
