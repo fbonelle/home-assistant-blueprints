@@ -53,6 +53,22 @@ blueprint:
             entity:
               filter:
                 - domain: notify
+        ntfy_wait:
+          name: Attente d’une entité ntfy tout juste indisponible
+          description: >-
+            Au démarrage de Home Assistant, l’entité ntfy reste indisponible quelques dizaines de
+            secondes. Un message envoyé pendant ce temps attend son retour, au plus ce délai
+            compté depuis le passage à « indisponible », puis le répartiteur bascule sur
+            l’application mobile. Une entité indisponible depuis plus longtemps, ou absente,
+            échoue aussitôt. 0 : aucune attente.
+          default: 120
+          selector:
+            number:
+              min: 0
+              max: 600
+              step: 5
+              unit_of_measurement: s
+              mode: box
     email:
       name: E-mail
       input:
@@ -236,6 +252,7 @@ variables:
   family_service: !input family_service
   default_link: !input default_link
   ntfy_entity: !input ntfy_entity
+  ntfy_wait: !input ntfy_wait
   email_entity: !input email_entity
   home_url: !input home_url
   media_root: !input media_root
@@ -300,6 +317,24 @@ sequence:
           # avertissement. L’échec est donc rendu explicite, pour que le répartiteur
           # bascule sur l’application mobile au lieu de perdre le message. L’état
           # « unknown » reste valide : c’est celui d’une entité qui n’a encore rien envoyé.
+          # Une entité tout juste devenue indisponible (démarrage, reconnexion) est
+          # attendue, au plus jusqu’à ntfy_wait secondes après son passage à
+          # « unavailable » : au démarrage, ntfy n’est prêt qu’après les premières
+          # automatisations. Au-delà, ou pour une entité absente, l’échec est immédiat.
+          - variables:
+              ntfy_remaining: >-
+                {% if ntfy_entity and expand(ntfy_entity) | count > 0 and is_state(ntfy_entity, 'unavailable') %}
+                  {% set elapsed = (now() - states[ntfy_entity].last_changed).total_seconds() %}
+                  {{ [(ntfy_wait | float(0)) - elapsed, 0] | max | round(0, 'ceil') | int }}
+                {% else %}0{% endif %}
+          - if:
+              - condition: template
+                value_template: "{{ ntfy_remaining | int(0) > 0 }}"
+            then:
+              - wait_template: "{{ not is_state(ntfy_entity, 'unavailable') }}"
+                timeout:
+                  seconds: "{{ ntfy_remaining | int(0) }}"
+                continue_on_timeout: true
           - if:
               - condition: template
                 value_template: "{{ expand(ntfy_entity) | count == 0 or is_state(ntfy_entity, 'unavailable') }}"

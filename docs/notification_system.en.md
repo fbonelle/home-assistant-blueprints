@@ -50,7 +50,7 @@ data:
 
 **Mobile app.** Every notification also creates a `sys_disp_…` persistent notification in Home Assistant, except when it comes from the relay. The phone tag is the same ID: dismissing the notification in Home Assistant clears it from the phone. An ID supplied without the prefix gets `sys_disp_` exactly once. At night the sound is muted; `critical` breaks through silent mode (iOS, and Android when the channel is allowed to).
 
-**Fallback.** If ntfy fails, including when its entity is missing or unavailable (for example at start-up), the message goes to the mobile app with “🚨 FALLBACK NTFY : ” before the title. If the e-mail fails, a warning is logged; the other channels are served.
+**Fallback.** An ntfy entity that has just become unavailable, as at Home Assistant start-up, is waited for at most 120 seconds after it became unavailable (sender setting, 0 for no wait). If ntfy fails, including when its entity is missing or stays unavailable, the message goes to the mobile app with “🚨 FALLBACK NTFY : ” before the title. If the e-mail fails, a warning is logged; the other channels are served.
 
 **Duplicates.** An identical message (same level, title and text) is not sent again for 5 minutes, even interleaved with other messages (last 10 messages remembered). The window is fixed: a source that keeps flapping comes back once every 5 minutes. An unreadable memory never blocks a send. A dropped duplicate is logged at INFO level in the `notification_system` logger, not as a warning: it is normal operation.
 
@@ -70,4 +70,4 @@ data:
 
 ## Tests
 
-`tests/test_notification_system.py` creates the three scripts and the automation from the published blueprints on Home Assistant 2026.10.4, with real helpers, persistent notifications, labels and registries. Only outbound services (mobile app, ntfy, SMTP, speech, volume, scenes, logbook) are doubles, and they can be made to fail. Covered: every level, night time, family target, breaking silence, e-mail and its attachments, ntfy fallback, e-mail failure, duplicates and level escalation, a corrupt memory, IDs, speech (presence, night, mute, missing speakers, restore) and the relay (levels, 1:1 clearing, no loop, prefixes, startup).
+`tests/test_notification_system.py` creates the three scripts and the automation from the published blueprints on Home Assistant 2026.10.4, with real helpers, persistent notifications, labels and registries. Only outbound services (mobile app, ntfy, SMTP, speech, volume, scenes, logbook) are doubles, and they can be made to fail. Covered: every level, night time, family target, breaking silence, e-mail and its attachments, ntfy fallback and waiting for ntfy at start-up, e-mail failure, duplicates and level escalation, a corrupt memory, IDs, speech (presence, night, mute, missing speakers, restore) and the relay (levels, 1:1 clearing, no loop, prefixes, startup).
