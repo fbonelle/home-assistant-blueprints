@@ -11,7 +11,7 @@ A collection of blueprints built with standard Home Assistant features. Each blu
 | [Integration monitoring and reload](docs/integration_watchdog.en.md) | Detect a problem using selected entities, try reloading the integration and notify you when intervention is needed. | **2.0.0** | Home Assistant 2026.10 or later |
 | [Battery monitoring](docs/battery_watch.en.md) | Report each battery to replace or silent device as soon as it is detected, then send a summary at a fixed time. | **1.0.0** | Home Assistant 2026.10 or later |
 | [Notification system](docs/notification_system.en.md) | One entry point: channels by level (mobile, ntfy, e-mail), duplicate filter, night time, fallback, speech and persistent notification relay. | **1.0.0** | Home Assistant 2026.10 or later, four blueprints |
-| [Lighting remotes and automatic switch-off](docs/lighting.en.md) | One chosen action for each gesture of Hue Dimmer, Hue Tap Dial, IKEA on/off, IKEA 5-button, IKEA STYRBAR and eWeLink remotes; switch-off after an on time. | **1.0.3** | Home Assistant 2026.10, ZHA; optional helper |
+| [Lighting remotes and automatic switch-off](docs/lighting.en.md) | One chosen action for each gesture of Hue Dimmer, Hue Tap Dial, IKEA on/off, IKEA 5-button, IKEA STYRBAR and eWeLink remotes; switch-off after an on time. | **1.0.4** | Home Assistant 2026.10, ZHA; optional helper |
 
 **1.0.0 is the first published version.** Numbers used during development do not represent project releases.
 

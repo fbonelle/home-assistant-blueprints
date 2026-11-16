@@ -55,6 +55,11 @@ class Env:
         self.now_patch.start()
         self.utcnow_patch = patch.object(dt_util, 'utcnow', lambda: datetime.fromtimestamp(self.now, UTC))
         self.utcnow_patch.start()
+        # The periodic check stays in the real automations, but tests drive it explicitly:
+        # a real minute boundary during a test would otherwise insert an unplanned check.
+        import homeassistant.components.homeassistant.triggers.time_pattern as pattern
+        self.pattern_patch = patch.object(pattern, 'async_track_time_change', lambda *a, **kw: lambda: None)
+        self.pattern_patch.start()
         self.calls = []
         self.modes = {}
         self.gates = {}
@@ -228,6 +233,7 @@ class Env:
         self.entity_clock_patch.stop()
         self.now_patch.stop()
         self.utcnow_patch.stop()
+        self.pattern_patch.stop()
 
 
 @pytest_asyncio.fixture

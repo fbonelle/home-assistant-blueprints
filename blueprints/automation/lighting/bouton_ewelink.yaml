@@ -6,7 +6,7 @@
 # jamais un maintien en cours. Les actions forment le moteur commun, identique pour
 # toutes les télécommandes ; ses commentaires détaillés sont dans src/lighting/engine.yaml.
 blueprint:
-  name: Bouton eWeLink / SONOFF (WB01, SNZB-01P, CK-TLSR8656) — ZHA — 1.0.3
+  name: Bouton eWeLink / SONOFF (WB01, SNZB-01P, CK-TLSR8656) — ZHA — 1.0.4
   description: 'Un bouton : clic simple, double clic et appui long. Les gestes sont lus dans les commandes envoyées
     par le bouton, jamais dans les rapports d''état, qui peuvent être émis sans aucun appui. Actions et réglages
     communs à toutes les télécommandes de la famille ; variations continues bornées. Assistant de mémoire facultatif,
@@ -528,7 +528,8 @@ blueprint:
               mode: box
         logging:
           name: Journaliser les gestes et les actions
-          description: Niveau INFO, journal lighting_remote. Les erreurs restent signalées par Home Assistant.
+          description: Niveau INFO, journal lighting_remote ; l'automatisation règle elle-même ce niveau. Les erreurs
+            restent signalées par Home Assistant.
           default: false
           selector:
             boolean: {}
@@ -942,7 +943,12 @@ actions:
                     s=(event_ts | round(3) if continuous else 0)) | to_json }}
 - if: '{{ logging }}'
   then:
+  - action: logger.set_level
+    continue_on_error: true
+    data:
+      lighting_remote: info
   - action: system_log.write
+    continue_on_error: true
     data:
       logger: lighting_remote
       level: info

@@ -2,6 +2,11 @@
 
 [Français](CHANGELOG.md) · **English**
 
+## Lighting remotes — 1.0.4 — 16 November 2026
+
+- Fix: the “Journaliser” option wrote at INFO level, hidden by default in Home Assistant; messages only appeared after configuring the logger. The automation now sets the level of the `lighting_remote` logger itself.
+- A logging failure no longer interrupts the command.
+
 ## Integration monitoring and reload — 2.0.0 — 15 November 2026
 
 - The blueprint installs on its own: the shared configuration file (`packages/integration_watchdog.yaml`), its four scripts and two automations are removed. After updating, delete that file from Home Assistant; monitoring automations and their Text helpers are kept.
