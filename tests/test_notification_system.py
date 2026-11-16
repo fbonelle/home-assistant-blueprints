@@ -276,16 +276,69 @@ async def test_ntfy_failure_falls_back_to_mobile(env):
 
 @pytest.mark.parametrize('state', ['unavailable', None])
 async def test_unavailable_ntfy_entity_falls_back_instead_of_losing_the_message(env, state):
-    """Seen at start-up: Home Assistant drops a send to an unavailable entity with a mere warning."""
+    """Home Assistant drops a send to an unavailable entity with a mere warning.
+
+    Unavailable for longer than the wait, or absent: the fallback is immediate."""
     if state is None:
         env.hass.states.async_remove('notify.ntfy_technique')
     else:
         env.hass.states.async_set('notify.ntfy_technique', state)
-    await env.notify(title='Sauvegarde', message='Échec', level='technical')
+    loop = asyncio.get_running_loop()
+    started = loop.time()
+    await env.notify(advance=121, title='Sauvegarde', message='Échec', level='technical')
+    assert loop.time() - started < 2
     assert env.sent('ntfy.publish') == []
     [push] = env.sent('notify.mobile_app_mon_telephone')
     assert push['title'] == '🚨 FALLBACK NTFY : Sauvegarde'
     assert any('Échec ntfy' in line for line in env.logs())
+
+
+async def test_ntfy_just_unavailable_at_start_up_is_awaited(env):
+    """Seen on 16 November 2026: ntfy comes back about 45 s after Home Assistant starts, while the
+    first notifications (Zigbee2MQTT back up) are already being sent."""
+    env.hass.states.async_set('notify.ntfy_technique', 'unavailable')
+    env.now += timedelta(seconds=30)
+    task = asyncio.create_task(env.hass.services.async_call(
+        'script', DISPATCH, {'title': '🟢 Zigbee2MQTT Up', 'message': 'Pont revenu', 'level': 'technical'},
+        blocking=True))
+    # async_block_till_done would wait for the pending wait itself: let the loop run instead.
+    await asyncio.sleep(1)
+    assert not task.done() and env.sent('ntfy.publish') == []
+    env.hass.states.async_set('notify.ntfy_technique', 'unknown')
+    await asyncio.wait_for(task, 5)
+    await env.drain()
+    [publish] = env.sent('ntfy.publish')
+    assert publish['title'] == '🟢 Zigbee2MQTT Up'
+    assert env.sent('notify.mobile_app_mon_telephone') == []
+    assert not any('Échec ntfy' in line for line in env.logs())
+
+
+async def test_ntfy_that_does_not_come_back_falls_back_after_the_wait(tmp_path):
+    e = await make(tmp_path, sender={'ntfy_wait': 2})
+    try:
+        e.hass.states.async_set('notify.ntfy_technique', 'unavailable')
+        loop = asyncio.get_running_loop()
+        started = loop.time()
+        await e.notify(title='Sauvegarde', message='Échec', level='technical')
+        assert 1.5 < loop.time() - started < 5
+        assert e.sent('ntfy.publish') == []
+        [push] = e.sent('notify.mobile_app_mon_telephone')
+        assert push['title'] == '🚨 FALLBACK NTFY : Sauvegarde'
+    finally:
+        await e.close()
+
+
+async def test_ntfy_wait_zero_never_waits(tmp_path):
+    e = await make(tmp_path, sender={'ntfy_wait': 0})
+    try:
+        e.hass.states.async_set('notify.ntfy_technique', 'unavailable')
+        loop = asyncio.get_running_loop()
+        started = loop.time()
+        await e.notify(title='Sauvegarde', message='Échec', level='technical')
+        assert loop.time() - started < 2
+        assert len(e.sent('notify.mobile_app_mon_telephone')) == 1
+    finally:
+        await e.close()
 
 
 async def test_no_fallback_when_disabled(tmp_path):

@@ -2,6 +2,10 @@
 
 **Français** · [English](CHANGELOG.en.md)
 
+## Système de notifications — 1.0.2 — 16 novembre 2026
+
+- Au démarrage de Home Assistant, l’entité ntfy reste indisponible environ 45 secondes ; les premières notifications (par exemple « Zigbee2MQTT de nouveau opérationnel ») partaient alors en secours sur l’application mobile, elle-même pas encore joignable. Un envoi ntfy attend désormais le retour d’une entité tout juste devenue indisponible, au plus 120 secondes après son passage à « indisponible » (réglage « Attente d’une entité ntfy tout juste indisponible », 0 pour ne pas attendre). Une entité indisponible depuis plus longtemps, ou absente, échoue aussitôt et le répartiteur bascule sur l’application mobile comme avant.
+
 ## Système de notifications — 1.0.1 — 16 novembre 2026
 
 - Correction : un envoi ntfy vers une entité absente ou indisponible (au démarrage, ou serveur ntfy injoignable) était ignoré par Home Assistant avec un simple avertissement et compté comme réussi ; le message était perdu. Il échoue désormais explicitement et le répartiteur bascule sur l’application mobile.
