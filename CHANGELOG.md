@@ -2,6 +2,11 @@
 
 **Français** · [English](CHANGELOG.en.md)
 
+## Télécommandes d’éclairage — 1.0.4 — 16 novembre 2026
+
+- Correction : l’option « Journaliser » écrivait au niveau INFO, masqué par défaut dans Home Assistant ; les messages n’apparaissaient qu’après configuration du journal. L’automatisation règle désormais elle-même le niveau du journal `lighting_remote`.
+- Une erreur d’écriture du journal n’interrompt plus la commande.
+
 ## Télécommandes d’éclairage — 1.0.3 — 15 novembre 2026
 
 - Correction : quand un groupe et ses membres sont tous sur le Tap Dial, la molette pouvait agir sur le groupe après l’allumage d’un seul membre, et allumer les autres. Parmi les lampes changées presque en même temps, celle que la télécommande a commandée l’emporte.

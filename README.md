@@ -11,7 +11,7 @@ Une collection de blueprints pour automatiser Home Assistant avec ses fonctions 
 | [Surveillance et relance des intégrations](docs/integration_watchdog.md) | Détecter une panne à partir d’entités choisies, tenter une relance et prévenir si une intervention est nécessaire. | **1.0.0** | Home Assistant 2026.10 minimum |
 | [Surveillance des piles et batteries](docs/battery_watch.md) | Signaler tout de suite chaque pile ou batterie à remplacer et chaque appareil muet, puis envoyer un récapitulatif à heure fixe. | **1.0.0** | Home Assistant 2026.10 minimum |
 | [Système de notifications](docs/notification_system.md) | Un point d’entrée unique : canaux par niveau (mobile, ntfy, e-mail), anti-doublon, nuit, bascule de secours, lecture vocale et relais des notifications persistantes. | **1.0.0** | Home Assistant 2026.10 minimum, quatre blueprints |
-| [Télécommandes d’éclairage et extinction automatique](docs/lighting.md) | Une action au choix pour chaque geste des télécommandes Hue Dimmer, Hue Tap Dial, IKEA marche/arrêt, IKEA 5 boutons, IKEA STYRBAR et eWeLink ; extinction après une durée d’allumage. | **1.0.3** | Home Assistant 2026.10, ZHA ; assistant facultatif |
+| [Télécommandes d’éclairage et extinction automatique](docs/lighting.md) | Une action au choix pour chaque geste des télécommandes Hue Dimmer, Hue Tap Dial, IKEA marche/arrêt, IKEA 5 boutons, IKEA STYRBAR et eWeLink ; extinction après une durée d’allumage. | **1.0.4** | Home Assistant 2026.10, ZHA ; assistant facultatif |
 
 La version **1.0.0 est la première version publiée**. Les numéros utilisés pendant la préparation ne constituent pas des versions du projet.
 

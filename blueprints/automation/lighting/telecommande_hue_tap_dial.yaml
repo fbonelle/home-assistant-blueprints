@@ -6,7 +6,7 @@
 # jamais un maintien en cours. Les actions forment le moteur commun, identique pour
 # toutes les télécommandes ; ses commentaires détaillés sont dans src/lighting/engine.yaml.
 blueprint:
-  name: Télécommande Philips Hue Tap Dial (RDM002) — ZHA — 1.0.3
+  name: Télécommande Philips Hue Tap Dial (RDM002) — ZHA — 1.0.4
   description: 'Quatre boutons, une lampe par bouton, et une molette. La molette agit sur la dernière lampe allumée
     parmi les quatre (ou, si toutes sont éteintes, sur la dernière actionnée), sans assistant de mémoire. Quand
     un groupe et ses membres changent ensemble, elle agit sur la lampe que la télécommande a commandée. Actions
@@ -951,7 +951,8 @@ blueprint:
               mode: box
         logging:
           name: Journaliser les gestes et les actions
-          description: Niveau INFO, journal lighting_remote. Les erreurs restent signalées par Home Assistant.
+          description: Niveau INFO, journal lighting_remote ; l'automatisation règle elle-même ce niveau. Les erreurs
+            restent signalées par Home Assistant.
           default: false
           selector:
             boolean: {}
@@ -1389,7 +1390,12 @@ actions:
                     s=(event_ts | round(3) if continuous else 0)) | to_json }}
 - if: '{{ logging }}'
   then:
+  - action: logger.set_level
+    continue_on_error: true
+    data:
+      lighting_remote: info
   - action: system_log.write
+    continue_on_error: true
     data:
       logger: lighting_remote
       level: info

@@ -212,7 +212,8 @@ settings_inputs:
       number: {min: 0, max: 200, step: 10, unit_of_measurement: ms, mode: box}
   logging:
     name: Journaliser les gestes et les actions
-    description: Niveau INFO, journal lighting_remote. Les erreurs restent signalées par Home Assistant.
+    description: Niveau INFO, journal lighting_remote ; l'automatisation règle elle-même ce niveau. Les erreurs
+      restent signalées par Home Assistant.
     default: false
     selector:
       boolean: {}
@@ -468,7 +469,14 @@ actions:
                     s=(event_ts | round(3) if continuous else 0)) | to_json }}
 - if: '{{ logging }}'
   then:
+  # Le niveau INFO est masqué par défaut : l'automatisation règle elle-même celui de son
+  # journal, sans configuration. Une erreur de journal n'interrompt jamais la commande.
+  - action: logger.set_level
+    continue_on_error: true
+    data:
+      lighting_remote: info
   - action: system_log.write
+    continue_on_error: true
     data:
       logger: lighting_remote
       level: info

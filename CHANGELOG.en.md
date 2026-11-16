@@ -2,6 +2,11 @@
 
 [Français](CHANGELOG.md) · **English**
 
+## Lighting remotes — 1.0.4 — 16 November 2026
+
+- Fix: the “Journaliser” option wrote at INFO level, hidden by default in Home Assistant; messages only appeared after configuring the logger. The automation now sets the level of the `lighting_remote` logger itself.
+- A logging failure no longer interrupts the command.
+
 ## Lighting remotes — 1.0.3 — 15 November 2026
 
 - Fix: when a group and its members are all on the Tap Dial, the dial could drive the group after a single member was switched on, and switch the others on. Among lamps changed almost together, the lamp the remote commanded wins.

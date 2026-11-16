@@ -9,6 +9,7 @@ zha-quirks profiles of the remotes in the house.
 import asyncio
 import copy
 import enum
+import logging
 from pathlib import Path
 
 import pytest
@@ -97,7 +98,8 @@ class Env:
         loader.async_setup(self.hass)
         assert await async_load_base_functionality(self.hass)
         texts = {'memory': {'min': 0, 'max': 255}, 'short_memory': {'min': 0, 'max': 100}}
-        for component, config in [('homeassistant', {}), ('system_log', {}), ('persistent_notification', {}),
+        # logger and system_log are always loaded by Home Assistant; no logger configuration.
+        for component, config in [('homeassistant', {}), ('system_log', {}), ('logger', {}), ('persistent_notification', {}),
                                   ('input_text', {'input_text': texts}),
                                   ('input_boolean', {'input_boolean': {'flag': {}}}),
                                   ('timer', {'timer': {'corridor': {'duration': 180}}}), ('light', {})]:
@@ -776,3 +778,25 @@ async def test_debounce_without_memory_tolerates_late_bookkeeping(env):
     await env.press('step_with_on_off', params={'step_mode': StepMode.Down, 'step_size': 26},
                     time_fired=fired + .005, settle=.15)
     assert env.pct('one') == 40
+
+
+
+async def test_logging_sets_its_own_level_and_never_blocks_the_command(env, caplog):
+    """INFO is hidden by default: the automation sets the level of its own logger."""
+    logger = logging.getLogger('lighting_remote')
+    logger.setLevel(logging.WARNING)
+    await env.automation('telecommande_hue_dimmer.yaml', remote=REMOTE, light='light.plain', logging=True)
+    with caplog.at_level(logging.NOTSET):
+        logger.setLevel(logging.WARNING)
+        await env.press('on_press', settle=.6)
+    assert logger.level == logging.INFO
+    assert any(r.name == 'lighting_remote' and r.levelno == logging.INFO for r in caplog.records)
+    assert env.state('plain').state == 'off'
+
+    from homeassistant.exceptions import HomeAssistantError
+
+    async def broken(call):
+        raise HomeAssistantError('Controlled log failure')
+    env.hass.services.async_register('system_log', 'write', broken)
+    await env.press('on_press', settle=.6)
+    assert env.state('plain').state == 'on'
