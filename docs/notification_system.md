@@ -50,9 +50,9 @@ data:
 
 **Application mobile.** Chaque notification crée aussi une notification persistante `sys_disp_…` dans Home Assistant, sauf quand elle vient du relais. Le tag du téléphone est le même identifiant : supprimer la notification dans Home Assistant l’efface du téléphone. Un identifiant fourni sans préfixe reçoit `sys_disp_` une seule fois. La nuit, le son est coupé ; `critical` perce le mode silencieux (iOS, et Android si le canal y est autorisé).
 
-**Bascule de secours.** Si ntfy échoue, le message part sur l’application mobile, titre précédé de « 🚨 FALLBACK NTFY : ». Si l’e-mail échoue, un avertissement est écrit dans le journal ; les autres canaux sont servis.
+**Bascule de secours.** Si ntfy échoue, y compris quand son entité est absente ou indisponible (par exemple au démarrage), le message part sur l’application mobile, titre précédé de « 🚨 FALLBACK NTFY : ». Si l’e-mail échoue, un avertissement est écrit dans le journal ; les autres canaux sont servis.
 
-**Anti-doublon.** Un message identique (même niveau, titre et texte) n’est pas renvoyé pendant 5 minutes, même en alternance avec d’autres messages (10 derniers messages retenus). La fenêtre est fixe : une source qui flanche en continu ressort une fois toutes les 5 minutes. Une mémoire illisible n’empêche jamais un envoi.
+**Anti-doublon.** Un message identique (même niveau, titre et texte) n’est pas renvoyé pendant 5 minutes, même en alternance avec d’autres messages (10 derniers messages retenus). La fenêtre est fixe : une source qui flanche en continu ressort une fois toutes les 5 minutes. Une mémoire illisible n’empêche jamais un envoi. Un doublon écarté est noté au niveau INFO du journal `notification_system`, et non comme un avertissement : c’est le fonctionnement normal.
 
 **Liens.** Sans lien explicite (`data.click`), une notification ouvre l’historique de l’entité indiquée, la page des journaux pour `technical`, sinon la page par défaut. ntfy reçoit un lien vers l’application, l’e-mail un lien web.
 

@@ -295,6 +295,17 @@ sequence:
                   {% set p = dict(p, actions=actions) %}
                 {% endif %}
                 {{ p }}
+          # Une entité ntfy absente ou indisponible (démarrage, serveur injoignable) ne
+          # provoque aucune erreur : Home Assistant ignore l’envoi avec un simple
+          # avertissement. L’échec est donc rendu explicite, pour que le répartiteur
+          # bascule sur l’application mobile au lieu de perdre le message. L’état
+          # « unknown » reste valide : c’est celui d’une entité qui n’a encore rien envoyé.
+          - if:
+              - condition: template
+                value_template: "{{ expand(ntfy_entity) | count == 0 or is_state(ntfy_entity, 'unavailable') }}"
+            then:
+              - stop: Entité ntfy absente ou indisponible ; envoi impossible.
+                error: true
           # Pas de continue_on_error : une erreur doit remonter jusqu’au répartiteur,
           # qui bascule alors sur l’application mobile. Une entité ntfy vide fait
           # échouer l’action de la même façon.
