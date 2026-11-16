@@ -1,4 +1,4 @@
-# Integration monitoring and reload — 1.0.0
+# Integration monitoring and reload — 2.0.0
 
 [Français](integration_watchdog.md) · **English** · [Home](../README.en.md)
 
@@ -6,34 +6,13 @@ This blueprint checks the entities you select and tries to reload their integrat
 
 It uses the standard `homeassistant.reload_config_entry` action. The integration must support this action. **Home Assistant 2026.10 or later** is required; tests use **2026.10.4**. The blueprint form currently uses French labels; the setup table below includes them.
 
-## 1. Install the two required files
-
-### Shared configuration file
-
-This file contains the scripts and automations shared by all monitoring automations. Install it once, regardless of how many integrations you want to monitor.
-
-1. Create `/config/packages` if it does not exist.
-2. Save [integration_watchdog.yaml](../packages/integration_watchdog.yaml) in that folder.
-3. Enable packages in `configuration.yaml`:
-
-```yaml
-homeassistant:
-  packages: !include_dir_named packages
-```
-
-If the file already contains a `homeassistant:` section, add `packages:` inside it instead of creating a second section. If packages are already enabled, use your configured folder.
-
-The shared file does not create any monitoring automations for your integrations. Keep the names of the scripts and automations it contains.
-
-### Blueprint
+## 1. Import the blueprint
 
 [Import the blueprint into Home Assistant](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fintegration_watchdog%2Fsurveillance_integrations.yaml)
 
-Alternatively, open **Settings → Automations & scenes → Blueprints → Import blueprint** and paste [its GitHub URL](../blueprints/automation/integration_watchdog/surveillance_integrations.yaml).
+Alternatively, open **Settings → Automations & scenes → Blueprints → Import blueprint** and paste [its GitHub URL](../blueprints/automation/integration_watchdog/surveillance_integrations.yaml). For manual installation, copy the file to `/config/blueprints/automation/local/surveillance_integrations.yaml`.
 
-For manual installation, copy the file to `/config/blueprints/automation/local/surveillance_integrations.yaml`.
-
-Enable the **Uptime** integration if needed, check your Home Assistant configuration, then restart Home Assistant to load the shared file. Uptime provides the startup time used to let integrations connect before any retry.
+This is the only file to install: no configuration file, no script and no restart. Enable the **Uptime** integration if needed; it provides the startup time used to let integrations connect before any retry.
 
 ## 2. Set up monitoring
 
@@ -49,7 +28,7 @@ The automation fills this helper. It keeps the retry count and reload state acro
 
 ### Fill in the form
 
-Create an automation using **Surveillance et relance des intégrations — 1.0.0**, then select:
+Create an automation using **Surveillance et relance des intégrations — 2.0.0**, then select:
 
 | French field label | What to select |
 |---|---|
@@ -64,9 +43,9 @@ Create one monitoring automation per integration configuration. Separate account
 
 ## 3. Add more integrations
 
-Create another Text helper and another automation from the same blueprint. No scripts need copying and no restart is required for this addition.
+Create another Text helper and another automation from the same blueprint. No other file and no restart is needed.
 
-The blueprint does not impose a fixed limit on the number of monitored integrations. It supports **50 simultaneous reloads**. Additional requests wait for a free slot without consuming a retry.
+The blueprint does not impose a fixed limit on the number of monitored integrations. It limits simultaneous reloads to **50** across all monitoring automations. An additional request tries again one minute later without consuming a retry.
 
 The [Netatmo, TaHoma and Cozytouch examples](../examples/integration_watchdog/) contain fictional identifiers. Adapt them before use. Their `local/surveillance_integrations.yaml` path matches manual installation; after a GitHub import, use the actual blueprint path shown by Home Assistant.
 
@@ -97,17 +76,17 @@ Delays are evaluated during checks, so an action may wait until the next check. 
 
 By default, Home Assistant displays a notification when intervention is required and removes it after confirmed recovery. You can replace these actions with your preferred notifications in the form.
 
-Useful events are written to the `integration_watchdog` logger. Detailed logging adds routine checks and can help diagnose a problem. A logging failure does not prevent incident notifications.
+Useful events are written to the `integration_watchdog` logger. The monitoring sets its level itself (info, or debug with detailed logging): no configuration is needed. Detailed logging adds routine checks and can help diagnose a problem. Alerts are sent before logging, so a logging failure cannot block them.
 
 Exclusions, observation mode and additional conditions prevent new retries. They do not cancel a reload already in progress.
 
 ## If manual intervention is needed
 
-If a reload does not finish, check the integration errors and script traces in Home Assistant. The alert does not cancel the operation: no further retry is sent until its end is known.
+**Reload taking too long.** If a reload outlives the configured delay, an alert is sent. The reload is not cancelled: the monitoring waits for its end, then resumes normally and announces the return to normal. No other reload of this integration starts meanwhile; other monitoring automations keep working. Check the integration errors and the automation traces.
 
-Once you have checked that it has finished, run **Surveillance — Confirmer la fin d’une relance** (confirm the end of a reload) and select its Text helper. This action is refused while the shared reload script is still running, even for another integration.
+**Interrupted reload.** If Home Assistant stops, or the monitoring automation is edited or disabled during a reload, the reload is interrupted. The next check detects it by itself: the attempt stays counted, and if the integration was left unloaded, the reload is resumed within the retry limits. No manual action is needed.
 
-**Surveillance — Réinitialiser les tentatives pour une panne** (reset the outage retry count) allows another attempt after intervention. The last-24-hours count is preserved. Resetting is not allowed while a reload is pending.
+**Retry after an intervention.** Open the monitoring automation and choose **Run actions**: the retry count for the current outage is reset, then a check runs at once. The last-24-hours count is preserved.
 
 ## Important limitations
 
@@ -118,4 +97,4 @@ Once you have checked that it has finished, run **Surveillance — Confirmer la 
 
 [How it works, tests and limitations](robustesse_integration_watchdog.en.md)
 
-Home Assistant documentation: [packages](https://www.home-assistant.io/docs/configuration/packages/), [Text helpers](https://www.home-assistant.io/integrations/input_text/), [importing blueprints](https://www.home-assistant.io/docs/automation/using_blueprints/).
+Home Assistant documentation: [Text helpers](https://www.home-assistant.io/integrations/input_text/), [importing blueprints](https://www.home-assistant.io/docs/automation/using_blueprints/).

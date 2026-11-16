@@ -8,7 +8,8 @@
 {% if boot > memory.get('t',0) or now_ts - memory.get('t',0) > period * 2 + 30 %}
   {% set ns.h = 0 %}
 {% endif %}
-{% set worker_on = ns.p > 0 %}
+{# Reload cut short by a stop of the run while the entry stayed unloaded: resume it. #}
+{% set force = old_status == 'interrupted' %}
 {% if trigger is defined and trigger.id == 'availability' %}{% set ns.h = 0 %}{% endif %}
 {% set entry_state = config_entry_attr(row.entry_id,'state') %}
 {% set domain = config_entry_attr(row.entry_id,'domain') %}
@@ -18,16 +19,8 @@
 {% if old_status == 'native' and entry_state == 'loaded' %}
   {% set ns.n = 0 %}
 {% endif %}
-{% if worker_on %}
-  {% set ns.h = 0 %}
-  {% set ns.s = 'running' %}
-  {% set ns.reason = 'En attente d’une place pour relancer l’intégration.' if ns.f == 0 else 'La relance a été acceptée et va démarrer.' if ns.f == 1 else 'La relance est en cours.' %}
-  {% if now_ts - ns.p / 1000000 >= reload_timeout %}
-    {% set ns.s = 'timeout' %}
-    {% set ns.reason = 'La relance ne s’est pas terminée dans le délai prévu. Vérifier les traces avant de confirmer sa fin. Les nouvelles tentatives sont suspendues.' %}
-    {% set alarm = true %}
-  {% endif %}
-{% elif auth %}
+{% set force = force and entry_state == 'not_loaded' %}
+{% if auth %}
   {% set ns.h = 0 %}
   {% set ns.s = 'auth' %}
   {% set ns.reason = 'Une réauthentification est requise. Renouveler la connexion dans Home Assistant ; aucun rechargement automatique.' %}
@@ -40,7 +33,7 @@
   {% set ns.h = 0 %}
   {% set ns.s = 'startup' %}
   {% set ns.reason = 'Attente après le démarrage de Home Assistant.' %}
-{% elif entry_state in ['migration_error','failed_unload','setup_error','not_loaded'] %}
+{% elif entry_state in ['migration_error','failed_unload','setup_error','not_loaded'] and not force %}
   {% set ns.h = 0 %}
   {% set ns.s = 'fatal' %}
   {% set ns.reason = 'État ' ~ entry_state ~ ' : intervention manuelle nécessaire ; aucune relance forcée.' %}
@@ -50,7 +43,7 @@
   {% set ns.n = 0 %}
   {% set ns.s = 'native' %}
   {% set ns.reason = 'Interrogation désactivée volontairement ; aucune relance forcée.' %}
-{% elif entry_state != 'loaded' %}
+{% elif entry_state != 'loaded' and not force %}
   {% set ns.h = 0 %}
   {% if old_status != 'native' or ns.n == 0 %}{% set ns.n = now_ts + native_timeout %}{% endif %}
   {% set ns.s = 'native' %}
@@ -95,7 +88,7 @@
       {% set ns.reason = 'Le nombre maximal de tentatives pour cette panne est atteint. Les relances sont suspendues jusqu’au retour durable à la normale ou à une réinitialisation manuelle.' %}
       {% set alarm = true %}
     {% endif %}
-  {% elif not health.fault and not (ns.i > 0 and old_status in ['verify','waiting','running','limited','suspended','timeout']) %}
+  {% elif not health.fault and not force and not (ns.i > 0 and old_status in ['verify','waiting','running','limited','suspended','timeout']) %}
     {% set ns.s = 'degraded' %}
     {% set ns.reason = 'Certaines entités sont en erreur, mais les conditions de relance ne sont pas encore réunies.' %}
   {% elif ns.i >= max_attempts %}
@@ -122,10 +115,10 @@
     {% set ns.p = reservation_ts %}
     {% set ns.f = 0 %}
     {% set ns.reload = true %}
-    {% set ns.reason = 'Demande de relance enregistrée. La tentative sera comptée au démarrage accepté.' %}
+    {% set ns.reason = 'Reprise de la relance interrompue : l’intégration est restée déchargée.' if force else 'Relance de l’intégration. La tentative est comptée à son démarrage.' %}
   {% endif %}
 {% endif %}
 {% if alarm and old_notice != ns.s %}{% set ns.notice = 'failure' %}{% endif %}
 {% set data = {'v':3,'o':owner_id,'e':entry_key,'a':ns.a,'i':ns.i,'n':ns.n,'p':ns.p,'f':ns.f,'h':ns.h,'t':now_ts,'s':ns.s,'k':old_notice} %}
 {% set acknowledged = dict(data,k=(ns.s if ns.notice == 'failure' else '' if ns.notice == 'success' else old_notice)) %}
-{{ {'memory':data,'acknowledged':acknowledged,'reload':ns.reload,'notice':ns.notice,'reason':ns.reason,'status':ns.s,'bad':health.bad,'attempts':ns.i,'daily':ns.a | count} }}
+{{ {'memory':data,'acknowledged':acknowledged,'reload':ns.reload,'force':force,'notice':ns.notice,'reason':ns.reason,'status':ns.s,'bad':health.bad,'attempts':ns.i,'daily':ns.a | count} }}

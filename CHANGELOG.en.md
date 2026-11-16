@@ -2,6 +2,16 @@
 
 [Français](CHANGELOG.md) · **English**
 
+## Integration monitoring and reload — 2.0.0 — 15 November 2026
+
+- The blueprint installs on its own: the shared configuration file (`packages/integration_watchdog.yaml`), its four scripts and two automations are removed. After updating, delete that file from Home Assistant; monitoring automations and their Text helpers are kept.
+- The reload runs inside the monitoring run, in queued mode; its end opens the verification period at once.
+- Reload taking too long: a parallel branch sends the alert after the delay, without cancelling the reload; the return to normal is then announced.
+- Interrupted reload (Home Assistant stopped, monitoring edited or disabled): detected and closed automatically; if the integration was left unloaded, the reload is resumed within the retry limits. The “confirm the end of a reload” command is gone.
+- Cap of 50 simultaneous reloads and duplicate monitoring: reservation written then compared in the helpers, with no shared queue and no possible overshoot.
+- Resetting an outage’s retry count: “Run actions” on the automation replaces the dedicated script.
+- `integration_watchdog` log: the monitoring sets its level itself; it is written after the alerts.
+
 ## Lighting remotes — 1.0.3 — 15 November 2026
 
 - Fix: when a group and its members are all on the Tap Dial, the dial could drive the group after a single member was switched on, and switch the others on. Among lamps changed almost together, the lamp the remote commanded wins.

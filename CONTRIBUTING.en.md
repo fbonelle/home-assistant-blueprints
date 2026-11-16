@@ -2,7 +2,7 @@
 
 [Français](CONTRIBUTING.md) · **English**
 
-Each new blueprint needs its own folder under `blueprints/automation/` or `blueprints/script/`, French and English guides, examples and tests. Shared configuration files belong in `packages/`.
+Each new blueprint needs its own folder under `blueprints/automation/` or `blueprints/script/`, French and English guides, examples and tests. A blueprint must install on its own: no configuration file to copy into Home Assistant.
 
 - Use standard Home Assistant features and document the files needed for installation.
 - Prefer familiar terms: monitored entities, retries, history, reload and recovery. Put technical details on a separate page.

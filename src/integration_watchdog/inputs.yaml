@@ -132,6 +132,8 @@ recuperation:
     logging_enabled:
       name: Enregistrer les événements dans les journaux
       default: true
+      description: Journal integration_watchdog. La surveillance règle elle-même son niveau (info, ou debug
+        avec les journaux détaillés) ; aucune configuration n’est nécessaire.
       selector:
         boolean: {}
     detailed_logging:
@@ -235,9 +237,9 @@ recuperation:
           max: 3600
           step: 1
           mode: box
-      description: Une alerte est envoyée si la demande n’a pas de fin enregistrée. Aucune nouvelle demande
-        n’est lancée pour cette intégration tant que la situation n’est pas résolue. Ce délai n’annule
-        pas la relance.
+      description: Une alerte est envoyée si la relance n’est pas terminée après ce délai. La relance n’est
+        pas annulée ; la surveillance reprend dès qu’elle se termine et aucune autre relance n’est lancée
+        pour cette intégration entre-temps.
     native_timeout:
       name: Délai avant alerte si Home Assistant essaie déjà de reconnecter l’intégration (secondes)
       default: 1800
