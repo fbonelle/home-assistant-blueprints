@@ -96,7 +96,7 @@ In the collapsed section **Réglages de variation et de couleur**. Values in bra
 | Ignore events too close together | 0 (STYRBAR: 50 ms; Tap Dial: 100 ms) | Must stay below the double press delay. |
 | Logging | no | INFO level, `lighting_remote` logger. The automation sets this level itself: no configuration is needed. |
 
-On the Tap Dial, the dial sends an amount that grows with rotation speed: about 3 % for a slow notch, up to 80 % for a fast spin. **Sensibilité de la molette** scales it (1 by default). The 100 ms filter drops presses received twice and contradictory rotation reports a few milliseconds apart.
+On the Tap Dial, the dial sends an amount that grows with rotation speed: about 3 % for a slow notch, up to 80 % for a fast spin. **Sensibilité de la molette** scales it (1 by default). The 100 ms filter drops presses received twice and contradictory rotation reports a few milliseconds apart. Without a memory helper, it measures the gap from the start of the previous gesture’s processing: when Home Assistant is heavily loaded, a real gesture that follows the previous one very closely may also be dropped.
 
 An inconsistent configuration (minimum above maximum, unknown preset, black recall colour, filter longer than the double press delay, helper too short) blocks every command. It is reported by a notification and in the log.
 

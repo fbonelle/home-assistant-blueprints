@@ -96,7 +96,7 @@ Dans la section repliée **Réglages de variation et de couleur**. Les valeurs e
 | Ignorer les événements trop rapprochés | 0 (STYRBAR : 50 ms ; Tap Dial : 100 ms) | Doit rester inférieur au délai du double appui. |
 | Journaliser | non | Niveau INFO, journal `lighting_remote`. L’automatisation règle elle-même ce niveau : aucune configuration n’est nécessaire. |
 
-Sur le Tap Dial, la molette transmet une amplitude qui grandit avec la vitesse de rotation : environ 3 % pour un cran lent, jusqu’à 80 % pour une rotation rapide. **Sensibilité de la molette** la multiplie (1 par défaut). Le filtre de 100 ms écarte les appuis reçus deux fois et les rapports de rotation contradictoires émis à quelques millisecondes d’intervalle.
+Sur le Tap Dial, la molette transmet une amplitude qui grandit avec la vitesse de rotation : environ 3 % pour un cran lent, jusqu’à 80 % pour une rotation rapide. **Sensibilité de la molette** la multiplie (1 par défaut). Le filtre de 100 ms écarte les appuis reçus deux fois et les rapports de rotation contradictoires émis à quelques millisecondes d’intervalle. Sans assistant de mémoire, il mesure l’écart depuis le début du traitement du geste précédent : si Home Assistant est très chargé, un vrai geste qui suit le précédent de très près peut aussi être écarté.
 
 Une configuration incohérente (minimum au-dessus du maximum, palette inconnue, couleur de rappel noire, filtre plus long que le double appui, assistant trop court) bloque toute commande. Elle est signalée par une notification et dans le journal.
 

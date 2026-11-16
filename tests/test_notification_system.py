@@ -7,6 +7,7 @@ real components. Only the outbound services (mobile app, ntfy, SMTP, speech, vol
 the logbook) are recording doubles; a double can be switched to fail like an unreachable provider.
 """
 import asyncio
+import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
@@ -64,7 +65,8 @@ class NotifyEnv:
         ]
         for p in self.patches:
             p.start()
-        for component in ['persistent_notification', 'system_log', 'input_text', 'input_boolean']:
+        # logger and system_log are always loaded by Home Assistant.
+        for component in ['persistent_notification', 'system_log', 'logger', 'input_text', 'input_boolean']:
             config = {}
             if component == 'input_text':
                 config = {'input_text': {'notify_dedup_slots': {'max': 255}}}
@@ -77,6 +79,8 @@ class NotifyEnv:
             for service in services:
                 self.hass.services.async_register(domain, service, self._recorder(f'{domain}.{service}'))
         self.hass.states.async_set('zone.home', '1')
+        # The ntfy notify entity: 'unknown' until it has sent something, as in Home Assistant.
+        self.hass.states.async_set('notify.ntfy_technique', 'unknown')
         self._speakers()
         for domain, files in SOURCES.items():
             target = path / 'blueprints' / domain / 'fbonelle/notification_system'
@@ -270,6 +274,20 @@ async def test_ntfy_failure_falls_back_to_mobile(env):
     assert any('Échec ntfy' in line for line in env.logs())
 
 
+@pytest.mark.parametrize('state', ['unavailable', None])
+async def test_unavailable_ntfy_entity_falls_back_instead_of_losing_the_message(env, state):
+    """Seen at start-up: Home Assistant drops a send to an unavailable entity with a mere warning."""
+    if state is None:
+        env.hass.states.async_remove('notify.ntfy_technique')
+    else:
+        env.hass.states.async_set('notify.ntfy_technique', state)
+    await env.notify(title='Sauvegarde', message='Échec', level='technical')
+    assert env.sent('ntfy.publish') == []
+    [push] = env.sent('notify.mobile_app_mon_telephone')
+    assert push['title'] == '🚨 FALLBACK NTFY : Sauvegarde'
+    assert any('Échec ntfy' in line for line in env.logs())
+
+
 async def test_no_fallback_when_disabled(tmp_path):
     e = await make(tmp_path, dispatcher={'ntfy_fallback': False})
     try:
@@ -303,7 +321,8 @@ async def test_email_attachment_forms(env):
     assert 'attachments' not in mail and 'src="https://cam.example.org/a.png?x=1"' in mail['html']
 
 
-async def test_duplicates_are_dropped_inside_the_window(env):
+async def test_duplicates_are_dropped_inside_the_window(env, caplog):
+    caplog.set_level(logging.INFO, logger='notification_system')
     await env.notify(title='Porte', message='Ouverte')
     await env.notify(advance=60, title='Porte', message='Ouverte')
     await env.notify(advance=60, title='Garage', message='Ouvert')
@@ -315,7 +334,11 @@ async def test_duplicates_are_dropped_inside_the_window(env):
     # The window is fixed: 300 s after the first send, the message passes again.
     await env.notify(advance=200, title='Porte', message='Ouverte')
     assert len(env.sent('notify.mobile_app_mon_telephone')) == 4
-    assert any('Doublon écarté' in line for line in env.logs())
+    # A dropped duplicate is normal operation: logged at INFO, never as a warning.
+    assert not any('Doublon écarté' in line for line in env.logs())
+    assert any(r.name == 'notification_system' and r.levelno == logging.INFO and 'Doublon écarté' in r.getMessage()
+               for r in caplog.records)
+    assert logging.getLogger('notification_system').level == logging.INFO
     assert len(env.hass.states.get('input_text.notify_dedup_slots').state) <= 255
 
 

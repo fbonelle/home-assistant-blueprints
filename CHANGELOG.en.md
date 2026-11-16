@@ -2,6 +2,11 @@
 
 [Français](CHANGELOG.md) · **English**
 
+## Notification system — 1.0.1 — 16 November 2026
+
+- Fix: an ntfy send to a missing or unavailable entity (at start-up, or ntfy server unreachable) was dropped by Home Assistant with a mere warning and counted as successful; the message was lost. It now fails explicitly and the dispatcher falls back to the mobile app.
+- A duplicate dropped by the dispatcher is logged at INFO level instead of as a warning: it is normal operation and cluttered the warnings log. The dispatcher sets the `notification_system` logger level itself. Send failures remain warnings.
+
 ## Lighting remotes — 1.0.4 — 16 November 2026
 
 - Fix: the “Journaliser” option wrote at INFO level, hidden by default in Home Assistant; messages only appeared after configuring the logger. The automation now sets the level of the `lighting_remote` logger itself.

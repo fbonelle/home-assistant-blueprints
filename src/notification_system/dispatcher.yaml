@@ -391,9 +391,16 @@ sequence:
       - condition: template
         value_template: "{{ is_duplicate }}"
     then:
-      - action: system_log.write
+      # Écarter un doublon est le fonctionnement normal : niveau INFO, et non un
+      # avertissement. Le répartiteur règle lui-même ce niveau, sans configuration.
+      - action: logger.set_level
+        continue_on_error: true
         data:
-          level: warning
+          notification_system: info
+      - action: system_log.write
+        continue_on_error: true
+        data:
+          level: info
           logger: notification_system
           message: >-
             [Répartiteur] Doublon écarté après {{ dedup_match_age }} s (fenêtre

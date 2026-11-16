@@ -2,6 +2,11 @@
 
 **Français** · [English](CHANGELOG.en.md)
 
+## Système de notifications — 1.0.1 — 16 novembre 2026
+
+- Correction : un envoi ntfy vers une entité absente ou indisponible (au démarrage, ou serveur ntfy injoignable) était ignoré par Home Assistant avec un simple avertissement et compté comme réussi ; le message était perdu. Il échoue désormais explicitement et le répartiteur bascule sur l’application mobile.
+- Un doublon écarté par le répartiteur est journalisé au niveau INFO, et non plus comme un avertissement : c’est le fonctionnement normal, qui encombrait le journal des avertissements. Le répartiteur règle lui-même le niveau du journal `notification_system`. Les échecs d’envoi restent des avertissements.
+
 ## Télécommandes d’éclairage — 1.0.4 — 16 novembre 2026
 
 - Correction : l’option « Journaliser » écrivait au niveau INFO, masqué par défaut dans Home Assistant ; les messages n’apparaissaient qu’après configuration du journal. L’automatisation règle désormais elle-même le niveau du journal `lighting_remote`.
