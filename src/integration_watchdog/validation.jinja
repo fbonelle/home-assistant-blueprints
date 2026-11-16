@@ -61,7 +61,4 @@
   {% endif %}
  {% endif %}
 {% endfor %}
-{% if states('script.surveillance_ecrire_memoire') not in ['on','off'] or states('script.surveillance_recharger_instance') not in ['on','off'] or not is_state('automation.surveillance_admission','on') %}
- {% set ns.errors = ns.errors + ['Le fichier de configuration commun manque ou son automatisation de planification est désactivée.'] %}
-{% endif %}
 {{ ns.errors | unique | list }}

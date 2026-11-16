@@ -27,6 +27,6 @@ jobs:
       - name: Vérifier la génération des YAML
         run: |
           python tools/build.py
-          git diff --exit-code -- blueprints packages examples
+          git diff --exit-code -- blueprints examples
       - name: Exécuter les tests natifs isolés
         run: python -m pytest -q

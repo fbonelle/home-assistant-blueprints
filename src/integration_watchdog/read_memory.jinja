@@ -1,4 +1,4 @@
-{# Only this validated record may be sent to the common compare-and-set writer. #}
+{# Only this validated record may be written back by the supervision itself. #}
 {% set ns = namespace(errors=[],data=none) %}
 {% set raw = states(memory_entity) if memory_entity is string else '' %}
 {% if memory_entity is not string or not memory_entity.startswith('input_text.') %}
@@ -13,7 +13,7 @@
     {% set ns.errors = ns.errors + ['L’historique contenu dans l’assistant Texte est illisible. Il n’a pas été effacé.'] %}
   {% elif (d.get('v') == 3 and (not raw.startswith('iw3:') or d.get('o') != owner_id or d.get('e') != entry_key)) or (d.get('v') == 2 and (not raw.startswith('iw2:') or d.get('o') != legacy_owner)) or d.get('v') not in [2,3] %}
     {% set ns.errors = ns.errors + ['L’assistant Texte contient l’historique d’une autre surveillance ou un format non reconnu.'] %}
-  {% elif d.get('s') not in ['new','startup','healthy','degraded','waiting','running','verify','limited','suspended','auth','fatal','timeout','paused','disabled','native','observation','deferred','duplicate'] or d.get('k') is not string %}
+  {% elif d.get('s') not in ['new','startup','healthy','degraded','waiting','running','verify','limited','suspended','auth','fatal','timeout','paused','disabled','native','observation','deferred','duplicate','interrupted'] or d.get('k') is not string %}
     {% set ns.errors = ns.errors + ['L’état enregistré dans l’historique est incorrect.'] %}
   {% else %}
     {% for key in ['i','n','p','f','h','t'] %}

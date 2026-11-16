@@ -1,4 +1,4 @@
-# Surveillance et relance des intégrations — 1.0.0
+# Surveillance et relance des intégrations — 2.0.0
 
 **Français** · [English](integration_watchdog.en.md) · [Accueil](../README.md)
 
@@ -6,34 +6,13 @@ Ce blueprint vérifie les entités que vous choisissez et tente de relancer leur
 
 Il utilise l’action standard `homeassistant.reload_config_entry`. L’intégration doit prendre en charge cette action. Home Assistant **2026.10 minimum** est requis ; les tests utilisent **2026.10.4**.
 
-## 1. Installer les deux fichiers nécessaires
-
-### Le fichier de configuration commun
-
-Ce fichier regroupe les scripts et automatisations partagés par toutes les surveillances. Il s’installe une seule fois, quel que soit le nombre d’intégrations à surveiller.
-
-1. Créez le dossier `/config/packages` s’il n’existe pas.
-2. Enregistrez [integration_watchdog.yaml](../packages/integration_watchdog.yaml) dans ce dossier.
-3. Dans `configuration.yaml`, activez les packages :
-
-```yaml
-homeassistant:
-  packages: !include_dir_named packages
-```
-
-Si votre fichier contient déjà un bloc `homeassistant:`, ajoutez `packages:` à l’intérieur au lieu de créer un second bloc. Si les packages sont déjà activés, utilisez le dossier déclaré dans votre configuration.
-
-Le fichier commun ne crée aucune surveillance automatiquement. Conservez les noms des scripts et automatisations qu’il contient.
-
-### Le blueprint
+## 1. Importer le blueprint
 
 [Importer le blueprint dans Home Assistant](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fintegration_watchdog%2Fsurveillance_integrations.yaml)
 
-Vous pouvez aussi ouvrir **Paramètres → Automatisations et scènes → Blueprints → Importer un blueprint**, puis coller [son adresse GitHub](../blueprints/automation/integration_watchdog/surveillance_integrations.yaml).
+Vous pouvez aussi ouvrir **Paramètres → Automatisations et scènes → Blueprints → Importer un blueprint**, puis coller [son adresse GitHub](../blueprints/automation/integration_watchdog/surveillance_integrations.yaml). Pour une installation manuelle, copiez ce fichier dans `/config/blueprints/automation/local/surveillance_integrations.yaml`.
 
-Pour une installation manuelle, copiez ce fichier dans `/config/blueprints/automation/local/surveillance_integrations.yaml`.
-
-Activez ensuite l’intégration **Uptime** si elle n’est pas présente, vérifiez la configuration de Home Assistant et redémarrez-le pour charger le fichier commun. Uptime fournit la date de démarrage utilisée pour laisser les intégrations se connecter avant toute tentative.
+C’est le seul fichier à installer : aucun fichier de configuration, aucun script ni redémarrage. Activez l’intégration **Uptime** si elle n’est pas présente ; elle fournit la date de démarrage utilisée pour laisser les intégrations se connecter avant toute tentative.
 
 ## 2. Créer une surveillance
 
@@ -49,7 +28,7 @@ L’automatisation remplit cet assistant. Il conserve le nombre de tentatives et
 
 ### Remplir le formulaire
 
-Créez une automatisation à partir du blueprint **Surveillance et relance des intégrations — 1.0.0**, puis renseignez :
+Créez une automatisation à partir du blueprint **Surveillance et relance des intégrations — 2.0.0**, puis renseignez :
 
 | Champ | Ce qu’il faut choisir |
 |---|---|
@@ -64,9 +43,9 @@ Créez une seule surveillance par configuration d’intégration. Deux comptes o
 
 ## 3. Ajouter d’autres intégrations
 
-Créez un autre assistant Texte et une autre automatisation depuis le même blueprint. Il n’y a aucun script à recopier et aucun redémarrage à faire pour cet ajout.
+Créez un autre assistant Texte et une autre automatisation depuis le même blueprint. Aucun autre fichier ni redémarrage n’est nécessaire.
 
-Le blueprint ne fixe pas de nombre maximal d’intégrations surveillées. Il permet jusqu’à **50 relances simultanées**. Les demandes supplémentaires attendent une place, sans consommer de tentative.
+Le blueprint ne fixe pas de nombre maximal d’intégrations surveillées. Il limite à **50** le nombre de relances simultanées, toutes surveillances confondues. Une demande supplémentaire réessaie une minute plus tard, sans consommer de tentative.
 
 Les [exemples Netatmo, TaHoma et Cozytouch](../examples/integration_watchdog/) contiennent des identifiants fictifs. Adaptez-les avant utilisation. Leur chemin `local/surveillance_integrations.yaml` correspond à l’installation manuelle ; si vous avez importé le blueprint depuis GitHub, utilisez le chemin affiché par Home Assistant.
 
@@ -97,17 +76,17 @@ Les délais sont évalués lors des vérifications : une action peut attendre le
 
 Par défaut, une notification apparaît dans Home Assistant lorsqu’une intervention est nécessaire. Elle est effacée après un retour confirmé à la normale. Vous pouvez remplacer ces actions par vos propres notifications dans le formulaire.
 
-Les événements utiles sont écrits dans le journal `integration_watchdog`. Les journaux détaillés ajoutent les vérifications de routine ; utilisez-les pour comprendre un problème. Une erreur d’écriture du journal ne bloque pas l’envoi des alertes.
+Les événements utiles sont écrits dans le journal `integration_watchdog`. La surveillance règle elle-même son niveau (info, ou debug avec les journaux détaillés) : aucune configuration n’est nécessaire. Les journaux détaillés ajoutent les vérifications de routine ; utilisez-les pour comprendre un problème. Les alertes sont envoyées avant l’écriture du journal, qui ne peut donc pas les bloquer.
 
 Les exclusions, le mode observation et les conditions supplémentaires empêchent de nouvelles tentatives. Ils n’annulent pas une relance déjà en cours.
 
 ## Si une intervention manuelle est nécessaire
 
-Si une relance ne se termine pas, vérifiez les erreurs de l’intégration et les traces du script dans Home Assistant. L’alerte n’annule pas l’opération : aucune autre tentative n’est envoyée tant que sa fin n’est pas connue.
+**Relance trop longue.** Si une relance dépasse le délai prévu, une alerte est envoyée. La relance n’est pas annulée : la surveillance attend sa fin, puis reprend normalement et annonce le retour à la normale. Aucune autre relance de cette intégration n’est lancée entre-temps ; les autres surveillances continuent. Vérifiez les erreurs de l’intégration et les traces de l’automatisation.
 
-Après avoir vérifié qu’elle est terminée, lancez **Surveillance — Confirmer la fin d’une relance** et choisissez l’assistant Texte concerné. Cette action reste bloquée si le script de relance tourne encore, y compris pour une autre intégration.
+**Relance interrompue.** Si Home Assistant s’arrête, ou si la surveillance est modifiée ou désactivée pendant une relance, celle-ci est interrompue. La vérification suivante le détecte d’elle-même : la tentative reste comptée, et si l’intégration est restée déchargée, la relance est reprise dans les limites de tentatives. Aucune action manuelle n’est nécessaire.
 
-**Surveillance — Réinitialiser les tentatives pour une panne** permet de réessayer après une intervention. Le nombre de tentatives des dernières 24 heures reste conservé. Cette remise à zéro n’est pas possible pendant une relance en cours.
+**Réessayer après une intervention.** Ouvrez l’automatisation de surveillance et choisissez **Exécuter les actions** : le nombre de tentatives pour la panne en cours est remis à zéro, puis une vérification a lieu aussitôt. Le nombre de tentatives des dernières 24 heures reste conservé.
 
 ## À connaître
 
@@ -118,4 +97,4 @@ Après avoir vérifié qu’elle est terminée, lancez **Surveillance — Confir
 
 [Fonctionnement détaillé, tests et limites](robustesse_integration_watchdog.md)
 
-Documentation Home Assistant : [packages](https://www.home-assistant.io/docs/configuration/packages/), [assistant Texte](https://www.home-assistant.io/integrations/input_text/), [importation d’un blueprint](https://www.home-assistant.io/docs/automation/using_blueprints/).
+Documentation Home Assistant : [assistant Texte](https://www.home-assistant.io/integrations/input_text/), [importation d’un blueprint](https://www.home-assistant.io/docs/automation/using_blueprints/).

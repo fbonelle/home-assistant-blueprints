@@ -8,7 +8,7 @@ Une collection de blueprints pour automatiser Home Assistant avec ses fonctions 
 
 | Blueprint | Fonction | Version | Prérequis |
 |---|---|---|---|
-| [Surveillance et relance des intégrations](docs/integration_watchdog.md) | Détecter une panne à partir d’entités choisies, tenter une relance et prévenir si une intervention est nécessaire. | **1.0.0** | Home Assistant 2026.10 minimum |
+| [Surveillance et relance des intégrations](docs/integration_watchdog.md) | Détecter une panne à partir d’entités choisies, tenter une relance et prévenir si une intervention est nécessaire. | **2.0.0** | Home Assistant 2026.10 minimum |
 | [Surveillance des piles et batteries](docs/battery_watch.md) | Signaler tout de suite chaque pile ou batterie à remplacer et chaque appareil muet, puis envoyer un récapitulatif à heure fixe. | **1.0.0** | Home Assistant 2026.10 minimum |
 | [Système de notifications](docs/notification_system.md) | Un point d’entrée unique : canaux par niveau (mobile, ntfy, e-mail), anti-doublon, nuit, bascule de secours, lecture vocale et relais des notifications persistantes. | **1.0.0** | Home Assistant 2026.10 minimum, quatre blueprints |
 | [Télécommandes d’éclairage et extinction automatique](docs/lighting.md) | Une action au choix pour chaque geste des télécommandes Hue Dimmer, Hue Tap Dial, IKEA marche/arrêt, IKEA 5 boutons, IKEA STYRBAR et eWeLink ; extinction après une durée d’allumage. | **1.0.4** | Home Assistant 2026.10, ZHA ; assistant facultatif |
@@ -17,15 +17,14 @@ La version **1.0.0 est la première version publiée**. Les numéros utilisés p
 
 ## Surveillance et relance des intégrations
 
-1. Installer le [fichier de configuration commun](packages/integration_watchdog.yaml), une seule fois.
-2. [Importer le blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fintegration_watchdog%2Fsurveillance_integrations.yaml).
-3. Créer un assistant Texte, puis choisir l’intégration et les entités à surveiller dans le formulaire.
+1. [Importer le blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fintegration_watchdog%2Fsurveillance_integrations.yaml).
+2. Créer un assistant Texte, puis choisir l’intégration et les entités à surveiller dans le formulaire.
 
 [Guide d’installation](docs/integration_watchdog.md) · [Fonctionnement, tests et limites](docs/robustesse_integration_watchdog.md)
 
 Les délais, le nombre de tentatives, les exclusions, les notifications et les journaux sont réglables. Une nouvelle intégration s’ajoute depuis le formulaire, sans recopier de scripts.
 
-**Deux fichiers sont nécessaires au départ : le blueprint et le fichier de configuration commun.** Ce dernier est un *package* Home Assistant : un fichier YAML regroupant les scripts et automatisations utilisés par le blueprint. Aucun composant personnalisé ni code Python n’est à installer dans Home Assistant.
+**Le blueprint est le seul fichier à installer.** Aucun fichier de configuration, script, composant personnalisé ni redémarrage n’est nécessaire.
 
 Les exemples Netatmo, TaHoma et Cozytouch sont fictifs et doivent être adaptés avant utilisation.
 
@@ -49,7 +48,7 @@ Un blueprint par modèle de télécommande ZHA (Philips Hue Dimmer et Tap Dial, 
 
 ## Développement
 
-Les blueprints se trouvent dans `blueprints/`, leurs fichiers communs dans `packages/`, leurs exemples dans `examples/` et leurs guides dans `docs/`.
+Les blueprints se trouvent dans `blueprints/`, leurs exemples dans `examples/` et leurs guides dans `docs/`.
 
 Pour générer les fichiers et lancer les tests, avec Python 3.14 :
 

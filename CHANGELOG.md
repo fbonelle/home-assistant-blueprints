@@ -7,6 +7,16 @@
 - Correction : l’option « Journaliser » écrivait au niveau INFO, masqué par défaut dans Home Assistant ; les messages n’apparaissaient qu’après configuration du journal. L’automatisation règle désormais elle-même le niveau du journal `lighting_remote`.
 - Une erreur d’écriture du journal n’interrompt plus la commande.
 
+## Surveillance et relance des intégrations — 2.0.0 — 15 novembre 2026
+
+- Le blueprint s’installe seul : le fichier de configuration commun (`packages/integration_watchdog.yaml`), ses quatre scripts et ses deux automatisations sont supprimés. Après mise à jour, supprimer ce fichier de Home Assistant ; les surveillances et leurs assistants Texte sont conservés.
+- La relance a lieu dans l’exécution de la surveillance, en mode file d’attente ; sa fin ouvre aussitôt la période de vérification.
+- Relance trop longue : une branche parallèle envoie l’alerte au bout du délai, sans annuler la relance ; le retour à la normale est ensuite annoncé.
+- Relance interrompue (arrêt de Home Assistant, surveillance modifiée ou désactivée) : détectée et close automatiquement ; si l’intégration est restée déchargée, la relance est reprise dans les limites de tentatives. La commande « Confirmer la fin d’une relance » disparaît.
+- Plafond de 50 relances simultanées et surveillances en double : réservation inscrite puis comparée dans les assistants, sans file commune ni dépassement possible.
+- Remise à zéro des tentatives d’une panne : « Exécuter les actions » sur l’automatisation remplace le script dédié.
+- Journal `integration_watchdog` : la surveillance règle elle-même son niveau ; il est écrit après les alertes.
+
 ## Télécommandes d’éclairage — 1.0.3 — 15 novembre 2026
 
 - Correction : quand un groupe et ses membres sont tous sur le Tap Dial, la molette pouvait agir sur le groupe après l’allumage d’un seul membre, et allumer les autres. Parmi les lampes changées presque en même temps, celle que la télécommande a commandée l’emporte.
