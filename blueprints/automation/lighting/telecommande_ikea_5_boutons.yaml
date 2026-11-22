@@ -6,7 +6,7 @@
 # jamais un maintien en cours. Les actions forment le moteur commun, identique pour
 # toutes les télécommandes ; ses commentaires détaillés sont dans src/lighting/engine.yaml.
 blueprint:
-  name: Télécommande IKEA TRÅDFRI 5 boutons — ZHA — 1.1.0
+  name: Télécommande IKEA TRÅDFRI 5 boutons — ZHA — 2026.11.2.0
   description: 'Bouton central, Plus, Moins, Gauche et Droite. Remplace les anciennes variantes « blancs » et «
     préréglages » : choisir pour Gauche et Droite la température du blanc ou la palette de couleurs. Actions et
     réglages communs à toutes les télécommandes de la famille ; variations continues bornées. Assistant de mémoire

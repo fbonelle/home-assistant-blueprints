@@ -1,0 +1,81 @@
+# Suit les versions publiques de Home Assistant (tools/ha_release.py).
+#
+# Chaque jour, compare la dernière version publique de Home Assistant sur PyPI (bêtas et
+# versions candidates exclues) à la version fixée pour les tests. Si elle est plus récente :
+# fixe cette version, fait passer toutes les familles à <version>.0, complète l'historique,
+# régénère les blueprints et exécute toute la suite de tests. Si tout réussit, le résultat
+# est publié sur main ; sinon, une issue est ouverte (une seule par version) et rien n'est
+# modifié.
+#
+# Les tests sont exécutés dans ce workflow avant toute publication : un commit poussé avec
+# le jeton du workflow ne déclenche pas le workflow de validation.
+name: Suivi des versions de Home Assistant
+on:
+  schedule:
+    - cron: '23 5 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  issues: write
+concurrency:
+  group: ha-release
+  cancel-in-progress: false
+jobs:
+  follow:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Chercher une nouvelle version publique
+        id: check
+        run: python3 tools/ha_release.py check
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: steps.check.outputs.new == 'true'
+        with:
+          python-version: ${{ steps.check.outputs.python }}
+      - name: Fixer la nouvelle version et mettre à jour les versions des blueprints
+        if: steps.check.outputs.new == 'true'
+        env:
+          RELEASE: ${{ steps.check.outputs.version }}
+          PYTHON: ${{ steps.check.outputs.python }}
+        run: python tools/ha_release.py apply "$RELEASE" "$PYTHON"
+      - name: Installer les dépendances de développement
+        if: steps.check.outputs.new == 'true'
+        run: python -m pip install -r requirements-dev.txt
+      - name: Régénérer les blueprints et vérifier que la génération est stable
+        if: steps.check.outputs.new == 'true'
+        run: |
+          python tools/build.py
+          git add -A
+          python tools/build.py
+          git diff --exit-code
+      - name: Exécuter les tests natifs isolés
+        if: steps.check.outputs.new == 'true'
+        run: python -m pytest -q
+      - name: Publier sur main
+        if: steps.check.outputs.new == 'true'
+        env:
+          RELEASE: ${{ steps.check.outputs.version }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m "Validé avec Home Assistant $RELEASE"
+          git push origin HEAD:main
+      - name: Signaler l'échec dans une issue
+        if: failure() && steps.check.outputs.new == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE: ${{ steps.check.outputs.version }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Échec de validation avec Home Assistant $RELEASE"
+          open=$(gh issue list --state open --search "\"$title\" in:title" --json title \
+                 --jq "[.[] | select(.title == \"$title\")] | length")
+          if [ "$open" = "0" ]; then
+            gh issue create --title "$title" --body "La génération ou les tests ont échoué avec Home Assistant $RELEASE ; aucune version n'a été modifiée.
+
+          Détail : $RUN_URL
+
+          Le workflow réessaie chaque jour tant qu'aucune version plus récente ne réussit."
+          fi

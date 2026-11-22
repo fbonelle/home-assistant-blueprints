@@ -1,7 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """Build the standalone battery watch blueprint. No Python is installed in Home Assistant."""
 from pathlib import Path
-import re
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import versioning  # noqa: E402  (tools/versioning.py: version scheme shared by all families)
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -22,8 +25,7 @@ Dumper.add_representer(str, lambda d, v: d.represent_scalar(
     'tag:yaml.org,2002:str', '\n'.join(x.rstrip() for x in v.split('\n')), style='|' if '\n' in v else None))
 
 def build():
-    version = (BASE / 'VERSION').read_text().strip()
-    assert re.fullmatch(r'(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)', version), 'Invalid blueprint version'
+    version = versioning.read('battery_watch')
     blueprint = yaml.load((BASE / 'blueprint.yaml').read_text(), Loader=Loader)
     blueprint['blueprint']['name'] += ' — ' + version
     def expand(value):

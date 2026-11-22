@@ -6,7 +6,7 @@
 # jamais un maintien en cours. Les actions forment le moteur commun, identique pour
 # toutes les télécommandes ; ses commentaires détaillés sont dans src/lighting/engine.yaml.
 blueprint:
-  name: Télécommande IKEA STYRBAR — ZHA — 1.1.0
+  name: Télécommande IKEA STYRBAR — ZHA — 2026.11.2.0
   description: 'Haut, Bas, Gauche et Droite, appui court et maintien. Avec l''assistant de mémoire, le double appui
     en haut rappelle la couleur choisie, comme l''ancien blueprint STYRBAR. Actions et réglages communs à toutes
     les télécommandes de la famille ; variations continues bornées. Assistant de mémoire facultatif, nécessaire

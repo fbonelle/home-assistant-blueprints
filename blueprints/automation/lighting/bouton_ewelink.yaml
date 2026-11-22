@@ -6,7 +6,7 @@
 # jamais un maintien en cours. Les actions forment le moteur commun, identique pour
 # toutes les télécommandes ; ses commentaires détaillés sont dans src/lighting/engine.yaml.
 blueprint:
-  name: Bouton eWeLink / SONOFF (WB01, SNZB-01P, CK-TLSR8656) — ZHA — 1.1.0
+  name: Bouton eWeLink / SONOFF (WB01, SNZB-01P, CK-TLSR8656) — ZHA — 2026.11.2.0
   description: 'Un bouton : clic simple, double clic et appui long. Les gestes sont lus dans les commandes envoyées
     par le bouton, jamais dans les rapports d''état, qui peuvent être émis sans aucun appui. Actions et réglages
     communs à toutes les télécommandes de la famille ; variations continues bornées. Assistant de mémoire facultatif.

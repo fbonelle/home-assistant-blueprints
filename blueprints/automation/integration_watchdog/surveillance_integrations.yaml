@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# Version 2.0.0 — blueprint autonome : aucun fichier de configuration commun.
+# Version 2026.11.2.0 — blueprint autonome : aucun fichier de configuration commun.
 # Mémoire : p réservation, f 0 réservée, 1-2 admise ou lancée, >2 fin de la relance.
 blueprint:
-  name: Surveillance et relance des intégrations — 2.0.0
+  name: Surveillance et relance des intégrations — 2026.11.2.0
   description: Surveille les entités d’une intégration et tente de la relancer en cas de panne. Le nombre de tentatives,
     les délais, les notifications et les journaux sont réglables. Créer un assistant Texte, puis une automatisation
     par configuration d’intégration ; aucun autre fichier n’est nécessaire.

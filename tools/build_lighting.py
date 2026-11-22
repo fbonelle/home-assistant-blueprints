@@ -9,7 +9,10 @@ no memory helper. No Python runs inside Home Assistant.
 from pathlib import Path
 import colorsys
 import copy
-import re
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import versioning  # noqa: E402  (tools/versioning.py: version scheme shared by all families)
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -270,8 +273,7 @@ def build_remote(key, model, engine, palette, version):
 
 
 def build():
-    version = (BASE / 'VERSION').read_text().strip()
-    assert re.fullmatch(r'(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)', version)
+    version = versioning.read('lighting')
     engine = load('engine.yaml')
     palette = load('palette.yaml')
     for key, model in load('models.yaml').items():

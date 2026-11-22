@@ -6,7 +6,7 @@
 # jamais un maintien en cours. Les actions forment le moteur commun, identique pour
 # toutes les télécommandes ; ses commentaires détaillés sont dans src/lighting/engine.yaml.
 blueprint:
-  name: Bouton sans fil Aqara (WXKG11LM, lumi.remote.b1acn01) — ZHA — 1.1.0
+  name: Bouton sans fil Aqara (WXKG11LM, lumi.remote.b1acn01) — ZHA — 2026.11.2.0
   description: 'Un bouton : appui simple, double appui et maintien, tous trois signalés par le bouton lui-même.
     Un maintien est arrêté au relâchement ou, si le relâchement radio est perdu, après la durée maximale. Actions
     et réglages communs à toutes les télécommandes de la famille ; variations continues bornées. Assistant de mémoire

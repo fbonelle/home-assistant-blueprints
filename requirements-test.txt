@@ -1,4 +1,4 @@
-homeassistant==2026.10.4
+homeassistant==2026.11.2
 # Requirement of the native Local To-do integration used as memory by the battery watch tests.
 ical==14.3.0
 pytest==9.2.0

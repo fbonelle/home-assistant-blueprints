@@ -6,7 +6,7 @@
 # jamais un maintien en cours. Les actions forment le moteur commun, identique pour
 # toutes les télécommandes ; ses commentaires détaillés sont dans src/lighting/engine.yaml.
 blueprint:
-  name: Télécommande Philips Hue Dimmer (RWL022) — ZHA — 1.1.0
+  name: Télécommande Philips Hue Dimmer (RWL022) — ZHA — 2026.11.2.0
   description: 'Quatre boutons (Marche/Arrêt, Plus, Moins, Hue). Pour chaque appui court ou maintenu, choisir l''action
     dans la liste commune ou une action personnalisée. Actions et réglages communs à toutes les télécommandes de
     la famille ; variations continues bornées. Assistant de mémoire facultatif. Menu → Exécuter les actions affiche
