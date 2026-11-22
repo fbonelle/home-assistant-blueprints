@@ -17,14 +17,16 @@ commands) is done by the supervision run itself:
 * The run sets the level of its own logger before writing to the log.
 """
 from pathlib import Path
-import re
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import versioning  # noqa: E402  (tools/versioning.py: version scheme shared by all families)
 
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 BASE = ROOT / 'src' / 'integration_watchdog'
-VERSION = (BASE / 'VERSION').read_text().strip()
-assert re.fullmatch(r'(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)', VERSION), 'Invalid blueprint version'
+VERSION = versioning.read('integration_watchdog')
 
 # Maximum number of reloads running at the same time across all supervisions.
 MAX_RUNNING = 50

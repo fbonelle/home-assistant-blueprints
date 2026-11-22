@@ -2,7 +2,7 @@
 
 **Français** · [English](battery_watch.en.md) · [Accueil](../README.md)
 
-Version **1.0.0**. Un blueprint autonome qui signale tout de suite chaque pile ou batterie à remplacer, puis envoie un récapitulatif à l’heure choisie. Aucun fichier commun ni composant personnalisé n’est nécessaire.
+Version **2026.11.2.0**. Un blueprint autonome qui signale tout de suite chaque pile ou batterie à remplacer, puis envoie un récapitulatif à l’heure choisie. Aucun fichier commun ni composant personnalisé n’est nécessaire.
 
 ## Installation
 

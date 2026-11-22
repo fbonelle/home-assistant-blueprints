@@ -6,13 +6,12 @@
 # jamais un maintien en cours. Les actions forment le moteur commun, identique pour
 # toutes les télécommandes ; ses commentaires détaillés sont dans src/lighting/engine.yaml.
 blueprint:
-  name: Télécommande Philips Hue Tap Dial (RDM002) — ZHA — 1.0.4
+  name: Télécommande Philips Hue Tap Dial (RDM002) — ZHA — 2026.11.2.0
   description: 'Quatre boutons, une lampe par bouton, et une molette. La molette agit sur la dernière lampe allumée
     parmi les quatre (ou, si toutes sont éteintes, sur la dernière actionnée), sans assistant de mémoire. Quand
     un groupe et ses membres changent ensemble, elle agit sur la lampe que la télécommande a commandée. Actions
     et réglages communs à toutes les télécommandes de la famille ; variations continues bornées. Assistant de mémoire
-    facultatif, nécessaire au double appui. Menu → Exécuter les actions affiche un diagnostic sans commander la
-    lampe. Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/lighting.md'
+    facultatif. Menu → Exécuter les actions affiche un diagnostic sans commander la lampe. Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/lighting.md'
   domain: automation
   homeassistant:
     min_version: 2026.10.0
@@ -59,9 +58,9 @@ blueprint:
       default: ''
     memory:
       name: Assistant de mémoire (facultatif)
-      description: Assistant Texte de longueur maximale 255, réservé à cette automatisation. Nécessaire pour le
-        double appui ; apporte aussi la position exacte dans la palette, le rejet des événements désordonnés et
-        l'arrêt au niveau atteint lors du relâchement. Sans assistant, tout le reste fonctionne.
+      description: Assistant Texte de longueur maximale 255, réservé à cette automatisation. Apporte la position
+        exacte dans la palette, le rejet des événements désordonnés et l'arrêt au niveau atteint lors du relâchement.
+        Sans assistant, tout le reste fonctionne.
       default: ''
       selector:
         entity:

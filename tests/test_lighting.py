@@ -32,7 +32,7 @@ ROOT = Path(__file__).resolve().parent.parent
 FOLDER = ROOT / 'blueprints/automation/lighting'
 REMOTES = ['telecommande_hue_dimmer.yaml', 'telecommande_hue_tap_dial.yaml',
            'telecommande_ikea_marche_arret.yaml', 'telecommande_ikea_5_boutons.yaml',
-           'telecommande_ikea_styrbar.yaml', 'bouton_ewelink.yaml']
+           'telecommande_ikea_styrbar.yaml', 'bouton_ewelink.yaml', 'bouton_aqara.yaml']
 ALL = REMOTES + ['extinction_automatique.yaml']
 REMOTE = 'a' * 32
 OTHER = 'b' * 32
@@ -213,7 +213,7 @@ def test_every_default_action_exists_and_holds_only_on_holds(name):
 
 def test_examples_reference_published_blueprints_and_valid_actions():
     examples = load_yaml(str(ROOT / 'examples/lighting/automations.yaml'))
-    assert len(examples) == 9
+    assert len(examples) == 10
     ids = [e['id'] for e in examples]
     assert len(ids) == len(set(ids))
     for example in examples:
@@ -468,6 +468,69 @@ async def test_ewelink_state_reports_never_switch_the_garden(env):
         await env.press('attribute_updated', args={'attribute_id': 0, 'attribute_name': 'on_off', 'value': value},
                         cluster_id=6, settle=None)
     await env.press('off', settle=None)  # Long press: no action by default.
+    assert env.lamps['plain'].calls == []
+
+
+# ---------------------------------------------------------------- Aqara button
+
+# Payloads of the zha-quirks SwitchAQ3B profile (lumi.remote.b1acn01): the button reports
+# each gesture itself, with the raw value of its Multistate Input attribute in args.
+AQARA_SINGLE = dict(command='single', args={'value': 1}, cluster_id=18, endpoint_id=1)
+AQARA_DOUBLE = dict(command='double', args={'value': 2}, cluster_id=18, endpoint_id=1)
+AQARA_HOLD = dict(command='hold', args={'value': 0}, cluster_id=18, endpoint_id=1)
+AQARA_RELEASE = dict(command='release', args={'value': 255}, cluster_id=18, endpoint_id=1)
+
+
+async def test_aqara_single_press_toggles_and_double_press_needs_no_memory(env):
+    await env.automation('bouton_aqara.yaml', remote=REMOTE, light='light.plain',
+                         double_press_action='full')
+    await env.press(**AQARA_SINGLE, settle=None)
+    assert env.state('plain').state == 'off'
+    await env.press(**AQARA_SINGLE, settle=None)
+    assert env.state('plain').state == 'on'
+    # The firmware reports the double press itself: no memory helper, no prior single press.
+    await env.press(**AQARA_DOUBLE, settle=None)
+    assert env.pct('plain') == 100
+
+
+async def test_aqara_defaults_leave_double_press_and_hold_unused(env):
+    await env.automation('bouton_aqara.yaml', remote=REMOTE, light='light.plain')
+    await env.press(**AQARA_DOUBLE, settle=None)
+    await env.press(**AQARA_HOLD, settle=.3)
+    await env.press(**AQARA_RELEASE, settle=None)
+    assert env.lamps['plain'].calls == []
+    assert env.state('plain').state == 'on'
+
+
+async def test_aqara_hold_runs_until_release(env):
+    await env.automation('bouton_aqara.yaml', remote=REMOTE, light='light.plain',
+                         button_hold_action='brighter_hold', hold_interval=0.2, hold_step_pct=2, hold_limit=2)
+    await env.press(**AQARA_HOLD, settle=.5)
+    running = len(env.lamps['plain'].calls)
+    assert running >= 2
+    await env.press(**AQARA_RELEASE, settle=.4)
+    stopped = len(env.lamps['plain'].calls)
+    assert stopped <= running + 1
+    await asyncio.sleep(.5)
+    assert len(env.lamps['plain'].calls) == stopped
+
+
+async def test_aqara_lost_release_ends_at_hold_limit(env):
+    await env.automation('bouton_aqara.yaml', remote=REMOTE, light='light.plain',
+                         button_hold_action='dimmer_hold', hold_interval=0.2, hold_step_pct=1, hold_limit=1)
+    await env.press(**AQARA_HOLD, settle=1.6)
+    calls = len(env.lamps['plain'].calls)
+    assert 3 <= calls <= 6
+    await asyncio.sleep(.6)
+    assert len(env.lamps['plain'].calls) == calls
+
+
+async def test_aqara_unknown_values_and_other_devices_are_ignored(env):
+    await env.automation('bouton_aqara.yaml', remote=REMOTE, light='light.plain')
+    # A shake (other Aqara model), an attribute report and another device's press do nothing.
+    await env.press('shake', args={'value': 18}, cluster_id=18, settle=None)
+    await env.press('attribute_updated', args={'attribute_id': 85, 'value': 1}, cluster_id=18, settle=None)
+    await env.press(**dict(AQARA_SINGLE, device=OTHER), settle=None)
     assert env.lamps['plain'].calls == []
 
 

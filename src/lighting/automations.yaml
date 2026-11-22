@@ -102,6 +102,20 @@
       on_level_pct: 25
       high_level_pct: 100
 
+# Bouton Aqara : appui simple bascule avec un fondu d'une seconde, double appui à pleine
+# luminosité, maintien pour baisser la luminosité jusqu'au relâchement.
+- id: living_room_aqara_button
+  alias: Salon — bouton Aqara
+  use_blueprint:
+    path: fbonelle/bouton_aqara.yaml
+    input:
+      remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9
+      light: light.living_room_lamps
+      single_press_action: toggle
+      double_press_action: full
+      button_hold_action: dimmer_hold
+      transition: 1
+
 # Extinction automatique de l'escalier trois minutes après chaque allumage.
 - id: stairs_auto_off
   alias: Escalier — extinction automatique
