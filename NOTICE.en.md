@@ -38,4 +38,4 @@ The idea of a switch-off timer comes from the [**Manual Light**](https://gist.gi
 
 Event formats are those of the [zha-quirks](https://github.com/zigpy/zha-device-handlers) profiles (Apache 2.0 licence), read for compatibility; none of their code is reused. In the palette, 21 colours are the values of a personal helper by the author. Three others are the Home Assistant reference whites, in RGB, taken from a screenshot supplied by the author, with no kelvin estimate. The numerical coordinates of the 20 TRÅDFRI presets come from [node-tradfri-client's recording of the app presets](https://github.com/AlCalzone/node-tradfri-client/blob/master/src/lib/predefined-colors.ts), an MIT-licensed project by AlCalzone; only these colour values are reused.
 
-Philips Hue, IKEA, TRÅDFRI, STYRBAR, eWeLink and SONOFF identify compatible devices; this project is not affiliated with any of these manufacturers. Examples use fictitious identifiers.
+Philips Hue, IKEA, TRÅDFRI, STYRBAR, eWeLink, SONOFF and Aqara identify compatible devices; this project is not affiliated with any of these manufacturers. Examples use fictitious identifiers.

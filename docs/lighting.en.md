@@ -12,6 +12,7 @@ A family of blueprints that drive lamps the same way whatever the ZHA remote, pl
 | [IKEA TRÅDFRI 5-button remote](../blueprints/automation/lighting/telecommande_ikea_5_boutons.yaml) | TRADFRI remote control | Centre, Up, Down, Left, Right: short press, double press, hold |
 | [IKEA STYRBAR remote](../blueprints/automation/lighting/telecommande_ikea_styrbar.yaml) | Remote Control N2 | Up, Down, Left, Right: short press, double press, hold |
 | [eWeLink / SONOFF button](../blueprints/automation/lighting/bouton_ewelink.yaml) | WB01, SNZB-01P, CK-TLSR8656-SS5-01 | Single, double and long press |
+| [Aqara wireless button](../blueprints/automation/lighting/bouton_aqara.yaml) | lumi.remote.b1acn01 (WXKG11LM) | Single press, double press, hold |
 | [Automatic lighting switch-off](../blueprints/automation/lighting/extinction_automatique.yaml) | Lights, switches, plugs | — |
 
 The STYRBAR blueprint keeps every feature and every default of this collection's former STYRBAR blueprint, which it replaces.
@@ -25,6 +26,7 @@ The STYRBAR blueprint keeps every feature and every default of this collection's
    [IKEA 5 buttons](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Ftelecommande_ikea_5_boutons.yaml) ·
    [IKEA STYRBAR](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Ftelecommande_ikea_styrbar.yaml) ·
    [eWeLink](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fbouton_ewelink.yaml) ·
+   [Aqara](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fbouton_aqara.yaml) ·
    [Automatic switch-off](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fextinction_automatique.yaml).
 2. Create one automation per remote: pick the remote, the lamp, then the action of each gesture.
 3. Optional: pick a **memory helper** (see below).
@@ -39,7 +41,7 @@ A **Text helper** with a maximum length of 255, used by one automation only.
 | | Without helper | With helper |
 |---|---|---|
 | Every action, bounded holds, filters, diagnostic | yes | yes |
-| Double press | no | yes |
+| Double press (IKEA) | no | yes |
 | Palette position | preset closest to the displayed colour | exact position, resynchronised if the colour was changed elsewhere |
 | Hold release | the change stops, the lamp finishes its last fade | the lamp is frozen at the level actually reached |
 | Radio duplicate | any gesture too close to the previous one is dropped | only an identical gesture is dropped |
@@ -69,7 +71,7 @@ An unreadable helper, or one already used by another automation, is never modifi
 | Préréglage de couleur suivant / précédent | See the memory helper for the position. Lamp off: first preset. One step or continuous. |
 | Action personnalisée | Runs the actions entered under the gesture; the `gesture` variable holds the gesture name. |
 
-Continuous actions are offered for holds only. **Double press** exists only on IKEA remotes, whose firmware does not report it: the first press acts at once, the second runs the double-press action.
+Continuous actions are offered for holds only. **Double press** on IKEA remotes needs the memory helper, because their firmware does not report it: the first press acts at once, the second runs the double-press action. The eWeLink and Aqara buttons report their double press themselves, with no helper.
 
 ## Common settings
 
@@ -108,6 +110,7 @@ An inconsistent configuration (minimum above maximum, unknown preset, black reca
 - **Colours stop a running effect** (colorloop) when the lamp allows it.
 - **The Tap Dial dial** drives the lamp switched on most recently among the four; if all are off, the lamp switched most recently; an unavailable lamp is never chosen. When lamps follow one another, such as a group and its members, the lamp the remote commanded wins: a member’s button then the dial drives that member alone, the group’s button then the dial drives the group. A lamp switched on otherwise more than 2 seconds later still comes first.
 - **The eWeLink button** is read from its commands (single, double, long). `attribute_updated` state reports are ignored: the button can send them with no press.
+- **The Aqara button** reports single press, double press, and the start and end of a hold itself. It does not repeat the hold: dimming runs at the set rate until release, or until the maximum duration if the radio release is lost. By default only the single press has an action (toggle).
 
 ## Automatic switch-off
 
@@ -127,6 +130,7 @@ An inconsistent configuration (minimum above maximum, unknown preset, black reca
 | IKEA 5 buttons “presets” + `input_select` | Defaults; the palette replaces the `input_select`. |
 | IKEA 5 buttons “whites” | Left: warmer, Right: cooler (press and hold), reference white 2,500 K. The former blueprint used the `color_temp` parameter in mireds, which Home Assistant 2026.10 no longer accepts. |
 | STYRBAR: Text helper, `styrbar_maintiens` script | Same defaults. Keep the same helper for the double press: its former content is replaced at the first gesture. Disable the former automation first. The script is no longer needed. *Recall on right / left hold*: pick *Couleur de rappel* for that hold. *Brightness forced on Up*: action *Allumer au niveau d’allumage*. |
+| Aqara automation on the “single press” device trigger | Aqara blueprint defaults; carry the former transition over to *Fondu de la luminosité*. |
 | eWeLink automation on `attribute_updated` | Single press: toggle at a 25 % on level; double press: alternate 25 % / 100 %. |
 | Lighting timer (manual light) | Automatic switch-off with the same Timer helper and duration. |
 

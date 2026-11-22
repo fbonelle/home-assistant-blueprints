@@ -2,6 +2,11 @@
 
 [Français](CHANGELOG.md) · **English**
 
+## Lighting remotes — 1.1.0 — 23 November 2026
+
+- New blueprint for the Aqara wireless button (lumi.remote.b1acn01, WXKG11LM): single press, double press and hold, with the family's shared actions and settings. The double press is reported by the button itself and needs no memory helper; a hold stops on release or at the maximum duration.
+- The memory helper description no longer calls it necessary for the double press on models that do not need it (Hue Dimmer, Hue Tap Dial, eWeLink, Aqara).
+
 ## Notification system — 1.0.2 — 16 November 2026
 
 - At Home Assistant start-up the ntfy entity stays unavailable for about 45 seconds; the first notifications (for example “Zigbee2MQTT back up”) then fell back to the mobile app, itself not reachable yet. An ntfy send now waits for an entity that has just become unavailable, at most 120 seconds after it became unavailable (setting “Attente d’une entité ntfy tout juste indisponible”, 0 for no wait). An entity unavailable for longer, or missing, fails at once and the dispatcher falls back to the mobile app as before.

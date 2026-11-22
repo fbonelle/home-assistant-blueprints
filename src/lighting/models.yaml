@@ -339,3 +339,35 @@ ewelink_button:
     on_level_pct: 25
     high_level_pct: 100
     transition: 0
+
+# Profil zha-quirks SwitchAQ3B : le bouton signale lui-même le simple et le double appui,
+# ainsi que le début et la fin d'un maintien, dans l'attribut 0x0055 de son cluster
+# Multistate Input. Chaque valeur devient une commande zha_event dont « args » vaut
+# {'value': <valeur reçue>} : single (1), double (2), hold (0) et release (255).
+# Le double appui étant signalé par le micrologiciel, il ne demande pas d'assistant de
+# mémoire. Le maintien n'est pas répété : la variation tourne à la cadence réglée
+# jusqu'au relâchement.
+aqara_button:
+  file: bouton_aqara.yaml
+  name: Bouton sans fil Aqara (WXKG11LM, lumi.remote.b1acn01) — ZHA
+  description: >-
+    Un bouton : appui simple, double appui et maintien, tous trois signalés par le
+    bouton lui-même. Un maintien est arrêté au relâchement ou, si le relâchement radio
+    est perdu, après la durée maximale.
+  filter:
+    integration: zha
+    manufacturer: LUMI
+    model: lumi.remote.b1acn01
+  repeating_hold: false
+  targets: single
+  decode: >-
+    {{ {'single': 'single_press', 'double': 'double_press', 'hold': 'button_hold',
+        'release': 'stop'}.get(command, '') }}
+  sections:
+  - key: button
+    name: Bouton
+    icon: mdi:gesture-tap-button
+    gestures:
+    - {key: single_press, label: Appui simple, default: toggle}
+    - {key: double_press, label: Double appui, default: none}
+    - {key: button_hold, label: Maintien, hold: true, default: none}

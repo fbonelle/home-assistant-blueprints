@@ -17,7 +17,7 @@
 # attend elle-même la durée ; un redémarrage ou une modification de l'automatisation
 # interrompt alors l'attente, rattrapée au démarrage suivant.
 blueprint:
-  name: Extinction automatique de l'éclairage — 1.0.4
+  name: Extinction automatique de l'éclairage — 1.1.0
   description: >-
     Éteint une ou plusieurs lampes ou prises après une durée d'allumage, quelle que soit
     la façon dont elles ont été allumées. Une extinction manuelle annule le décompte.

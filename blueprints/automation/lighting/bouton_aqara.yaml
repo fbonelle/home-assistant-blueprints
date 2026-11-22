@@ -1,0 +1,1171 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Généré par tools/build_lighting.py ; modifier src/lighting/engine.yaml et src/lighting/models.yaml.
+# Structure : les variables traduisent l'événement zha_event en geste normalisé
+# (« gesture »), choisissent la lampe (« lamp ») et l'action réglée pour ce geste
+# (« action »). La condition écarte les événements sans action, qui ne redémarrent donc
+# jamais un maintien en cours. Les actions forment le moteur commun, identique pour
+# toutes les télécommandes ; ses commentaires détaillés sont dans src/lighting/engine.yaml.
+blueprint:
+  name: Bouton sans fil Aqara (WXKG11LM, lumi.remote.b1acn01) — ZHA — 1.1.0
+  description: 'Un bouton : appui simple, double appui et maintien, tous trois signalés par le bouton lui-même.
+    Un maintien est arrêté au relâchement ou, si le relâchement radio est perdu, après la durée maximale. Actions
+    et réglages communs à toutes les télécommandes de la famille ; variations continues bornées. Assistant de mémoire
+    facultatif. Menu → Exécuter les actions affiche un diagnostic sans commander la lampe. Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/lighting.md'
+  domain: automation
+  homeassistant:
+    min_version: 2026.10.0
+  author: fbonelle
+  source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/automation/lighting/bouton_aqara.yaml
+  input:
+    remote:
+      name: Télécommande
+      selector:
+        device:
+          filter:
+          - integration: zha
+            manufacturer: LUMI
+            model: lumi.remote.b1acn01
+    light:
+      name: Lampe
+      selector:
+        entity:
+          filter:
+          - domain: light
+    memory:
+      name: Assistant de mémoire (facultatif)
+      description: Assistant Texte de longueur maximale 255, réservé à cette automatisation. Apporte la position
+        exacte dans la palette, le rejet des événements désordonnés et l'arrêt au niveau atteint lors du relâchement.
+        Sans assistant, tout le reste fonctionne.
+      default: ''
+      selector:
+        entity:
+          filter:
+          - domain: input_text
+    button:
+      name: Bouton
+      icon: mdi:gesture-tap-button
+      input:
+        single_press_action:
+          name: Appui simple
+          default: toggle
+          selector:
+            select:
+              mode: dropdown
+              options:
+              - value: none
+                label: Aucune action
+              - value: toggle
+                label: Basculer marche/arrêt
+              - value: toggle_level
+                label: Basculer, en allumant au niveau d'allumage
+              - value: 'on'
+                label: Allumer
+              - value: 'off'
+                label: Éteindre
+              - value: level
+                label: Allumer au niveau d'allumage
+              - value: full
+                label: Pleine luminosité
+              - value: full_reference
+                label: Pleine luminosité et couleur de référence
+              - value: recall
+                label: Couleur de rappel (luminosité conservée)
+              - value: alternate
+                label: Alterner entre niveau d'allumage et niveau haut
+              - value: brighter
+                label: Augmenter la luminosité d'un pas
+              - value: dimmer
+                label: Baisser la luminosité d'un pas
+              - value: cooler
+                label: Blanc plus froid d'un pas
+              - value: warmer
+                label: Blanc plus chaud d'un pas
+              - value: next_preset
+                label: Préréglage de couleur suivant
+              - value: previous_preset
+                label: Préréglage de couleur précédent
+              - value: custom
+                label: Action personnalisée
+        single_press_custom:
+          name: Appui simple — action personnalisée
+          description: Exécutée seulement si « Action personnalisée » est choisie ci-dessus.
+          default: []
+          selector:
+            action: {}
+        double_press_action:
+          name: Double appui
+          default: none
+          selector:
+            select:
+              mode: dropdown
+              options:
+              - value: none
+                label: Aucune action
+              - value: toggle
+                label: Basculer marche/arrêt
+              - value: toggle_level
+                label: Basculer, en allumant au niveau d'allumage
+              - value: 'on'
+                label: Allumer
+              - value: 'off'
+                label: Éteindre
+              - value: level
+                label: Allumer au niveau d'allumage
+              - value: full
+                label: Pleine luminosité
+              - value: full_reference
+                label: Pleine luminosité et couleur de référence
+              - value: recall
+                label: Couleur de rappel (luminosité conservée)
+              - value: alternate
+                label: Alterner entre niveau d'allumage et niveau haut
+              - value: brighter
+                label: Augmenter la luminosité d'un pas
+              - value: dimmer
+                label: Baisser la luminosité d'un pas
+              - value: cooler
+                label: Blanc plus froid d'un pas
+              - value: warmer
+                label: Blanc plus chaud d'un pas
+              - value: next_preset
+                label: Préréglage de couleur suivant
+              - value: previous_preset
+                label: Préréglage de couleur précédent
+              - value: custom
+                label: Action personnalisée
+        double_press_custom:
+          name: Double appui — action personnalisée
+          description: Exécutée seulement si « Action personnalisée » est choisie ci-dessus.
+          default: []
+          selector:
+            action: {}
+        button_hold_action:
+          name: Maintien
+          default: none
+          selector:
+            select:
+              mode: dropdown
+              options:
+              - value: none
+                label: Aucune action
+              - value: toggle
+                label: Basculer marche/arrêt
+              - value: toggle_level
+                label: Basculer, en allumant au niveau d'allumage
+              - value: 'on'
+                label: Allumer
+              - value: 'off'
+                label: Éteindre
+              - value: level
+                label: Allumer au niveau d'allumage
+              - value: full
+                label: Pleine luminosité
+              - value: full_reference
+                label: Pleine luminosité et couleur de référence
+              - value: recall
+                label: Couleur de rappel (luminosité conservée)
+              - value: alternate
+                label: Alterner entre niveau d'allumage et niveau haut
+              - value: brighter
+                label: Augmenter la luminosité d'un pas
+              - value: dimmer
+                label: Baisser la luminosité d'un pas
+              - value: brighter_hold
+                label: Augmenter la luminosité en continu
+              - value: dimmer_hold
+                label: Baisser la luminosité en continu
+              - value: cooler
+                label: Blanc plus froid d'un pas
+              - value: warmer
+                label: Blanc plus chaud d'un pas
+              - value: cooler_hold
+                label: Blanc plus froid en continu
+              - value: warmer_hold
+                label: Blanc plus chaud en continu
+              - value: next_preset
+                label: Préréglage de couleur suivant
+              - value: previous_preset
+                label: Préréglage de couleur précédent
+              - value: next_preset_hold
+                label: Préréglages suivants en continu
+              - value: previous_preset_hold
+                label: Préréglages précédents en continu
+              - value: custom
+                label: Action personnalisée
+        button_hold_custom:
+          name: Maintien — action personnalisée
+          description: Exécutée seulement si « Action personnalisée » est choisie ci-dessus.
+          default: []
+          selector:
+            action: {}
+    settings:
+      name: Réglages de variation et de couleur
+      icon: mdi:tune
+      collapsed: true
+      input:
+        step_pct:
+          name: Pas de luminosité
+          description: Variation appliquée par un appui « d'un pas ».
+          default: 10
+          selector:
+            number:
+              min: 1
+              max: 50
+              step: 1
+              unit_of_measurement: '%'
+              mode: box
+        brightness_speed:
+          name: Vitesse de variation pendant un maintien
+          description: Points de luminosité par seconde ; 35 traverse toute la plage en environ 3 secondes. 0 utilise
+            le pas de luminosité pendant un maintien à chaque cadence.
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 100
+              step: 1
+              unit_of_measurement: '%/s'
+              mode: box
+        hold_step_pct:
+          name: Pas de luminosité pendant un maintien
+          description: Utilisé quand la vitesse vaut 0. Pour les télécommandes qui répètent elles-mêmes le maintien
+            (Philips Hue), variation à chaque répétition.
+          default: 10
+          selector:
+            number:
+              min: 1
+              max: 50
+              step: 1
+              unit_of_measurement: '%'
+              mode: box
+        hold_interval:
+          name: Cadence de la luminosité pendant un maintien
+          description: Intervalle entre deux commandes de luminosité d'un maintien.
+          default: 0.5
+          selector:
+            number:
+              min: 0.2
+              max: 2
+              step: 0.1
+              unit_of_measurement: s
+              mode: box
+        preset_hold_interval:
+          name: Cadence des couleurs et des blancs pendant un maintien
+          description: Intervalle entre deux préréglages ou deux pas de température d'un maintien.
+          default: 0.5
+          selector:
+            number:
+              min: 0.2
+              max: 3
+              step: 0.1
+              unit_of_measurement: s
+              mode: box
+        hold_limit:
+          name: Durée maximale d'un maintien
+          description: Arrêt automatique d'une variation continue si le relâchement radio est perdu.
+          default: 10
+          selector:
+            number:
+              min: 2
+              max: 60
+              step: 1
+              unit_of_measurement: s
+              mode: box
+        smooth_dimming:
+          name: Lisser la variation pendant un maintien
+          description: Chaque commande de luminosité d'un maintien est un fondu qui dure jusqu'à la suivante.
+          default: true
+          selector:
+            boolean: {}
+        min_pct:
+          name: Luminosité minimale
+          description: La baisse de luminosité s'arrête à ce niveau et n'éteint jamais la lampe ; un maintien vers
+            le haut sur une lampe éteinte part de ce niveau.
+          default: 1
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: '%'
+              mode: box
+        max_pct:
+          name: Luminosité maximale de la variation
+          description: Butée haute des appuis et maintiens qui augmentent la luminosité.
+          default: 100
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: '%'
+              mode: box
+        on_level_pct:
+          name: Niveau d'allumage
+          description: Utilisé par « Allumer au niveau d'allumage », « Basculer, en allumant au niveau d'allumage
+            » et « Alterner ».
+          default: 50
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: '%'
+              mode: box
+        high_level_pct:
+          name: Niveau haut
+          description: Second niveau de l'action « Alterner ».
+          default: 100
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: '%'
+              mode: box
+        transition:
+          name: Fondu de la luminosité
+          description: Fondu des allumages, extinctions et pas uniques de luminosité, si la lampe le prend en charge.
+            0 pour aucun fondu.
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 5
+              step: 0.1
+              unit_of_measurement: s
+              mode: box
+        color_transition:
+          name: Fondu des couleurs
+          description: Fondu des changements de couleur, de blanc et du rappel. Pendant un maintien, il est limité
+            à la cadence des couleurs.
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 5
+              step: 0.1
+              unit_of_measurement: s
+              mode: box
+        kelvin_step:
+          name: Pas de température du blanc
+          default: 250
+          selector:
+            number:
+              min: 50
+              max: 1000
+              step: 50
+              unit_of_measurement: K
+              mode: box
+        reference_kelvin:
+          name: Blanc de référence
+          description: Point de départ des changements de température quand la lampe n'en indique pas, et couleur
+            de référence des lampes sans mode couleur.
+          default: 2500
+          selector:
+            number:
+              min: 1500
+              max: 6500
+              step: 50
+              unit_of_measurement: K
+              mode: box
+        palette:
+          name: Préréglages de couleur
+          description: Ordre de défilement des préréglages. Le premier est la couleur de référence des lampes couleur.
+            Retirer un préréglage le supprime du défilement.
+          default:
+          - default
+          - blue
+          - light_blue
+          - saturated_purple
+          - lime
+          - light_purple
+          - yellow
+          - saturated_pink
+          - dark_peach
+          - saturated_red
+          - cold_sky
+          - pink
+          - peach
+          - warm_amber
+          - light_pink
+          - cool_daylight
+          - candlelight
+          - warm_glow
+          - warm_white
+          - sunrise
+          - cool_white
+          selector:
+            select:
+              multiple: true
+              sort: false
+              options:
+              - value: default
+                label: Défaut (blanc chaud doré)
+              - value: blue
+                label: Bleu
+              - value: light_blue
+                label: Bleu clair
+              - value: saturated_purple
+                label: Violet saturé
+              - value: lime
+                label: Vert citron
+              - value: light_purple
+                label: Violet clair
+              - value: yellow
+                label: Jaune
+              - value: saturated_pink
+                label: Rose saturé
+              - value: dark_peach
+                label: Pêche foncé
+              - value: saturated_red
+                label: Rouge saturé
+              - value: cold_sky
+                label: Ciel froid
+              - value: pink
+                label: Rose
+              - value: peach
+                label: Pêche
+              - value: warm_amber
+                label: Ambre chaud
+              - value: light_pink
+                label: Rose pâle
+              - value: cool_daylight
+                label: Lumière du jour froide
+              - value: candlelight
+                label: Bougie
+              - value: warm_glow
+                label: Lueur chaude
+              - value: warm_white
+                label: Blanc chaud
+              - value: sunrise
+                label: Lever de soleil
+              - value: cool_white
+                label: Blanc froid
+              - value: ha_warm
+                label: Home Assistant — blanc chaud de référence
+              - value: ha_soft
+                label: Home Assistant — blanc intermédiaire de référence
+              - value: ha_white
+                label: Home Assistant — blanc clair de référence
+              - value: ikea_cold_sky
+                label: IKEA — ciel froid
+              - value: ikea_cool_daylight
+                label: IKEA — lumière du jour froide
+              - value: ikea_cool_white
+                label: IKEA — blanc froid
+              - value: ikea_sunrise
+                label: IKEA — lever de soleil
+              - value: ikea_warm_white
+                label: IKEA — blanc chaud
+              - value: ikea_warm_glow
+                label: IKEA — lueur chaude
+              - value: ikea_candle
+                label: IKEA — bougie
+              - value: ikea_amber
+                label: IKEA — ambre
+              - value: ikea_peach
+                label: IKEA — pêche
+              - value: ikea_dark_peach
+                label: IKEA — pêche foncée
+              - value: ikea_dark_red
+                label: IKEA — rouge foncé
+              - value: ikea_pink
+                label: IKEA — rose
+              - value: ikea_light_pink
+                label: IKEA — rose clair
+              - value: ikea_dark_pink
+                label: IKEA — rose foncé
+              - value: ikea_light_purple
+                label: IKEA — mauve clair
+              - value: ikea_dark_purple
+                label: IKEA — mauve foncé
+              - value: ikea_blue
+                label: IKEA — bleu
+              - value: ikea_light_blue
+                label: IKEA — bleu clair
+              - value: ikea_lime
+                label: IKEA — vert citron
+              - value: ikea_yellow
+                label: IKEA — jaune
+        recall_color:
+          name: Couleur de rappel
+          description: Couleur de l'action « Couleur de rappel » ; la luminosité est conservée.
+          default:
+          - 255
+          - 192
+          - 140
+          selector:
+            color_rgb: {}
+        colors_turn_on:
+          name: Les changements de couleur et de blanc peuvent allumer la lampe
+          default: true
+          selector:
+            boolean: {}
+        recall_turns_on:
+          name: Le rappel de couleur peut allumer la lampe
+          default: true
+          selector:
+            boolean: {}
+        double_press_ms:
+          name: Délai maximal d'un double appui
+          description: Nécessite l'assistant de mémoire. Le premier appui agit tout de suite ; le second, s'il arrive
+            dans ce délai, exécute l'action de double appui.
+          default: 800
+          selector:
+            number:
+              min: 250
+              max: 1500
+              step: 50
+              unit_of_measurement: ms
+              mode: box
+        debounce_ms:
+          name: Ignorer les événements trop rapprochés
+          description: Écarte un doublon radio. Avec l'assistant de mémoire, seul un geste identique est écarté
+            ; sans assistant, tout geste trop proche du précédent. 0 désactive ce filtre.
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 200
+              step: 10
+              unit_of_measurement: ms
+              mode: box
+        logging:
+          name: Journaliser les gestes et les actions
+          description: Niveau INFO, journal lighting_remote ; l'automatisation règle elle-même ce niveau. Les erreurs
+            restent signalées par Home Assistant.
+          default: false
+          selector:
+            boolean: {}
+mode: restart
+max_exceeded: silent
+triggers:
+- trigger: event
+  event_type: zha_event
+  event_data:
+    device_id: !input 'remote'
+variables:
+  manual: '{{ trigger is not defined or trigger.event is not defined }}'
+  command: |-
+    {{ trigger.event.data.get('command', '') | string
+       if trigger is defined and trigger.event is defined and trigger.event.data is mapping else '' }}
+  args: |-
+    {% set raw = trigger.event.data.get('args', [])
+       if trigger is defined and trigger.event is defined and trigger.event.data is mapping else [] %}
+    {% set ns = namespace(items=[], fields={}) %} {% if raw is mapping %}
+      {% for key, value in raw.items() %}
+        {% set ns.fields = dict(ns.fields, **{key | string: (none if value is none else (value if value is boolean
+             else (value | int if value is integer else (value | float if value is float else value | string))))}) %}
+      {% endfor %}{{ ns.fields }}
+    {% elif raw is sequence and raw is not string %}
+      {% for value in raw %}
+        {% set ns.items = ns.items + [none if value is none else (value if value is boolean
+             else (value | int if value is integer else (value | float if value is float else value | string)))] %}
+      {% endfor %}{{ ns.items }}
+    {% else %}{{ [] }}{% endif %}
+  params: |-
+    {% set raw = trigger.event.data.get('params', {})
+       if trigger is defined and trigger.event is defined and trigger.event.data is mapping else {} %}
+    {% set ns = namespace(fields={}) %} {% if raw is mapping %}
+      {% for key, value in raw.items() %}
+        {% set ns.fields = dict(ns.fields, **{key | string: (none if value is none else (value if value is boolean
+             else (value | int if value is integer else (value | float if value is float else value | string))))}) %}
+      {% endfor %}
+    {% endif %}{{ ns.fields }}
+  dial_step: '{{ ((params.get(''step_size'', 0) | float(0)) / 2.55) | round(2) if params is mapping else 0 }}'
+  now_ts: '{{ as_timestamp(now()) }}'
+  event_ts: |-
+    {{ as_timestamp(trigger.event.time_fired, now_ts)
+       if trigger is defined and trigger.event is defined else now_ts }}
+  repeating_hold: false
+  catalog:
+    default:
+      data:
+        hs_color: [38, 53]
+      xy: [0.4586, 0.4083]
+    blue:
+      data:
+        hs_color: [247.559, 49.804]
+      xy: [0.2302, 0.164]
+    light_blue:
+      data:
+        hs_color: [222.692, 40.784]
+      xy: [0.2307, 0.2335]
+    saturated_purple:
+      data:
+        hs_color: [305.455, 69.02]
+      xy: [0.3981, 0.184]
+    lime:
+      data:
+        hs_color: [75.821, 78.824]
+      xy: [0.3687, 0.5588]
+    light_purple:
+      data:
+        hs_color: [312.558, 33.725]
+      xy: [0.3726, 0.2545]
+    yellow:
+      data:
+        hs_color: [65.647, 66.667]
+      xy: [0.4075, 0.5036]
+    saturated_pink:
+      data:
+        hs_color: [333.474, 74.51]
+      xy: [0.5323, 0.2461]
+    dark_peach:
+      data:
+        hs_color: [10.971, 68.627]
+      xy: [0.5906, 0.3329]
+    saturated_red:
+      data:
+        hs_color: [9.016, 75.686]
+      xy: [0.626, 0.3238]
+    cold_sky:
+      data:
+        hs_color: [196.552, 11.373]
+      xy: [0.2949, 0.322]
+    pink:
+      data:
+        hs_color: [338.478, 36.078]
+      xy: [0.4186, 0.2866]
+    peach:
+      data:
+        hs_color: [16.897, 68.235]
+      xy: [0.5714, 0.3505]
+    warm_amber:
+      data:
+        hs_color: [28.308, 76.471]
+      xy: [0.5612, 0.3864]
+    light_pink:
+      data:
+        hs_color: [316.957, 18.039]
+      xy: [0.3513, 0.2915]
+    cool_daylight:
+      data:
+        hs_color: [196.667, 7.059]
+      xy: [0.3056, 0.3248]
+    candlelight:
+      data:
+        hs_color: [41.613, 72.941]
+      xy: [0.4992, 0.4355]
+    warm_glow:
+      data:
+        hs_color: [45.581, 50.588]
+      xy: [0.4361, 0.4247]
+    warm_white:
+      data:
+        hs_color: [43.125, 25.098]
+      xy: [0.3776, 0.3755]
+    sunrise:
+      data:
+        hs_color: [48.649, 14.51]
+      xy: [0.3513, 0.3596]
+    cool_white:
+      data:
+        hs_color: [130, 2.353]
+      xy: [0.3197, 0.3347]
+    ha_warm:
+      data:
+        rgb_color: [255, 192, 140]
+      xy: [0.4547, 0.3742]
+    ha_soft:
+      data:
+        rgb_color: [255, 228, 206]
+      xy: [0.3714, 0.3494]
+    ha_white:
+      data:
+        rgb_color: [255, 254, 250]
+      xy: [0.3264, 0.333]
+    ikea_cold_sky:
+      data:
+        xy_color: [0.3221, 0.3317]
+      xy: [0.3221, 0.3317]
+    ikea_cool_daylight:
+      data:
+        xy_color: [0.3451, 0.3451]
+      xy: [0.3451, 0.3451]
+    ikea_cool_white:
+      data:
+        xy_color: [0.3804, 0.3804]
+      xy: [0.3804, 0.3804]
+    ikea_sunrise:
+      data:
+        xy_color: [0.4369, 0.4041]
+      xy: [0.4369, 0.4041]
+    ikea_warm_white:
+      data:
+        xy_color: [0.4599, 0.4106]
+      xy: [0.4599, 0.4106]
+    ikea_warm_glow:
+      data:
+        xy_color: [0.5056, 0.4152]
+      xy: [0.5056, 0.4152]
+    ikea_candle:
+      data:
+        xy_color: [0.5516, 0.4075]
+      xy: [0.5516, 0.4075]
+    ikea_amber:
+      data:
+        xy_color: [0.58, 0.38]
+      xy: [0.58, 0.38]
+    ikea_peach:
+      data:
+        xy_color: [0.58, 0.35]
+      xy: [0.58, 0.35]
+    ikea_dark_peach:
+      data:
+        xy_color: [0.62, 0.34]
+      xy: [0.62, 0.34]
+    ikea_dark_red:
+      data:
+        xy_color: [0.66, 0.32]
+      xy: [0.66, 0.32]
+    ikea_pink:
+      data:
+        xy_color: [0.5, 0.28]
+      xy: [0.5, 0.28]
+    ikea_light_pink:
+      data:
+        xy_color: [0.45, 0.28]
+      xy: [0.45, 0.28]
+    ikea_dark_pink:
+      data:
+        xy_color: [0.5, 0.24]
+      xy: [0.5, 0.24]
+    ikea_light_purple:
+      data:
+        xy_color: [0.34, 0.19]
+      xy: [0.34, 0.19]
+    ikea_dark_purple:
+      data:
+        xy_color: [0.31, 0.12]
+      xy: [0.31, 0.12]
+    ikea_blue:
+      data:
+        xy_color: [0.17, 0.05]
+      xy: [0.17, 0.05]
+    ikea_light_blue:
+      data:
+        xy_color: [0.2, 0.1]
+      xy: [0.2, 0.1]
+    ikea_lime:
+      data:
+        xy_color: [0.41, 0.51]
+      xy: [0.41, 0.51]
+    ikea_yellow:
+      data:
+        xy_color: [0.45, 0.47]
+      xy: [0.45, 0.47]
+  double_keys: []
+  step_pct: !input 'step_pct'
+  brightness_speed: !input 'brightness_speed'
+  hold_step_pct: !input 'hold_step_pct'
+  hold_interval: !input 'hold_interval'
+  preset_hold_interval: !input 'preset_hold_interval'
+  hold_limit: !input 'hold_limit'
+  smooth_dimming: !input 'smooth_dimming'
+  min_pct: !input 'min_pct'
+  max_pct: !input 'max_pct'
+  on_level_pct: !input 'on_level_pct'
+  high_level_pct: !input 'high_level_pct'
+  transition: !input 'transition'
+  color_transition: !input 'color_transition'
+  kelvin_step: !input 'kelvin_step'
+  reference_kelvin: !input 'reference_kelvin'
+  palette: !input 'palette'
+  recall_color: !input 'recall_color'
+  colors_turn_on: !input 'colors_turn_on'
+  recall_turns_on: !input 'recall_turns_on'
+  double_press_ms: !input 'double_press_ms'
+  debounce_ms: !input 'debounce_ms'
+  logging: !input 'logging'
+  memory_entity: !input 'memory'
+  dial_scale: 1
+  actions_map:
+    single_press: !input 'single_press_action'
+    double_press: !input 'double_press_action'
+    button_hold: !input 'button_hold_action'
+  gesture_raw: |-
+    {{ {'single': 'single_press', 'double': 'double_press', 'hold': 'button_hold',
+        'release': 'stop'}.get(command, '') }}
+  lamp: !input 'light'
+  owner: '{{ ''a'' ~ sha256(this.entity_id if this is defined else ''manual'')[:10] }}'
+  memory_raw: '{{ states(memory_entity) if memory_entity is string and memory_entity.startswith(''input_text.'')
+    else '''' }}'
+  memory_state: |-
+    {% if not (memory_entity is string and memory_entity != '') %}none {% elif not memory_entity.startswith('input_text.') or memory_raw in ['unavailable']
+         or state_attr(memory_entity, 'max') | int(0) < 255 %}invalid
+    {% elif memory_raw in ['', 'unknown'] or memory_raw.startswith('sl1:') %}empty {% elif memory_raw.startswith('lr1:') %}
+      {% set p = memory_raw[4:] | from_json(none) %}
+      {% if p is not mapping or p.get('v') != 1 %}corrupt
+      {% elif p.get('o') != owner %}foreign
+      {% else %}ok{% endif %}
+    {% else %}corrupt{% endif %}
+  use_memory: '{{ memory_state in [''ok'', ''empty''] }}'
+  m: |-
+    {% set p = memory_raw[4:] | from_json({}) if memory_state == 'ok' else {} %} {% set p = p if p is mapping else {} %} {% set x = p.get('x') %} {% set m = dict(
+         g=p.get('g') if p.get('g') is string else '',
+         t=p.get('t') | float(0),
+         h=p.get('h') if p.get('h') is string else '',
+         d=p.get('d') if p.get('d') is string else '',
+         s=p.get('s') | float(0),
+         i=p.get('i') | int(-1),
+         p=p.get('p') if p.get('p') is string else '',
+         x=x if x is sequence and x is not string and x is not mapping and x | count == 2 else [],
+         k=p.get('k') if p.get('k') is string else '') %}
+    {{ dict(m, g='', t=0, h='', d='', s=0) if m.t > now_ts + 5 or m.s > now_ts + 5 else m }}
+  gesture: |-
+    {% set double = gesture_raw | replace('_press', '_double') %} {% if use_memory and gesture_raw.endswith('_press') and double in actions_map
+          and actions_map[double] != 'none' and m.g == gesture_raw
+          and 0 < event_ts - m.t <= double_press_ms / 1000 %}{{ double }}
+    {% else %}{{ gesture_raw }}{% endif %}
+  action: '{% set known = [''none'', ''toggle'', ''toggle_level'', ''on'', ''off'', ''level'', ''full'', ''full_reference'',
+    ''recall'', ''alternate'', ''brighter'', ''dimmer'', ''brighter_hold'', ''dimmer_hold'', ''cooler'', ''warmer'',
+    ''cooler_hold'', ''warmer_hold'', ''next_preset'', ''previous_preset'', ''next_preset_hold'', ''previous_preset_hold'',
+    ''custom''] %} {% set chosen = actions_map.get(gesture, ''none'') if gesture not in ['''', ''stop''] else ''none''
+    %} {{ chosen if chosen in known else ''none'' }}'
+  continuous: '{{ action.endswith(''_hold'') and not repeating_hold }}'
+  own_change: '{% set s = states[lamp] if lamp is string and lamp.startswith(''light.'') else none %} {{ this is
+    defined and s is not none and s.context.id == this.context.id }}'
+  loop_running: |-
+    {% set s = states[lamp] if lamp is string and lamp.startswith('light.') else none %} {{ this is defined and this.attributes.get('current', 0) | int(0) > 0 and own_change and s is not none
+       and now_ts - as_timestamp(s.last_updated) < [hold_interval, preset_hold_interval] | max + 1 }}
+  fade_level: |-
+    {% set s = states[lamp] if lamp is string and lamp.startswith('light.') else none %} {% if use_memory and m.h != '' and m.d in ['brighter', 'dimmer'] and own_change and smooth_dimming
+          and s is not none and s.state == 'on' and s.attributes.get('brightness') is number %}
+      {% set target = s.attributes.brightness / 2.55 %}
+      {% set elapsed = now_ts - as_timestamp(s.last_updated) %}
+      {% set tick = brightness_speed * hold_interval if brightness_speed > 0 else hold_step_pct %}
+      {% set previous = target - tick if m.d == 'brighter' else target + tick %}
+      {% if 0 <= elapsed < hold_interval and min_pct < target < max_pct %}
+        {{ (previous + (target - previous) * elapsed / hold_interval) | round(1) }}
+      {% else %}-1{% endif %}
+    {% else %}-1{% endif %}
+  ignore_reason: |-
+    {% if manual %} {% elif gesture_raw == '' %}événement sans geste {% elif now_ts - event_ts > 5 %}événement trop ancien {% elif use_memory and event_ts < m.t - 0.001 %}événement arrivé dans le désordre {% elif debounce_ms > 0 and use_memory and m.g in [gesture_raw, gesture_raw | replace('_press', '_double')]
+            and 0 <= event_ts - m.t < debounce_ms / 1000 %}doublon radio
+    {# Sans mémoire, l'exécution précédente peut être horodatée quelques millisecondes après
+       l'émission de cet événement si Home Assistant est occupé : l'écart est pris sans signe. #}
+    {% elif debounce_ms > 0 and not use_memory and this is defined and this.attributes.get('last_triggered')
+            and (event_ts - as_timestamp(this.attributes.last_triggered, 0)) | abs < debounce_ms / 1000 %}doublon radio
+    {% elif continuous and use_memory and m.h == gesture and 0 <= event_ts - m.s < hold_limit %}répétition du maintien en cours {% elif continuous and not use_memory and loop_running %}maintien déjà en cours {% elif gesture == 'stop' or action == 'custom' %} {% elif action == 'none' %}geste sans action {% elif not (lamp is string and lamp.startswith('light.')) %}geste sans lampe {% endif %}
+conditions:
+- condition: template
+  value_template: '{{ ignore_reason | trim == '''' }}'
+actions:
+- variables:
+    notification_id: '{{ ''lighting_remote_'' ~ owner }}'
+    presets: '{{ palette | select(''in'', catalog) | list if palette is sequence and palette is not string else
+      [] }}'
+    config_errors: |-
+      {% set ns = namespace(errors=[]) %} {% if memory_state == 'invalid' %}
+        {% set ns.errors = ns.errors + ["L'assistant de mémoire doit être un assistant Texte existant, de longueur maximale 255."] %}
+      {% endif %} {% if min_pct > max_pct %}
+        {% set ns.errors = ns.errors + ['La luminosité minimale dépasse la luminosité maximale.'] %}
+      {% endif %} {% if debounce_ms > 0 and debounce_ms >= double_press_ms %}
+        {% set ns.errors = ns.errors + ["Le filtre des doublons doit être plus court que le délai du double appui."] %}
+      {% endif %} {% if palette is not sequence or palette is string or presets | count != palette | count
+            or presets | unique | list | count != presets | count %}
+        {% set ns.errors = ns.errors + ['La palette contient un préréglage inconnu ou en double.'] %}
+      {% endif %} {% if recall_color is not sequence or recall_color is string or recall_color | count != 3
+            or recall_color | select('number') | list | count != 3
+            or recall_color | select('ge', 0) | select('le', 255) | list | count != 3
+            or recall_color | sum == 0 %}
+        {% set ns.errors = ns.errors + ['La couleur de rappel doit être une couleur RGB lumineuse (trois valeurs de 0 à 255).'] %}
+      {% endif %} {{ ns.errors }}
+    memory_warning: '{% if memory_state == ''foreign'' %}L''assistant de mémoire appartient à une autre automatisation
+      : il n''est pas modifié et la télécommande fonctionne sans mémoire. Choisir un assistant propre à cette automatisation.
+      {% elif memory_state == ''corrupt'' %}L''assistant de mémoire est illisible : il n''est pas modifié et la
+      télécommande fonctionne sans mémoire. Le vider pendant que l''automatisation est désactivée. {% endif %}'
+    doubles_configured: '{% set ns = namespace(count=0) %} {% for key in double_keys %}{% if actions_map.get(key,
+      ''none'') != ''none'' %}{% set ns.count = ns.count + 1 %}{% endif %}{% endfor %} {{ ns.count > 0 }}'
+- if: '{{ config_errors | count > 0 }}'
+  then:
+  - action: persistent_notification.create
+    data:
+      notification_id: '{{ notification_id }}'
+      title: Télécommande d'éclairage — configuration à corriger
+      message: '{{ this.attributes.friendly_name | default(''Automatisation'') }} : {{ config_errors | join('' '')
+        }}'
+  - action: system_log.write
+    data:
+      logger: lighting_remote
+      level: warning
+      message: '{{ this.entity_id | default("automation") }} : {{ config_errors | join(" ") }}'
+  - stop: Configuration invalide ; aucune commande envoyée.
+- if: '{{ manual }}'
+  then:
+  - variables:
+      targets: '{{ (lamps if lamps is defined else [lamp]) | select(''string'') | select(''match'', ''^light[.]'')
+        | list }}'
+  - action: persistent_notification.create
+    data:
+      notification_id: '{{ notification_id }}'
+      title: Télécommande d'éclairage — diagnostic
+      message: |-
+        **{{ this.attributes.friendly_name | default('Automatisation') }}** — aucune commande envoyée par ce diagnostic.
+        {%- for target in targets %}
+        {%- set modes = state_attr(target, 'supported_color_modes') or [] %}
+        {%- set features = state_attr(target, 'supported_features') | int(0) %}
+
+        Lampe {{ state_attr(target, 'friendly_name') or target }} (`{{ target }}`) :
+        - communication : {{ 'joignable' if states(target) in ['on', 'off'] else 'indisponible' }}
+        - luminosité : {{ 'oui' if modes | reject('in', ['onoff']) | list | count > 0 else 'non' }}
+        - couleurs : {{ 'oui' if modes | select('in', ['hs', 'xy', 'rgb', 'rgbw', 'rgbww']) | list | count > 0 else 'non' }}
+        - blanc réglable : {{ ('oui, de ' ~ state_attr(target, 'min_color_temp_kelvin') ~ ' à ' ~ state_attr(target, 'max_color_temp_kelvin') ~ ' K') if 'color_temp' in modes else 'non (les blancs passent par les couleurs si la lampe en a)' }}
+        - fondus : {{ 'oui' if features | bitwise_and(32) != 0 else 'non' }}
+        - modes : {{ modes | join(', ') if modes else 'inconnus' }}
+        {%- endfor %}
+
+        Mémoire : {{ {'none': 'aucun assistant ; double appui inactif', 'empty': 'assistant prêt',
+                      'ok': 'assistant en service', 'foreign': "assistant d'une autre automatisation, ignoré",
+                      'corrupt': 'assistant illisible, ignoré'}[memory_state] }}.
+        {%- if doubles_configured and not use_memory %}
+
+        **Un double appui est configuré mais ne peut pas fonctionner sans assistant de mémoire.**
+        {%- endif %}
+        {%- if memory_warning | trim != '' %}
+
+        {{ memory_warning | trim }}
+        {%- endif %}
+  - stop: Diagnostic affiché.
+- if: '{{ memory_warning | trim != "" }}'
+  then:
+  - action: persistent_notification.create
+    data:
+      notification_id: '{{ notification_id }}'
+      title: Télécommande d'éclairage — assistant de mémoire
+      message: '{{ this.attributes.friendly_name | default(''Automatisation'') }} : {{ memory_warning }}'
+- if: '{{ use_memory }}'
+  then:
+  - action: input_text.set_value
+    target:
+      entity_id: '{{ memory_entity }}'
+    data:
+      value: |-
+        lr1:{{ dict(m, v=1, o=owner, g=gesture, t=event_ts | round(3),
+                    h=(gesture if continuous else ''),
+                    d=(action | replace('_hold', '') if continuous else ''),
+                    s=(event_ts | round(3) if continuous else 0)) | to_json }}
+- if: '{{ logging }}'
+  then:
+  - action: logger.set_level
+    continue_on_error: true
+    data:
+      lighting_remote: info
+  - action: system_log.write
+    continue_on_error: true
+    data:
+      logger: lighting_remote
+      level: info
+      message: '{{ this.entity_id | default("automation") }} : {{ command }} → {{ gesture }} → {{ action }}.'
+- if: '{{ gesture == ''stop'' }}'
+  then:
+  - if: '{{ fade_level | float(-1) >= 0 }}'
+    then:
+    - action: light.turn_on
+      target:
+        entity_id: '{{ lamp }}'
+      data:
+        brightness_pct: '{{ fade_level }}'
+        transition: 0
+  - stop: Relâchement reçu ; variation en cours arrêtée.
+- if: '{{ action == ''custom'' }}'
+  then:
+  - choose:
+    - conditions: '{{ gesture == ''single_press'' }}'
+      sequence: !input 'single_press_custom'
+    - conditions: '{{ gesture == ''double_press'' }}'
+      sequence: !input 'double_press_custom'
+    - conditions: '{{ gesture == ''button_hold'' }}'
+      sequence: !input 'button_hold_custom'
+  - stop: Action personnalisée exécutée.
+- if: '{{ states(lamp) not in [''on'', ''off''] }}'
+  then:
+  - stop: Lampe indisponible ; aucune commande envoyée.
+- variables:
+    lamp_on: '{{ is_state(lamp, ''on'') }}'
+    level: '{{ ((state_attr(lamp, ''brightness'') | float(0)) / 2.55) | round(1) if is_state(lamp, ''on'') else
+      0 }}'
+    color_modes: '{{ state_attr(lamp, ''supported_color_modes'') or [] }}'
+    has_color: '{{ color_modes | select(''in'', [''hs'', ''xy'', ''rgb'', ''rgbw'', ''rgbww'']) | list | count >
+      0 }}'
+    has_kelvin: '{{ ''color_temp'' in color_modes }}'
+    kelvin_min: '{{ state_attr(lamp, ''min_color_temp_kelvin'') | int(2000) }}'
+    kelvin_max: '{{ state_attr(lamp, ''max_color_temp_kelvin'') | int(6500) }}'
+    fade: '{{ {''transition'': transition} if transition > 0 else {} }}'
+    hold_freeze: '{{ {''brightness_pct'': fade_level} if fade_level | float(-1) >= 0 else {} }}'
+    stop_effect: |-
+      {{ {'effect': 'off'} if state_attr(lamp, 'effect') not in [none, 'off', 'none']
+         and 'off' in (state_attr(lamp, 'effect_list') or []) else {} }}
+    color_fade: '{{ {''transition'': color_transition} if color_transition > 0 else {} }}'
+- choose:
+  - conditions: '{{ action == ''toggle'' }}'
+    sequence:
+    - action: light.toggle
+      target:
+        entity_id: '{{ lamp }}'
+      data: '{{ fade }}'
+  - conditions: '{{ action == ''on'' }}'
+    sequence:
+    - action: light.turn_on
+      target:
+        entity_id: '{{ lamp }}'
+      data: '{{ dict(hold_freeze, transition=0) if hold_freeze else fade }}'
+  - conditions: '{{ action == ''off'' or (action == ''toggle_level'' and lamp_on) }}'
+    sequence:
+    - action: light.turn_off
+      target:
+        entity_id: '{{ lamp }}'
+      data: '{{ fade }}'
+  - conditions: '{{ action in [''level'', ''toggle_level''] }}'
+    sequence:
+    - action: light.turn_on
+      target:
+        entity_id: '{{ lamp }}'
+      data: '{{ dict(fade, brightness_pct=on_level_pct) }}'
+  - conditions: '{{ action == ''full'' }}'
+    sequence:
+    - action: light.turn_on
+      target:
+        entity_id: '{{ lamp }}'
+      data: '{{ dict(fade, brightness_pct=100) }}'
+  - conditions: '{{ action == ''full_reference'' }}'
+    sequence:
+    - action: light.turn_on
+      target:
+        entity_id: '{{ lamp }}'
+      data: |-
+        {% set base = dict(stop_effect, **color_fade) %} {% if has_color and presets | count > 0 %}
+          {{ dict(dict(base, **catalog[presets[0]].data), brightness_pct=100) }}
+        {% elif has_kelvin %}
+          {{ dict(base, brightness_pct=100, color_temp_kelvin=([kelvin_min, reference_kelvin, kelvin_max] | sort)[1]) }}
+        {% else %}
+          {{ dict(fade, brightness_pct=100) }}
+        {% endif %}
+  - conditions: '{{ action == ''recall'' }}'
+    sequence:
+    - if: '{{ not lamp_on and not recall_turns_on }}'
+      then:
+      - stop: Lampe éteinte ; le rappel n'est pas autorisé à l'allumer.
+    - action: light.turn_on
+      target:
+        entity_id: '{{ lamp }}'
+      data: '{{ dict(dict(dict(stop_effect, **color_fade), **hold_freeze), rgb_color=recall_color | map(''int'')
+        | list) }}'
+  - conditions: '{{ action == ''alternate'' }}'
+    sequence:
+    - action: light.turn_on
+      target:
+        entity_id: '{{ lamp }}'
+      data: '{{ dict(fade, brightness_pct=(high_level_pct if lamp_on and level < high_level_pct - 1 else on_level_pct))
+        }}'
+  default:
+  - variables:
+      operation: '{{ action | replace(''_hold'', '''') }}'
+      colour_operation: '{{ operation in [''cooler'', ''warmer'', ''next_preset'', ''previous_preset''] }}'
+      tick: '{{ preset_hold_interval if colour_operation else hold_interval }}'
+      iterations: '{{ ((hold_limit / tick) | round(0, ''ceil'') | int) if continuous else 1 }}'
+      amount: |-
+        {% if gesture in ['dial_up', 'dial_down'] and dial_step is number and dial_step > 0 %}
+          {{ ([dial_step * dial_scale, 100] | min) | round(1) }}
+        {% elif action.endswith('_hold') %}
+          {{ (brightness_speed * hold_interval) | round(2) if brightness_speed > 0 else hold_step_pct }}
+        {% else %}{{ step_pct }}{% endif %}
+      motion: |-
+        {% if colour_operation %}
+          {{ ([color_transition, preset_hold_interval] | min) if continuous else color_transition }}
+        {% else %}
+          {{ (hold_interval if smooth_dimming else 0) if continuous else transition }}
+        {% endif %}
+      cursor: |-
+        {% set xy = state_attr(lamp, 'xy_color') %} {% set valid = lamp_on and xy is sequence and xy is not string and xy | count == 2
+                       and xy[0] is number and xy[1] is number and presets | count > 0 %}
+        {% set observed = [xy[0] | round(4), xy[1] | round(4)] if valid else [] %} {% if valid and use_memory and m.p == sha256(presets | to_json)[:8] and 0 <= m.i < presets | count
+              and observed == m.x and m.k == sha256(states[lamp].context.id)[:8] %}{{ m.i }}
+        {% elif valid %}
+          {% set ns = namespace(best=-1, distance=0) %}
+          {% for key in presets %}
+            {% set c = catalog[key].xy %}
+            {% set distance = (xy[0] - c[0]) ** 2 + (xy[1] - c[1]) ** 2 %}
+            {% if ns.best < 0 or distance < ns.distance %}
+              {% set ns.best = loop.index0 %}{% set ns.distance = distance %}
+            {% endif %}
+          {% endfor %}{{ ns.best }}
+        {% else %}-1{% endif %}
+  - if: '{{ colour_operation and not lamp_on and not colors_turn_on }}'
+    then:
+    - stop: Lampe éteinte ; les changements de couleur ne sont pas autorisés à l'allumer.
+  - repeat:
+      count: '{{ iterations }}'
+      sequence:
+      - variables:
+          now_on: '{{ is_state(lamp, ''on'') }}'
+          now_brightness: '{{ state_attr(lamp, ''brightness'') | int(0) if is_state(lamp, ''on'') else 0 }}'
+          now_kelvin: '{{ state_attr(lamp, ''color_temp_kelvin'') | int(0) if is_state(lamp, ''on'') else 0 }}'
+          index: |-
+            {% set direction = 1 if operation == 'next_preset' else -1 %} {{ ((cursor + direction * repeat.index) if cursor >= 0 else ((repeat.index - 1) * direction))
+               % ([presets | count, 1] | max) }}
+          request: |-
+            {% set now_level = now_brightness / 2.55 %} {% if repeat.index > 1 and not now_on %}{{ {} }} {% elif operation == 'brighter' %}
+              {% set start = (min_pct if continuous else [amount, min_pct] | max) %}
+              {% set target = ([now_level + amount, max_pct] | min) if now_on else ([start, max_pct] | min) %}
+              {{ {'brightness_pct': target | round(1)}
+                 if not now_on or (target * 2.55) | round(0) | int > now_brightness else {} }}
+            {% elif operation == 'dimmer' %}
+              {% set target = [now_level - amount, min_pct] | max %}
+              {{ {'brightness_pct': target | round(1)}
+                 if now_on and (target * 2.55) | round(0) | int < now_brightness else {} }}
+            {% elif operation in ['cooler', 'warmer'] %}
+              {% set base = now_kelvin if now_kelvin > 0 else reference_kelvin %}
+              {% set target = ([kelvin_min, base + (kelvin_step if operation == 'cooler' else -kelvin_step), kelvin_max] | sort)[1] %}
+              {{ dict(stop_effect, color_temp_kelvin=target) if not now_on or target != now_kelvin else {} }}
+            {% elif operation in ['next_preset', 'previous_preset'] and presets | count > 0 %}
+              {{ dict(stop_effect, **catalog[presets[index]].data) }}
+            {% else %}{{ {} }}{% endif %}
+      - if: '{{ request | count == 0 }}'
+        then:
+        - if: '{{ use_memory and continuous }}'
+          then:
+          - action: input_text.set_value
+            target:
+              entity_id: '{{ memory_entity }}'
+            data:
+              value: '{% set c = states(memory_entity)[4:] | from_json({}) if states(memory_entity).startswith(''lr1:'')
+                else {} %} {% set c = c if c is mapping and c.get(''o'') == owner else dict(m, v=1, o=owner) %}
+                lr1:{{ dict(c, h='''', d='''', s=0) | to_json }}'
+        - stop: Butée atteinte, lampe éteinte ou rien à changer ; variation terminée.
+      - action: light.turn_on
+        target:
+          entity_id: '{{ lamp }}'
+        data: '{% set data = dict(request, transition=motion) if motion > 0 else request %} {{ dict(data, **hold_freeze)
+          if repeat.index == 1 and colour_operation and hold_freeze else data }}'
+      - if: '{{ use_memory and operation in [''next_preset'', ''previous_preset''] and presets | count > 0 }}'
+        then:
+        - variables:
+            shown: '{{ state_attr(lamp, ''xy_color'') }}'
+        - action: input_text.set_value
+          target:
+            entity_id: '{{ memory_entity }}'
+          data:
+            value: |-
+              {% set observed = [shown[0] | round(4), shown[1] | round(4)]
+                 if shown is sequence and shown is not string and shown | count == 2 else [] %}
+              lr1:{{ dict(m, v=1, o=owner, g=gesture, t=event_ts | round(3),
+                          h=(gesture if continuous else ''), d=(operation if continuous else ''),
+                          s=(event_ts | round(3) if continuous else 0),
+                          i=index, p=sha256(presets | to_json)[:8], x=observed,
+                          k=sha256(states[lamp].context.id)[:8]) | to_json }}
+      - if: '{{ repeat.index < iterations }}'
+        then:
+        - delay:
+            seconds: '{{ tick }}'
+  - if: '{{ use_memory and continuous }}'
+    then:
+    - action: input_text.set_value
+      target:
+        entity_id: '{{ memory_entity }}'
+      data:
+        value: '{% set c = states(memory_entity)[4:] | from_json({}) if states(memory_entity).startswith(''lr1:'')
+          else {} %} {% set c = c if c is mapping and c.get(''o'') == owner else dict(m, v=1, o=owner) %} lr1:{{
+          dict(c, h='''', d='''', s=0) | to_json }}'

@@ -150,6 +150,14 @@ def build_remote(key, model, engine, palette, version):
     else:
         inputs['light'] = {'name': 'Lampe', 'selector': {'entity': {'filter': [{'domain': 'light'}]}}}
     inputs['memory'] = copy.deepcopy(engine['memory_input'])
+    # The memory helper is only needed for the double press of the models whose firmware
+    # does not report it; elsewhere, its description must not suggest otherwise.
+    memory_double = any(k.endswith('_double') for k in keys)
+    if not memory_double:
+        old = 'Nécessaire pour le double appui ; apporte aussi'
+        text = engine['memory_input']['description']
+        assert text.count(old) == 1, text
+        inputs['memory']['description'] = text.replace(old, 'Apporte')
 
     for section, rows in sections:
         content = {}
@@ -240,7 +248,8 @@ def build_remote(key, model, engine, palette, version):
             'name': f"{model['name']} — {version}",
             'description': (model['description'].strip() + ' Actions et réglages communs à toutes '
                             'les télécommandes de la famille ; variations continues bornées. '
-                            'Assistant de mémoire facultatif, nécessaire au double appui. '
+                            + ('Assistant de mémoire facultatif, nécessaire au double appui. ' if memory_double
+                               else 'Assistant de mémoire facultatif. ') +
                             'Menu → Exécuter les actions affiche un diagnostic sans commander la lampe. '
                             f'Guide : {DOCS}'),
             'domain': 'automation',

@@ -6,11 +6,11 @@
 # jamais un maintien en cours. Les actions forment le moteur commun, identique pour
 # toutes les télécommandes ; ses commentaires détaillés sont dans src/lighting/engine.yaml.
 blueprint:
-  name: Télécommande Philips Hue Dimmer (RWL022) — ZHA — 1.0.4
+  name: Télécommande Philips Hue Dimmer (RWL022) — ZHA — 1.1.0
   description: 'Quatre boutons (Marche/Arrêt, Plus, Moins, Hue). Pour chaque appui court ou maintenu, choisir l''action
     dans la liste commune ou une action personnalisée. Actions et réglages communs à toutes les télécommandes de
-    la famille ; variations continues bornées. Assistant de mémoire facultatif, nécessaire au double appui. Menu
-    → Exécuter les actions affiche un diagnostic sans commander la lampe. Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/lighting.md'
+    la famille ; variations continues bornées. Assistant de mémoire facultatif. Menu → Exécuter les actions affiche
+    un diagnostic sans commander la lampe. Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/lighting.md'
   domain: automation
   homeassistant:
     min_version: 2026.10.0
@@ -33,9 +33,9 @@ blueprint:
           - domain: light
     memory:
       name: Assistant de mémoire (facultatif)
-      description: Assistant Texte de longueur maximale 255, réservé à cette automatisation. Nécessaire pour le
-        double appui ; apporte aussi la position exacte dans la palette, le rejet des événements désordonnés et
-        l'arrêt au niveau atteint lors du relâchement. Sans assistant, tout le reste fonctionne.
+      description: Assistant Texte de longueur maximale 255, réservé à cette automatisation. Apporte la position
+        exacte dans la palette, le rejet des événements désordonnés et l'arrêt au niveau atteint lors du relâchement.
+        Sans assistant, tout le reste fonctionne.
       default: ''
       selector:
         entity:

@@ -12,6 +12,7 @@ Une famille de blueprints qui pilotent les lampes de la même façon, quelle que
 | [Télécommande IKEA TRÅDFRI 5 boutons](../blueprints/automation/lighting/telecommande_ikea_5_boutons.yaml) | TRADFRI remote control | Centre, Plus, Moins, Gauche, Droite : appui court, double appui, maintien |
 | [Télécommande IKEA STYRBAR](../blueprints/automation/lighting/telecommande_ikea_styrbar.yaml) | Remote Control N2 | Haut, Bas, Gauche, Droite : appui court, double appui, maintien |
 | [Bouton eWeLink / SONOFF](../blueprints/automation/lighting/bouton_ewelink.yaml) | WB01, SNZB-01P, CK-TLSR8656-SS5-01 | Clic simple, double clic, appui long |
+| [Bouton sans fil Aqara](../blueprints/automation/lighting/bouton_aqara.yaml) | lumi.remote.b1acn01 (WXKG11LM) | Appui simple, double appui, maintien |
 | [Extinction automatique de l’éclairage](../blueprints/automation/lighting/extinction_automatique.yaml) | Lampes, interrupteurs, prises | — |
 
 Le blueprint STYRBAR reprend toutes les fonctions et tous les réglages par défaut de l’ancien blueprint STYRBAR de cette collection, qu’il remplace.
@@ -25,6 +26,7 @@ Le blueprint STYRBAR reprend toutes les fonctions et tous les réglages par déf
    [IKEA 5 boutons](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Ftelecommande_ikea_5_boutons.yaml) ·
    [IKEA STYRBAR](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Ftelecommande_ikea_styrbar.yaml) ·
    [eWeLink](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fbouton_ewelink.yaml) ·
+   [Aqara](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fbouton_aqara.yaml) ·
    [Extinction automatique](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fextinction_automatique.yaml).
 2. Créer une automatisation par télécommande : choisir la télécommande, la lampe, puis l’action de chaque geste.
 3. Facultatif : choisir un **assistant de mémoire** (voir plus bas).
@@ -39,7 +41,7 @@ Un **assistant Texte** de longueur maximale 255, propre à une seule automatisat
 | | Sans assistant | Avec assistant |
 |---|---|---|
 | Toutes les actions, maintiens bornés, filtres, diagnostic | oui | oui |
-| Double appui | non | oui |
+| Double appui (IKEA) | non | oui |
 | Position dans la palette | préréglage le plus proche de la couleur affichée | position exacte, recalée si la couleur a été changée ailleurs |
 | Relâchement d’un maintien | la variation s’arrête, la lampe finit son dernier fondu | la lampe est figée au niveau réellement atteint |
 | Doublon radio | tout geste trop proche du précédent est écarté | seul un geste identique est écarté |
@@ -69,7 +71,7 @@ Un assistant illisible ou déjà utilisé par une autre automatisation n’est j
 | Préréglage de couleur suivant / précédent, d’un pas ou en continu | Voir l’assistant de mémoire pour la position. Lampe éteinte : premier préréglage. |
 | Action personnalisée | Exécute les actions saisies sous le geste ; la variable `gesture` contient le nom du geste. |
 
-Les actions « en continu » ne sont proposées que pour les maintiens. Le **double appui** n’existe que sur les télécommandes IKEA, dont le micrologiciel ne le signale pas lui-même : le premier appui agit tout de suite, le second exécute l’action de double appui.
+Les actions « en continu » ne sont proposées que pour les maintiens. Le **double appui** des télécommandes IKEA demande l’assistant de mémoire, car leur micrologiciel ne le signale pas lui-même : le premier appui agit tout de suite, le second exécute l’action de double appui. Les boutons eWeLink et Aqara signalent eux-mêmes leur double appui, sans assistant.
 
 ## Réglages communs
 
@@ -108,6 +110,7 @@ Une configuration incohérente (minimum au-dessus du maximum, palette inconnue, 
 - **Les couleurs arrêtent un effet en cours** (colorloop), si la lampe le permet.
 - **La molette du Tap Dial** agit sur la dernière lampe allumée parmi les quatre. Si toutes sont éteintes, elle agit sur la dernière actionnée ; une lampe indisponible n’est jamais choisie. Quand des lampes se suivent, comme un groupe et ses membres, celle que la télécommande a commandée l’emporte : bouton de la lampe du haut puis molette agit sur la lampe du haut seule, bouton du groupe puis molette agit sur le groupe. Une lampe allumée autrement plus de 2 secondes après reste prioritaire.
 - **Le bouton eWeLink** est lu dans ses commandes (simple, double, long). Les rapports d’état `attribute_updated` sont ignorés : le bouton peut en émettre sans aucun appui.
+- **Le bouton Aqara** signale lui-même l’appui simple, le double appui, le début et la fin d’un maintien. Il ne répète pas le maintien : la variation tourne à la cadence réglée jusqu’au relâchement, ou jusqu’à la durée maximale si le relâchement radio est perdu. Par défaut, seul l’appui simple a une action (basculer).
 
 ## Extinction automatique
 
@@ -127,6 +130,7 @@ Une configuration incohérente (minimum au-dessus du maximum, palette inconnue, 
 | IKEA 5 boutons « préréglages » + `input_select` | Valeurs par défaut ; la palette remplace l’`input_select`. |
 | IKEA 5 boutons « blancs » | Gauche : blanc plus chaud, Droite : blanc plus froid (appui et maintien), blanc de référence 2 500 K. L’ancien blueprint utilisait le paramètre `color_temp` en mireds, que Home Assistant 2026.10 n’accepte plus. |
 | STYRBAR : assistant Texte, script `styrbar_maintiens` | Mêmes réglages par défaut. Garder le même assistant pour le double appui : son ancien contenu est remplacé au premier geste. Désactiver d’abord l’ancienne automatisation. Le script n’est plus nécessaire. *Rappel par maintien à droite / à gauche* : choisir *Couleur de rappel* pour ce maintien. *Luminosité imposée en haut* : action *Allumer au niveau d’allumage*. |
+| Automatisation Aqara sur le déclencheur d’appareil « appui simple » | Valeurs par défaut du blueprint Aqara ; reprendre le fondu de l’ancienne automatisation dans *Fondu de la luminosité*. |
 | Automatisation eWeLink sur `attribute_updated` | Clic simple : basculer au niveau d’allumage 25 % ; double clic : alterner 25 % / 100 %. |
 | Minuterie d’éclairage (manual light) | Extinction automatique avec le même assistant Minuteur et la même durée. |
 

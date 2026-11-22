@@ -2,6 +2,11 @@
 
 **Français** · [English](CHANGELOG.en.md)
 
+## Télécommandes d’éclairage — 1.1.0 — 23 novembre 2026
+
+- Nouveau blueprint pour le bouton sans fil Aqara (lumi.remote.b1acn01, WXKG11LM) : appui simple, double appui et maintien, avec les actions et réglages communs de la famille. Le double appui est signalé par le bouton lui-même et ne demande pas d’assistant de mémoire ; un maintien s’arrête au relâchement ou à la durée maximale.
+- La description de l’assistant de mémoire ne le dit plus nécessaire au double appui sur les modèles qui n’en ont pas besoin (Hue Dimmer, Hue Tap Dial, eWeLink, Aqara).
+
 ## Système de notifications — 1.0.2 — 16 novembre 2026
 
 - Au démarrage de Home Assistant, l’entité ntfy reste indisponible environ 45 secondes ; les premières notifications (par exemple « Zigbee2MQTT de nouveau opérationnel ») partaient alors en secours sur l’application mobile, elle-même pas encore joignable. Un envoi ntfy attend désormais le retour d’une entité tout juste devenue indisponible, au plus 120 secondes après son passage à « indisponible » (réglage « Attente d’une entité ntfy tout juste indisponible », 0 pour ne pas attendre). Une entité indisponible depuis plus longtemps, ou absente, échoue aussitôt et le répartiteur bascule sur l’application mobile comme avant.

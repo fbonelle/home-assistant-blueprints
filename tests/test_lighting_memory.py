@@ -398,6 +398,7 @@ async def test_without_memory_a_badly_rendered_colour_can_skip_a_preset(env):
     ('telecommande_ikea_5_boutons.yaml', dict(light='light.white')),
     (STYRBAR, dict(light='light.color', memory='input_text.memory')),
     ('bouton_ewelink.yaml', dict(light='light.xy')),
+    ('bouton_aqara.yaml', dict(light='light.plain', memory='input_text.memory')),
 ])
 async def test_manual_run_shows_a_diagnostic_without_commands(env, caplog, name, inputs):
     await env.automation(name, remote=REMOTE, **inputs)
