@@ -2,10 +2,11 @@
 #
 # Chaque jour, compare la dernière version publique de Home Assistant sur PyPI (bêtas et
 # versions candidates exclues) à la version fixée pour les tests. Si elle est plus récente :
-# fixe cette version, fait passer toutes les familles à <version>.0, complète l'historique,
-# régénère les blueprints et exécute toute la suite de tests. Si tout réussit, le résultat
-# est publié sur main ; sinon, une issue est ouverte (une seule par version) et rien n'est
-# modifié.
+# fixe cette version et les dépendances de ses intégrations utilisées par les tests, fait
+# passer toutes les familles à <version>.0, complète l'historique, régénère les blueprints et
+# exécute toute la suite de tests. Si tout réussit, le résultat est publié sur main et les
+# issues d'échec des versions précédentes sont fermées ; sinon, une issue est ouverte (une
+# seule par version) et rien n'est modifié.
 #
 # Les tests sont exécutés dans ce workflow avant toute publication : un commit poussé avec
 # le jeton du workflow ne déclenche pas le workflow de validation.
@@ -42,6 +43,11 @@ jobs:
       - name: Installer les dépendances de développement
         if: steps.check.outputs.new == 'true'
         run: python -m pip install -r requirements-dev.txt
+      - name: Aligner les dépendances des intégrations utilisées par les tests
+        if: steps.check.outputs.new == 'true'
+        run: |
+          python tools/ha_release.py sync-requirements
+          python -m pip install -r requirements-test.txt
       - name: Régénérer les blueprints et vérifier que la génération est stable
         if: steps.check.outputs.new == 'true'
         run: |
@@ -62,6 +68,20 @@ jobs:
           git add -A
           git commit -m "Validé avec Home Assistant $RELEASE"
           git push origin HEAD:main
+      - name: Fermer les issues d'échec des versions précédentes
+        if: steps.check.outputs.new == 'true'
+        # Les versions sont déjà publiées : un échec ici ne doit pas ouvrir d'issue d'échec.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE: ${{ steps.check.outputs.version }}
+        run: |
+          prefix='Échec de validation avec Home Assistant '
+          gh issue list --state open --search "\"$prefix\" in:title" --json number,title \
+            --jq ".[] | select(.title | startswith(\"$prefix\")) | .number" |
+          while read -r number; do
+            gh issue close "$number" --comment "Home Assistant $RELEASE réussit tous les tests : versions publiées sur main."
+          done
       - name: Signaler l'échec dans une issue
         if: failure() && steps.check.outputs.new == 'true'
         env:

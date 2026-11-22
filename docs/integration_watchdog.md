@@ -4,7 +4,7 @@
 
 Ce blueprint vérifie les entités que vous choisissez et tente de relancer leur intégration lorsqu’une panne est détectée. Si les tentatives ne suffisent pas, il envoie une notification pour demander une intervention.
 
-Il utilise l’action standard `homeassistant.reload_config_entry`. L’intégration doit prendre en charge cette action. Home Assistant **2026.10 minimum** est requis ; les tests utilisent **2026.10.4**.
+Il utilise l’action standard `homeassistant.reload_config_entry`. L’intégration doit prendre en charge cette action. Home Assistant **2026.10 minimum** est requis ; les tests tournent sur la version testée et sur cette version minimale (voir le [README](../README.md#développement)).
 
 ## 1. Importer le blueprint
 

@@ -11,7 +11,7 @@ A collection of blueprints built with standard Home Assistant features. Each blu
 | [Integration monitoring and reload](docs/integration_watchdog.en.md) | Detect a problem using selected entities, try reloading the integration and notify you when intervention is needed. | **2026.11.2.0** | Home Assistant 2026.10 or later |
 | [Battery monitoring](docs/battery_watch.en.md) | Report each battery to replace or silent device as soon as it is detected, then send a summary at a fixed time. | **2026.11.2.0** | Home Assistant 2026.10 or later |
 | [Notification system](docs/notification_system.en.md) | One entry point: channels by level (mobile, ntfy, e-mail), duplicate filter, night time, fallback, speech and persistent notification relay. | **2026.11.2.0** | Home Assistant 2026.10 or later, four blueprints |
-| [Lighting remotes and automatic switch-off](docs/lighting.en.md) | One chosen action for each gesture of Hue Dimmer, Hue Tap Dial, IKEA on/off, IKEA 5-button, IKEA STYRBAR, eWeLink and Aqara remotes; switch-off after an on time. | **2026.11.2.0** | Home Assistant 2026.10, ZHA; optional helper |
+| [Lighting remotes and automatic switch-off](docs/lighting.en.md) | One chosen action for each gesture of Hue Dimmer, Hue Tap Dial, IKEA on/off, IKEA 5-button, IKEA STYRBAR, eWeLink and Aqara remotes; switch-off after an on time. | **2026.11.2.0** | Home Assistant 2026.10 or later, ZHA; optional helper |
 
 Each version is the Home Assistant release the blueprint was validated against, followed by a counter of the project's own changes: **2026.11.2.0** passed the whole test suite with Home Assistant 2026.11.2. With each new public Home Assistant release, the tests run again automatically; when they pass, every blueprint moves to the new version. The prerequisite gives the minimum version actually required.
 
@@ -59,6 +59,6 @@ python3.14 -m venv .venv
 .venv/bin/python -m pytest -q
 ```
 
-The suite uses Home Assistant 2026.10.4 and covers all blueprints with its native schemas, automations and services. Providers and radio are simulated; no production credentials are needed. GitHub Actions also checks generated files. Each blueprint keeps its own version in `src/<name>/VERSION`.
+The suite runs on two Home Assistant releases: the tested release, which starts the blueprint version number, and the stated minimum release (latest patch release of that month). It covers all blueprints with its native schemas, automations and services. Providers and radio are simulated; no production credentials are needed. Home Assistant installs no package during the tests. GitHub Actions also checks generated files. Each blueprint keeps its own version in `src/<name>/VERSION`.
 
 [Contributing](CONTRIBUTING.en.md) · [Changelog](CHANGELOG.en.md) · [Attribution and license](NOTICE.en.md)

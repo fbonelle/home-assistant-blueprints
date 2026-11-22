@@ -40,7 +40,7 @@ Dumper.add_representer(str, lambda d, v: d.represent_scalar(
 def build():
     version = versioning.read('notification_system')
     for source, target in BLUEPRINTS.items():
-        blueprint = yaml.load((BASE / source).read_text(), Loader=Loader)
+        blueprint = versioning.with_min_version(yaml.load((BASE / source).read_text(), Loader=Loader))
         blueprint['blueprint']['name'] += ' — ' + version
         out = ROOT / target
         out.parent.mkdir(parents=True, exist_ok=True)

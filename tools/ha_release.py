@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """Follow the public Home Assistant releases (workflow « Suivi des versions de Home Assistant »).
 
-    python tools/ha_release.py check            # latest public release newer than the tested one?
-    python tools/ha_release.py apply 2026.12.0  # move the project to that release
+    python tools/ha_release.py check                     # latest public release newer than the tested one?
+    python tools/ha_release.py apply 2026.12.0           # move the project to that release
+    python tools/ha_release.py sync-requirements         # pin what the installed release requires
+    python tools/ha_release.py integration-requirements  # print it, for « pip install »
 
 « check » reads PyPI and ignores beta and release-candidate builds. In GitHub Actions it
 writes « new », « version » and « python » to the step outputs.
@@ -13,9 +15,15 @@ the Python version of the validation workflow, the version of every family
 nor test: the workflow (or the contributor) then runs tools/build.py and the test suite,
 and nothing is committed unless both succeed.
 
+« sync-requirements » runs once Home Assistant is installed: the integrations loaded by the
+tests (TEST_INTEGRATIONS) carry their own requirements in their manifests, and the tests
+refuse to install anything themselves (tests/conftest.py). Their pins in
+requirements-test.txt are rewritten to the versions of the installed release.
+
 Standard library only: « check » runs before any dependency is installed.
 """
 from datetime import date
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -40,6 +48,9 @@ LABELS = {
     'lighting': ('Télécommandes d’éclairage', 'Lighting remotes'),
 }
 assert set(LABELS) == set(versioning.FAMILIES)
+# Integrations with requirements that the tests load (local_todo: memory of the battery watch).
+# A missing entry makes the tests fail and name the requirement (tests/conftest.py).
+TEST_INTEGRATIONS = ['local_todo']
 
 
 def key(version):
@@ -115,9 +126,43 @@ def apply(release, python=None, today=None):
     return versions
 
 
+def integration_requirements():
+    """Requirements of TEST_INTEGRATIONS in the installed Home Assistant, from their manifests."""
+    spec = importlib.util.find_spec('homeassistant')
+    assert spec and spec.submodule_search_locations, 'Home Assistant is not installed'
+    components = Path(list(spec.submodule_search_locations)[0]) / 'components'
+    found = []
+    for domain in TEST_INTEGRATIONS:
+        manifest = json.loads((components / domain / 'manifest.json').read_text())
+        for req in manifest.get('requirements', []):
+            assert re.fullmatch(r'[A-Za-z0-9_.\-]+==[\w.]+', req), (domain, req)
+            if req not in found:
+                found.append(req)
+    return found
+
+
+def sync_requirements():
+    """Write the requirements of TEST_INTEGRATIONS into requirements-test.txt."""
+    path = ROOT / 'requirements-test.txt'
+    text = path.read_text()
+    for req in integration_requirements():
+        name = req.split('==')[0]
+        line = re.compile(rf'^{re.escape(name)}==.*$', flags=re.M | re.I)
+        if line.search(text):
+            text = line.sub(req, text, count=1)
+        else:
+            text = text.rstrip('\n') + f'\n# Requirement of an integration loaded by the tests.\n{req}\n'
+    path.write_text(text)
+    return integration_requirements()
+
+
 if __name__ == '__main__':
     if sys.argv[1:] == ['check']:
         check()
+    elif sys.argv[1:] == ['sync-requirements']:
+        print('\n'.join(sync_requirements()))
+    elif sys.argv[1:] == ['integration-requirements']:
+        print(' '.join(integration_requirements()))
     elif len(sys.argv) in (3, 4) and sys.argv[1] == 'apply':
         for family, (old, new) in apply(sys.argv[2], sys.argv[3] if len(sys.argv) == 4 else None).items():
             print(f'{family} : {old} → {new}')

@@ -16,6 +16,7 @@ agreement.
 Command line:
     python tools/versioning.py bump <family>   # counter + 1 after a change of the family
     python tools/versioning.py show            # versions and tested Home Assistant release
+    python tools/versioning.py min             # minimum Home Assistant release (MIN_HA)
 """
 from pathlib import Path
 import re
@@ -26,6 +27,12 @@ ROOT = Path(__file__).resolve().parent.parent
 # Year, month (no leading zero), patch release of Home Assistant, then the project counter.
 HA_VERSION = r'20\d{2}\.(?:[1-9]|1[0-2])\.(?:0|[1-9]\d*)'
 VERSION = re.compile(rf'(?P<ha>{HA_VERSION})\.(?P<counter>0|[1-9]\d*)')
+
+# Minimum Home Assistant release of every blueprint (homeassistant.min_version). It stays the
+# minimum actually required: the validation workflow also runs the test suite on the latest
+# patch release of that month. Sources write the placeholder '@min_version'.
+MIN_HA = '2026.10.0'
+MIN_PLACEHOLDER = '@min_version'
 
 # Families: guides that quote the version (both languages), and the guide each README row
 # links to, which identifies the row of the family in README.md and README.en.md.
@@ -68,6 +75,14 @@ def read(family):
     """The version of a family, as the generators write it into the blueprint names."""
     assert family in FAMILIES, family
     return check((ROOT / 'src' / family / 'VERSION').read_text().strip())
+
+
+def with_min_version(blueprint):
+    """A loaded blueprint source with its '@min_version' placeholder replaced by MIN_HA."""
+    meta = blueprint['blueprint'].get('homeassistant', {})
+    assert meta.get('min_version') == MIN_PLACEHOLDER, blueprint['blueprint'].get('name')
+    meta['min_version'] = MIN_HA
+    return blueprint
 
 
 def _replace_token(text, old, new):
@@ -118,8 +133,10 @@ def bump(family):
 if __name__ == '__main__':
     if len(sys.argv) == 3 and sys.argv[1] == 'bump':
         print(bump(sys.argv[2]))
+    elif len(sys.argv) == 2 and sys.argv[1] == 'min':
+        print(MIN_HA)
     elif len(sys.argv) == 2 and sys.argv[1] == 'show':
-        print(f'Home Assistant testé : {tested_ha()}')
+        print(f'Home Assistant testé : {tested_ha()} ; minimum : {MIN_HA}')
         for name in FAMILIES:
             print(f'{name} : {read(name)}')
     else:

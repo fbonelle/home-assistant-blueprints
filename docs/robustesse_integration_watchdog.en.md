@@ -65,7 +65,7 @@ Custom actions must stay short: an action that never ends holds its own monitori
 
 ## What the tests check
 
-The suite contains **85 tests** run on official Home Assistant **2026.10.4**, with Python **3.14**, in temporary folders.
+The suite runs on official Home Assistant (tested and minimum releases, see the [README](../README.en.md#development)), with Python **3.14**, in temporary folders.
 
 Automations, helpers, templates and notifications are real. Only integration reloads are replaced by controlled responses; the integrations and entities used are fictitious.
 

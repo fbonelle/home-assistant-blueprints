@@ -6,13 +6,11 @@ real Local To-do list stored in the temporary configuration directory. Only the 
 a recording service; nothing contacts a device or a provider.
 """
 import asyncio
-import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-import pytest
 import pytest_asyncio
 
 from homeassistant import core, loader

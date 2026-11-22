@@ -23,7 +23,7 @@ blueprint:
     Assistant Minuteur facultatif pour voir le temps restant.
   domain: automation
   homeassistant:
-    min_version: 2026.10.0
+    min_version: '@min_version'  # tools/versioning.py (MIN_HA)
   input:
     entities:
       name: Éclairages à éteindre
