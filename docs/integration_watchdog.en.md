@@ -4,7 +4,7 @@
 
 This blueprint checks the entities you select and tries to reload their integration when it detects a problem. If retries are not enough, it sends a notification asking for intervention.
 
-It uses the standard `homeassistant.reload_config_entry` action. The integration must support this action. **Home Assistant 2026.10 or later** is required; tests use **2026.10.4**. The blueprint form currently uses French labels; the setup table below includes them.
+It uses the standard `homeassistant.reload_config_entry` action. The integration must support this action. Home Assistant **2026.10 or later** is required; tests run on the tested release and on this minimum release (see the [README](../README.en.md#development)). The blueprint form currently uses French labels; the setup table below includes them.
 
 ## 1. Import the blueprint
 

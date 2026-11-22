@@ -11,8 +11,16 @@ concurrency:
   cancel-in-progress: true
 jobs:
   native-tests:
+    # « testée » : version fixée dans requirements-test.txt, celle des versions des blueprints.
+    # « minimale » : dernier correctif du mois de homeassistant.min_version (tools/versioning.py),
+    # pour que le prérequis annoncé reste vrai.
+    name: Tests natifs (${{ matrix.release }})
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        release: [testée, minimale]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -24,7 +32,13 @@ jobs:
             requirements-test.txt
       - name: Installer les dépendances de développement
         run: python -m pip install -r requirements-dev.txt
+      - name: Installer la version minimale de Home Assistant et les dépendances de ses intégrations
+        if: matrix.release == 'minimale'
+        run: |
+          python -m pip install "homeassistant~=$(python tools/versioning.py min)"
+          python -m pip install $(python tools/ha_release.py integration-requirements)
       - name: Vérifier la génération des YAML
+        if: matrix.release == 'testée'
         run: |
           python tools/build.py
           git diff --exit-code -- blueprints examples

@@ -65,7 +65,7 @@ Les actions personnalisées doivent rester courtes : une action qui ne se termin
 
 ## Ce que vérifient les tests
 
-La suite contient **85 tests** exécutés sous Home Assistant officiel **2026.10.4**, avec Python **3.14**, dans des dossiers temporaires.
+La suite est exécutée sous Home Assistant officiel (version testée et version minimale, voir le [README](../README.md#développement)), avec Python **3.14**, dans des dossiers temporaires.
 
 Les automatisations, assistants, modèles et notifications sont réels. Seules les relances d’intégration sont remplacées par des réponses contrôlées ; les intégrations et entités utilisées sont fictives.
 

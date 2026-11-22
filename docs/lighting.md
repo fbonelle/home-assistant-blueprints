@@ -136,7 +136,7 @@ Une configuration incohérente (minimum au-dessus du maximum, palette inconnue, 
 
 ## Limites
 
-- Les formats d’événements viennent des profils zha-quirks 2.4.1 et des traces de la maison. Un micrologiciel différent peut nommer autrement un geste : le geste est alors ignoré, jamais mal interprété.
+- Les formats d’événements viennent des profils zha-quirks (version 2.4.1 pour les télécommandes Philips, IKEA et eWeLink ; profil SwitchAQ3B, inchangé depuis, pour le bouton Aqara) et des traces de la maison. Un micrologiciel différent peut nommer autrement un geste : le geste est alors ignoré, jamais mal interprété.
 - Sans assistant de mémoire, la position dans la palette est déduite de la couleur affichée. Une ampoule qui rend mal une couleur peut l’afficher plus près d’un préréglage voisin ; la flèche suivante sauterait alors un préréglage. Un essai de toute la palette sur la lampe le montre : l’assistant de mémoire supprime ce risque.
 - Sans assistant de mémoire, un nouveau maintien est ignoré tant que le précédent tourne encore, par exemple après un relâchement radio perdu. Un appui court sur un bouton qui a une action l’arrête.
 - Le niveau figé au relâchement est estimé d’après le fondu demandé ; le rendu réel de chaque ampoule peut s’en écarter légèrement.

@@ -26,7 +26,7 @@ Dumper.add_representer(str, lambda d, v: d.represent_scalar(
 
 def build():
     version = versioning.read('battery_watch')
-    blueprint = yaml.load((BASE / 'blueprint.yaml').read_text(), Loader=Loader)
+    blueprint = versioning.with_min_version(yaml.load((BASE / 'blueprint.yaml').read_text(), Loader=Loader))
     blueprint['blueprint']['name'] += ' — ' + version
     def expand(value):
         if isinstance(value, str) and value.startswith('@template:'):

@@ -427,6 +427,71 @@ async def test_white_lamp_temperature_is_bounded_in_kelvin(env):
     assert env.pct('white') == 100
 
 
+# ---------------------------------------------------------------- settings and actions without a default use
+
+async def test_level_action_turns_on_at_the_on_level_with_the_fade(env):
+    await env.automation('telecommande_hue_dimmer.yaml', remote=REMOTE, light='light.plain',
+                         power_press_action='level', on_level_pct=30, transition=0.5)
+    await env.lamps['plain'].async_turn_off()
+    env.lamps['plain'].calls.clear()
+    await env.press('on_press', settle=None)
+    assert env.pct('plain') == 30
+    assert env.lamps['plain'].calls[-1][1]['transition'] == 0.5
+    # Already on at another level: « level » sets the on level again.
+    await env.lamps['plain'].async_turn_on(brightness=255)
+    await env.press('on_press', settle=None)
+    assert env.pct('plain') == 30
+
+
+async def test_custom_brightness_step(env):
+    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.plain', step_pct=5)
+    assert env.pct('plain') == 50
+    await env.press('step_with_on_off', args=[0, 43, 5], settle=None)
+    assert env.pct('plain') == 55
+    await env.press('step', args=[1, 43, 5], settle=None)
+    assert env.pct('plain') == 50
+
+
+async def test_alternate_uses_custom_on_and_high_levels(env):
+    await env.automation('bouton_ewelink.yaml', remote=REMOTE, light='light.plain',
+                         on_level_pct=20, high_level_pct=80)
+    await env.lamps['plain'].async_turn_off()
+    for expected in [20, 80, 20]:
+        await env.press('on', settle=None)  # Double click: alternate.
+        assert env.pct('plain') == expected
+
+
+@pytest.mark.parametrize('hold, action, limit', [(3329, 'warmer_hold', 2202), (3328, 'cooler_hold', 4000)])
+async def test_continuous_white_change_is_bounded_and_stopped_by_release(env, hold, action, limit):
+    side = 'left' if hold == 3329 else 'right'
+    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.white',
+                         **{f'{side}_hold_action': action}, kelvin_step=250, preset_hold_interval=0.2,
+                         hold_limit=2)
+    await env.press('hold', args=[hold, 0], params={'param1': hold, 'param2': 0}, settle=.5)
+    kelvins = [call[1]['color_temp_kelvin'] for call in env.lamps['white'].calls]
+    assert len(kelvins) >= 2
+    step = -250 if action == 'warmer_hold' else 250
+    assert kelvins[:2] == [3000 + step, 3000 + 2 * step]
+    await env.press('release', args=[5], params={'param1': 5}, settle=.3)
+    stopped = len(env.lamps['white'].calls)
+    await asyncio.sleep(.5)
+    assert len(env.lamps['white'].calls) == stopped
+    # Held to the end: the change stops at the limit of the lamp and never goes past it.
+    await env.press('hold', args=[hold, 0], params={'param1': hold, 'param2': 0}, settle=1.5)
+    assert env.state('white').attributes['color_temp_kelvin'] == limit
+    assert all(min(2202, limit) <= c[1]['color_temp_kelvin'] <= max(4000, limit) for c in env.lamps['white'].calls)
+
+
+async def test_hold_without_smoothing_sends_steps_without_fade(env):
+    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.plain',
+                         hold_interval=0.2, hold_step_pct=5, hold_limit=2, smooth_dimming=False)
+    await env.press('move_with_on_off', params={'move_mode': 0}, settle=.5)
+    await env.press('stop_with_on_off', settle=.3)
+    steps = [call for call in env.lamps['plain'].calls if 'brightness' in call[1]]
+    assert len(steps) >= 2
+    assert all(call[1].get('transition', 0) == 0 for call in steps)
+
+
 # ---------------------------------------------------------------- IKEA on/off switch
 
 async def test_ikea_on_off_switch(env):

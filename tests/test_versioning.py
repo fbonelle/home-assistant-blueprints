@@ -148,3 +148,59 @@ def test_check_ignores_prereleases(monkeypatch, tmp_path):
     monkeypatch.setattr(versioning, 'tested_ha', lambda: '2026.11.1')
     ha_release.check()
     assert output.read_text() == 'new=true\nversion=2026.11.2\npython=3.14\n'
+
+
+# ---------------------------------------------------------------- minimum Home Assistant release
+
+MIN_MONTH = '.'.join(versioning.MIN_HA.split('.')[:2])
+# Guides that state the minimum release, as « Home Assistant **2026.10 …** ».
+MIN_GUIDES = ['docs/battery_watch.md', 'docs/battery_watch.en.md',
+              'docs/integration_watchdog.md', 'docs/integration_watchdog.en.md']
+
+
+def test_every_published_blueprint_requires_the_minimum_release():
+    files = sorted((ROOT / 'blueprints').rglob('*.yaml'))
+    assert len(files) >= 14
+    for path in files:
+        assert load_yaml(str(path))['blueprint']['homeassistant']['min_version'] == versioning.MIN_HA, path
+
+
+def test_readmes_and_guides_state_the_minimum_release():
+    for readme, wording in [('README.md', 'minimum'), ('README.en.md', 'or later')]:
+        for family, spec in versioning.FAMILIES.items():
+            row = [line for line in (ROOT / readme).read_text().splitlines()
+                   if line.startswith('|') and spec['readme_link'] in line][0]
+            assert f'Home Assistant {MIN_MONTH} {wording}' in row.split('|')[-2], (readme, family)
+    for guide in MIN_GUIDES:
+        assert f'Home Assistant **{MIN_MONTH} ' in (ROOT / guide).read_text(), guide
+
+
+def test_markdown_never_quotes_another_home_assistant_release():
+    """Only the minimum (prerequisites) and the tested release (version scheme, changelog)
+    may be quoted: any other number is a statement that went out of date."""
+    import re
+    allowed = {MIN_MONTH, versioning.MIN_HA, versioning.tested_ha()}
+    for path in ROOT.glob('**/*.md'):
+        if '.venv' in path.parts or 'node_modules' in path.parts:
+            continue
+        text = path.read_text()
+        if path.name.startswith('CHANGELOG'):
+            text = text.split('\n## ', 2)[1]  # Earlier entries keep the release they were made with.
+        for match in re.finditer(r'Home Assistant[ *]*(?:officiel |official )?[ *]*(20\d{2}\.\d+(?:\.\d+)?)', text):
+            assert match[1] in allowed, (path.name, match[0])
+
+
+def test_sync_requirements_pins_what_the_installed_release_requires(copy, monkeypatch):
+    monkeypatch.setattr(ha_release, 'integration_requirements', lambda: ['ical==99.1.2', 'newlib==1.0'])
+    ha_release.sync_requirements()
+    text = (copy / 'requirements-test.txt').read_text()
+    assert 'ical==99.1.2\n' in text and text.count('ical==') == 1
+    assert text.endswith('# Requirement of an integration loaded by the tests.\nnewlib==1.0\n')
+    assert f'homeassistant=={versioning.tested_ha()}\n' in text
+
+
+def test_integration_requirements_come_from_the_installed_manifests():
+    from homeassistant.components import local_todo
+    import json
+    manifest = json.loads((Path(local_todo.__file__).parent / 'manifest.json').read_text())
+    assert ha_release.integration_requirements() == manifest['requirements']

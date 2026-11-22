@@ -10,11 +10,13 @@ Chaque nouveau blueprint doit avoir son propre dossier sous `blueprints/automati
 - Utiliser uniquement des exemples fictifs ; ne publier ni identifiants de production, ni secrets, ni journaux personnels.
 - Préserver les crédits et licences des travaux utilisés.
 - Modifier les sources sous `src/` ou `tools/`, régénérer les YAML et inclure les fichiers générés dans le changement.
-- Exécuter les tests dans un Home Assistant isolé, sans contacter de fournisseur ni d’installation de production.
+- Exécuter les tests dans un Home Assistant isolé, sans contacter de fournisseur ni d’installation de production. Home Assistant n’installe aucun paquet pendant les tests (`tests/conftest.py`) : une dépendance d’intégration absente ou dans une autre version fait échouer le test qui la charge. `.venv/bin/python tools/ha_release.py sync-requirements` réécrit alors ces dépendances dans `requirements-test.txt` d’après la version de Home Assistant installée.
 
 ```sh
 .venv/bin/python tools/build.py
 .venv/bin/python -m pytest -q
 ```
+
+La CI exécute aussi la suite sur la version minimale (`homeassistant~=` suivi de `python tools/versioning.py min`, puis `pip install $(python tools/ha_release.py integration-requirements)`).
 
 Chaque famille définit sa version dans `src/<nom>/VERSION`, au format `<version de Home Assistant>.<compteur>` (par exemple `2026.11.2.0`) ; `tools/versioning.py` en est la seule référence. La version de Home Assistant est celle fixée dans `requirements-test.txt`, avec laquelle tous les tests réussissent. Après une modification d’une famille, `.venv/bin/python tools/versioning.py bump <nom>` augmente le compteur dans `VERSION`, les README et les guides, puis l’historique décrit la modification. Le workflow « Suivi des versions de Home Assistant » (`tools/ha_release.py`) vérifie chaque jour les versions publiques de Home Assistant ; si une version plus récente réussit la génération et tous les tests, il fixe cette version, fait passer toutes les familles à `<version>.0`, complète l’historique et publie sur `main`. En cas d’échec, il ouvre une issue et ne modifie rien. `homeassistant.min_version` reste la version minimale réellement nécessaire. Un changement de nom affiché ne doit pas renommer les identifiants internes utilisés par les automatisations.

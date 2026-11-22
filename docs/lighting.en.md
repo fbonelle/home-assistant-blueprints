@@ -136,7 +136,7 @@ An inconsistent configuration (minimum above maximum, unknown preset, black reca
 
 ## Limits
 
-- Event formats come from the zha-quirks 2.4.1 profiles and from the house’s traces. A different firmware may name a gesture differently: the gesture is then ignored, never misread.
+- Event formats come from the zha-quirks profiles (release 2.4.1 for the Philips, IKEA and eWeLink remotes; the SwitchAQ3B profile, unchanged since, for the Aqara button) and from the house’s traces. A different firmware may name a gesture differently: the gesture is then ignored, never misread.
 - Without a memory helper, the palette position is deduced from the displayed colour. A bulb that renders a colour poorly may show it closer to a neighbouring preset; the next arrow would then skip a preset. Trying the whole palette on the lamp shows it; the memory helper removes this risk.
 - Without a memory helper, a new hold is ignored while the previous one is still running, for example after a lost radio release. A short press on a button that has an action stops it.
 - The level frozen on release is estimated from the requested fade; each bulb’s actual rendering may differ slightly.

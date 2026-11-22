@@ -11,7 +11,7 @@ Une collection de blueprints pour automatiser Home Assistant avec ses fonctions 
 | [Surveillance et relance des intégrations](docs/integration_watchdog.md) | Détecter une panne à partir d’entités choisies, tenter une relance et prévenir si une intervention est nécessaire. | **2026.11.2.0** | Home Assistant 2026.10 minimum |
 | [Surveillance des piles et batteries](docs/battery_watch.md) | Signaler tout de suite chaque pile ou batterie à remplacer et chaque appareil muet, puis envoyer un récapitulatif à heure fixe. | **2026.11.2.0** | Home Assistant 2026.10 minimum |
 | [Système de notifications](docs/notification_system.md) | Un point d’entrée unique : canaux par niveau (mobile, ntfy, e-mail), anti-doublon, nuit, bascule de secours, lecture vocale et relais des notifications persistantes. | **2026.11.2.0** | Home Assistant 2026.10 minimum, quatre blueprints |
-| [Télécommandes d’éclairage et extinction automatique](docs/lighting.md) | Une action au choix pour chaque geste des télécommandes Hue Dimmer, Hue Tap Dial, IKEA marche/arrêt, IKEA 5 boutons, IKEA STYRBAR, eWeLink et Aqara ; extinction après une durée d’allumage. | **2026.11.2.0** | Home Assistant 2026.10, ZHA ; assistant facultatif |
+| [Télécommandes d’éclairage et extinction automatique](docs/lighting.md) | Une action au choix pour chaque geste des télécommandes Hue Dimmer, Hue Tap Dial, IKEA marche/arrêt, IKEA 5 boutons, IKEA STYRBAR, eWeLink et Aqara ; extinction après une durée d’allumage. | **2026.11.2.0** | Home Assistant 2026.10 minimum, ZHA ; assistant facultatif |
 
 Chaque version est celle de Home Assistant avec laquelle le blueprint a été validé, suivie d’un compteur de modifications du projet : **2026.11.2.0** a réussi tous les tests avec Home Assistant 2026.11.2. À chaque nouvelle version publique de Home Assistant, les tests sont relancés automatiquement ; s’ils réussissent, tous les blueprints passent à la nouvelle version. Le prérequis indique la version minimale réellement nécessaire.
 
@@ -59,6 +59,6 @@ python3.14 -m venv .venv
 .venv/bin/python -m pytest -q
 ```
 
-La suite utilise Home Assistant 2026.10.4 et couvre tous les blueprints avec ses schémas, automatisations et services natifs. Les fournisseurs et la radio sont simulés ; aucun identifiant de production n’est nécessaire. GitHub Actions vérifie aussi que les fichiers générés sont à jour. Chaque blueprint conserve sa propre version dans `src/<nom>/VERSION`.
+La suite tourne sur deux versions de Home Assistant : la version testée, qui forme le début du numéro de version des blueprints, et la version minimale annoncée (dernier correctif de ce mois). Elle couvre tous les blueprints avec ses schémas, automatisations et services natifs. Les fournisseurs et la radio sont simulés ; aucun identifiant de production n’est nécessaire. Home Assistant n’installe aucun paquet pendant les tests. GitHub Actions vérifie aussi que les fichiers générés sont à jour. Chaque blueprint conserve sa propre version dans `src/<nom>/VERSION`.
 
 [Contribuer](CONTRIBUTING.md) · [Historique](CHANGELOG.md) · [Origine et licence](NOTICE.md)

@@ -7,7 +7,8 @@
 # s'applique de la même manière à tous les modèles.
 #
 # Les formats d'événements ont été relevés sur les profils zha-quirks 2.4.1 appliqués aux
-# appareils de la maison et confirmés par les traces d'automatisation existantes.
+# appareils de la maison (profil SwitchAQ3B actuel pour le bouton Aqara) et confirmés par
+# les traces d'automatisation existantes.
 #
 # Variables disponibles dans « decode » : command (texte), args (liste ou objet),
 # params (objet). Le résultat est un nom de geste, « stop » pour un relâchement qui doit

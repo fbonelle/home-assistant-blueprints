@@ -256,7 +256,7 @@ def build_remote(key, model, engine, palette, version):
                             'Menu → Exécuter les actions affiche un diagnostic sans commander la lampe. '
                             f'Guide : {DOCS}'),
             'domain': 'automation',
-            'homeassistant': {'min_version': '2026.10.0'},
+            'homeassistant': {'min_version': versioning.MIN_HA},
             'author': 'fbonelle',
             'source_url': SOURCE + model['file'],
             'input': inputs,
@@ -286,6 +286,8 @@ def build():
          f"  name: Extinction automatique de l'éclairage — {version}\n"),
         ("    Assistant Minuteur facultatif pour voir le temps restant.\n",
          f"    Assistant Minuteur facultatif pour voir le temps restant.\n    Guide : {DOCS}\n"),
+        (f"    min_version: '{versioning.MIN_PLACEHOLDER}'  # tools/versioning.py (MIN_HA)\n",
+         f'    min_version: {versioning.MIN_HA}\n'),
         ('  domain: automation\n',
          f"  domain: automation\n  author: fbonelle\n  source_url: {SOURCE}extinction_automatique.yaml\n"),
     ]

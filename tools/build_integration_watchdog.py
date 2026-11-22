@@ -288,7 +288,7 @@ blueprint = {
         'name': f'Surveillance et relance des intégrations — {VERSION}',
         'description': DESCRIPTION,
         'domain': 'automation',
-        'homeassistant': {'min_version': '2026.10.0'},
+        'homeassistant': {'min_version': versioning.MIN_HA},
         'input': inputs,
         'source_url': 'https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/automation/'
                       'integration_watchdog/surveillance_integrations.yaml',
