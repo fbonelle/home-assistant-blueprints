@@ -2,31 +2,31 @@
 # Fictional identifiers. Replace remotes, lights, helpers and the timer before enabling.
 # One example per typical use; every input that differs from the default is shown.
 
-# Philips Hue Dimmer: Marche/Arrêt bascule, Plus et Moins varient d'un pas ou en continu,
-# Hue allume à pleine luminosité. Tous les réglages par défaut.
+# Philips Hue Dimmer: On/Off toggles, Up and Down change by one step or continuously, Hue
+# switches on at full brightness. Every setting at its default.
 - id: living_room_lamp_hue_dimmer
-  alias: Lampe du salon — télécommande Hue Dimmer
+  alias: Living room lamp — Hue Dimmer remote
   use_blueprint:
-    path: fbonelle/telecommande_hue_dimmer.yaml
+    path: fbonelle/hue_dimmer_remote.yaml
     input:
       remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1
       light: light.living_room_lamp
 
-# Philips Hue Dimmer dont le bouton Hue ne fait rien.
+# Philips Hue Dimmer whose Hue button does nothing.
 - id: desk_lamp_hue_dimmer
-  alias: Lampe rétro — télécommande Hue Dimmer
+  alias: Retro lamp — Hue Dimmer remote
   use_blueprint:
-    path: fbonelle/telecommande_hue_dimmer.yaml
+    path: fbonelle/hue_dimmer_remote.yaml
     input:
       remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2
       light: light.retro_lamp
       hue_press_action: none
 
-# Philips Hue Tap Dial: une lampe par bouton ; la molette agit sur la dernière lampe allumée.
+# Philips Hue Tap Dial: one lamp per button; the dial acts on the lamp switched on most recently.
 - id: bedroom_tap_dial
-  alias: Chambre — télécommande Hue Tap Dial
+  alias: Bedroom — Hue Tap Dial remote
   use_blueprint:
-    path: fbonelle/telecommande_hue_tap_dial.yaml
+    path: fbonelle/hue_tap_dial_remote.yaml
     input:
       remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3
       light_1: light.bedroom_ceiling
@@ -35,11 +35,11 @@
       light_4: light.bedroom_shelf_bottom
       dial_scale: 1
 
-# Interrupteur IKEA marche/arrêt : fondu d'une seconde, maintien par pas de 10 % chaque seconde.
+# IKEA on/off switch: one-second transition, hold in steps of 10 % every second.
 - id: wardrobe_ikea_on_off
-  alias: Armoire — interrupteur IKEA
+  alias: Wardrobe — IKEA switch
   use_blueprint:
-    path: fbonelle/telecommande_ikea_marche_arret.yaml
+    path: fbonelle/ikea_on_off_switch.yaml
     input:
       remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4
       light: light.wardrobe
@@ -48,12 +48,12 @@
       hold_limit: 10
       transition: 1
 
-# Télécommande IKEA 5 boutons sur une lampe couleur : Gauche et Droite parcourent la
-# palette ; le maintien du bouton central rétablit la couleur de référence à 100 %.
+# IKEA 5-button remote on a color lamp: Left and Right cycle through the palette; holding
+# the center button restores the reference color at 100 %.
 - id: bedside_ikea_5_buttons_colours
-  alias: Lampe de chevet — télécommande IKEA 5 boutons
+  alias: Bedside lamp — IKEA 5-button remote
   use_blueprint:
-    path: fbonelle/telecommande_ikea_5_boutons.yaml
+    path: fbonelle/ikea_5_button_remote.yaml
     input:
       remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa5
       light: light.bedside_lamp
@@ -61,12 +61,12 @@
                 peach, dark_peach, saturated_red, pink, light_pink, saturated_pink,
                 light_purple, saturated_purple, blue, light_blue, cold_sky, cool_daylight, lime, yellow]
 
-# Télécommande IKEA 5 boutons sur une lampe à blanc réglable : Gauche réchauffe et Droite
-# refroidit le blanc ; le maintien du bouton central revient au blanc de référence.
+# IKEA 5-button remote on an adjustable white lamp: Left warms and Right cools the white;
+# holding the center button goes back to the reference white.
 - id: decoration_ikea_5_buttons_whites
-  alias: Lampe déco — télécommande IKEA 5 boutons
+  alias: Decoration lamp — IKEA 5-button remote
   use_blueprint:
-    path: fbonelle/telecommande_ikea_5_boutons.yaml
+    path: fbonelle/ikea_5_button_remote.yaml
     input:
       remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6
       light: light.decoration_lamp
@@ -77,23 +77,23 @@
       kelvin_step: 150
       reference_kelvin: 2500
 
-# Télécommande IKEA STYRBAR avec assistant de mémoire : réglages de l'ancien blueprint
-# STYRBAR (valeurs par défaut) ; le double appui en haut rappelle la couleur choisie.
+# IKEA STYRBAR remote with a memory helper: settings of the former STYRBAR blueprint
+# (default values); a double press on Up recalls the chosen color.
 - id: bedside_styrbar
-  alias: Lampe de chevet — télécommande STYRBAR
+  alias: Bedside lamp — STYRBAR remote
   use_blueprint:
-    path: fbonelle/telecommande_ikea_styrbar.yaml
+    path: fbonelle/ikea_styrbar_remote.yaml
     input:
       remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa8
       light: light.bedside_left
       memory: input_text.bedside_left_remote
       recall_color: [255, 192, 140]
 
-# Bouton eWeLink : clic simple bascule (allumage à 25 %), double clic alterne entre 25 % et 100 %.
+# eWeLink button: single click toggles (on at 25 %), double click alternates between 25 % and 100 %.
 - id: garden_ewelink_button
-  alias: Jardin — bouton eWeLink
+  alias: Garden — eWeLink button
   use_blueprint:
-    path: fbonelle/bouton_ewelink.yaml
+    path: fbonelle/ewelink_button.yaml
     input:
       remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7
       light: light.garden_lamps
@@ -102,12 +102,12 @@
       on_level_pct: 25
       high_level_pct: 100
 
-# Bouton Aqara : appui simple bascule avec un fondu d'une seconde, double appui à pleine
-# luminosité, maintien pour baisser la luminosité jusqu'au relâchement.
+# Aqara button: single press toggles with a one-second transition, double press goes to
+# full brightness, hold dims until release.
 - id: living_room_aqara_button
-  alias: Salon — bouton Aqara
+  alias: Living room — Aqara button
   use_blueprint:
-    path: fbonelle/bouton_aqara.yaml
+    path: fbonelle/aqara_button.yaml
     input:
       remote: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9
       light: light.living_room_lamps
@@ -116,11 +116,11 @@
       button_hold_action: dimmer_hold
       transition: 1
 
-# Extinction automatique de l'escalier trois minutes après chaque allumage.
+# Stairs switched off automatically three minutes after every switch-on.
 - id: stairs_auto_off
-  alias: Escalier — extinction automatique
+  alias: Stairs — automatic switch-off
   use_blueprint:
-    path: fbonelle/extinction_automatique.yaml
+    path: fbonelle/auto_off.yaml
     input:
       entities: [light.stairs]
       duration: {hours: 0, minutes: 3, seconds: 0}

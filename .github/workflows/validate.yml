@@ -1,4 +1,4 @@
-name: Validation des blueprints
+name: Blueprint validation
 on:
   push:
     branches: [main]
@@ -11,16 +11,16 @@ concurrency:
   cancel-in-progress: true
 jobs:
   native-tests:
-    # « testée » : version fixée dans requirements-test.txt, celle des versions des blueprints.
-    # « minimale » : dernier correctif du mois de homeassistant.min_version (tools/versioning.py),
-    # pour que le prérequis annoncé reste vrai.
-    name: Tests natifs (${{ matrix.release }})
+    # « tested »: version pinned in requirements-test.txt, the one of the blueprint versions.
+    # « minimum »: latest patch of the homeassistant.min_version month (tools/versioning.py),
+    # so that the stated requirement stays true.
+    name: Native tests (${{ matrix.release }})
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        release: [testée, minimale]
+        release: [tested, minimum]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -30,17 +30,17 @@ jobs:
           cache-dependency-path: |
             requirements-dev.txt
             requirements-test.txt
-      - name: Installer les dépendances de développement
+      - name: Install the development dependencies
         run: python -m pip install -r requirements-dev.txt
-      - name: Installer la version minimale de Home Assistant et les dépendances de ses intégrations
-        if: matrix.release == 'minimale'
+      - name: Install the minimum Home Assistant version and the dependencies of its integrations
+        if: matrix.release == 'minimum'
         run: |
           python -m pip install "homeassistant~=$(python tools/versioning.py min)"
           python -m pip install $(python tools/ha_release.py integration-requirements)
-      - name: Vérifier la génération des YAML
-        if: matrix.release == 'testée'
+      - name: Check the YAML build
+        if: matrix.release == 'tested'
         run: |
           python tools/build.py
           git diff --exit-code -- blueprints examples
-      - name: Exécuter les tests natifs isolés
+      - name: Run the isolated native tests
         run: python -m pytest -q

@@ -6,28 +6,28 @@ A family of blueprints that drive lamps the same way whatever the ZHA remote, pl
 
 | Blueprint | Devices | Gestures |
 |---|---|---|
-| [Philips Hue Dimmer remote](../blueprints/automation/lighting/telecommande_hue_dimmer.yaml) | RWL022 | On/Off, Up, Down, Hue: short press and hold |
-| [Philips Hue Tap Dial remote](../blueprints/automation/lighting/telecommande_hue_tap_dial.yaml) | RDM002 | 4 buttons (one lamp each): short press and hold; dial |
-| [IKEA TRÅDFRI on/off switch](../blueprints/automation/lighting/telecommande_ikea_marche_arret.yaml) | TRADFRI on/off switch | I and O: short press, double press, hold |
-| [IKEA TRÅDFRI 5-button remote](../blueprints/automation/lighting/telecommande_ikea_5_boutons.yaml) | TRADFRI remote control | Centre, Up, Down, Left, Right: short press, double press, hold |
-| [IKEA STYRBAR remote](../blueprints/automation/lighting/telecommande_ikea_styrbar.yaml) | Remote Control N2 | Up, Down, Left, Right: short press, double press, hold |
-| [eWeLink / SONOFF button](../blueprints/automation/lighting/bouton_ewelink.yaml) | WB01, SNZB-01P, CK-TLSR8656-SS5-01 | Single, double and long press |
-| [Aqara wireless button](../blueprints/automation/lighting/bouton_aqara.yaml) | lumi.remote.b1acn01 (WXKG11LM) | Single press, double press, hold |
-| [Automatic lighting switch-off](../blueprints/automation/lighting/extinction_automatique.yaml) | Lights, switches, plugs | — |
+| [Philips Hue Dimmer remote](../blueprints/automation/lighting/hue_dimmer_remote.yaml) | RWL022 | On/Off, Up, Down, Hue: short press and hold |
+| [Philips Hue Tap Dial remote](../blueprints/automation/lighting/hue_tap_dial_remote.yaml) | RDM002 | 4 buttons (one lamp each): short press and hold; dial |
+| [IKEA TRÅDFRI on/off switch](../blueprints/automation/lighting/ikea_on_off_switch.yaml) | TRADFRI on/off switch | I and O: short press, double press, hold |
+| [IKEA TRÅDFRI 5-button remote](../blueprints/automation/lighting/ikea_5_button_remote.yaml) | TRADFRI remote control | Centre, Up, Down, Left, Right: short press, double press, hold |
+| [IKEA STYRBAR remote](../blueprints/automation/lighting/ikea_styrbar_remote.yaml) | Remote Control N2 | Up, Down, Left, Right: short press, double press, hold |
+| [eWeLink / SONOFF button](../blueprints/automation/lighting/ewelink_button.yaml) | WB01, SNZB-01P, CK-TLSR8656-SS5-01 | Single, double and long press |
+| [Aqara wireless button](../blueprints/automation/lighting/aqara_button.yaml) | lumi.remote.b1acn01 (WXKG11LM) | Single press, double press, hold |
+| [Automatic lighting switch-off](../blueprints/automation/lighting/auto_off.yaml) | Lights, switches, plugs | — |
 
 The STYRBAR blueprint keeps every feature and every default of this collection's former STYRBAR blueprint, which it replaces.
 
 ## Installation
 
 1. Import the blueprints you need:
-   [Hue Dimmer](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Ftelecommande_hue_dimmer.yaml) ·
-   [Hue Tap Dial](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Ftelecommande_hue_tap_dial.yaml) ·
-   [IKEA on/off](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Ftelecommande_ikea_marche_arret.yaml) ·
-   [IKEA 5 buttons](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Ftelecommande_ikea_5_boutons.yaml) ·
-   [IKEA STYRBAR](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Ftelecommande_ikea_styrbar.yaml) ·
-   [eWeLink](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fbouton_ewelink.yaml) ·
-   [Aqara](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fbouton_aqara.yaml) ·
-   [Automatic switch-off](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fextinction_automatique.yaml).
+   [Hue Dimmer](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fhue_dimmer_remote.yaml) ·
+   [Hue Tap Dial](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fhue_tap_dial_remote.yaml) ·
+   [IKEA on/off](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fikea_on_off_switch.yaml) ·
+   [IKEA 5 buttons](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fikea_5_button_remote.yaml) ·
+   [IKEA STYRBAR](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fikea_styrbar_remote.yaml) ·
+   [eWeLink](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fewelink_button.yaml) ·
+   [Aqara](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Faqara_button.yaml) ·
+   [Automatic switch-off](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fauto_off.yaml).
 2. Create one automation per remote: pick the remote, the lamp, then the action of each gesture.
 3. Optional: pick a **memory helper** (see below).
 4. Check with **Menu → Run actions**: a notification describes the lamp, the memory and any problem, without commanding the lamp.

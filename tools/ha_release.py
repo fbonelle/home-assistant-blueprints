@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
-"""Follow the public Home Assistant releases (workflow « Suivi des versions de Home Assistant »).
+"""Follow the public Home Assistant releases (workflow « Follow Home Assistant releases »).
 
     python tools/ha_release.py check                     # latest public release newer than the tested one?
     python tools/ha_release.py apply 2026.12.0           # move the project to that release
@@ -76,7 +76,7 @@ def check():
     version, python = latest_public()
     tested = versioning.tested_ha()
     new = key(version) > key(tested)
-    print(f'Home Assistant testé : {tested} ; dernière version publique : {version} (Python {python})')
+    print(f'Tested Home Assistant: {tested}; latest public release: {version} (Python {python})')
     output = os.environ.get('GITHUB_OUTPUT')
     if output:
         with open(output, 'a') as handle:

@@ -1,8 +1,8 @@
-# Mises à jour des dépendances de développement et des actions GitHub.
+# Updates of the development dependencies and of the GitHub actions.
 #
-# Home Assistant et les dépendances de ses intégrations (ical) sont exclus : le workflow
-# « Suivi des versions de Home Assistant » les met à jour, après avoir réussi tous les tests,
-# en même temps que les versions des blueprints.
+# Home Assistant and the dependencies of its integrations (ical) are excluded: the
+# « Follow Home Assistant releases » workflow updates them, after all tests pass, together
+# with the blueprint versions.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -10,7 +10,7 @@ updates:
     schedule:
       interval: monthly
     commit-message:
-      prefix: 'Actions GitHub :'
+      prefix: 'GitHub Actions:'
   - package-ecosystem: pip
     directory: /
     schedule:
@@ -19,7 +19,7 @@ updates:
       - dependency-name: homeassistant
       - dependency-name: ical
     groups:
-      outils-de-test:
+      test-tools:
         patterns: ['*']
     commit-message:
-      prefix: 'Dépendances de test :'
+      prefix: 'Test dependencies:'

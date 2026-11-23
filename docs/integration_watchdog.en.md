@@ -8,9 +8,9 @@ It uses the standard `homeassistant.reload_config_entry` action. The integration
 
 ## 1. Import the blueprint
 
-[Import the blueprint into Home Assistant](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fintegration_watchdog%2Fsurveillance_integrations.yaml)
+[Import the blueprint into Home Assistant](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fintegration_watchdog%2Fintegration_watchdog.yaml)
 
-Alternatively, open **Settings → Automations & scenes → Blueprints → Import blueprint** and paste [its GitHub URL](../blueprints/automation/integration_watchdog/surveillance_integrations.yaml). For manual installation, copy the file to `/config/blueprints/automation/local/surveillance_integrations.yaml`.
+Alternatively, open **Settings → Automations & scenes → Blueprints → Import blueprint** and paste [its GitHub URL](../blueprints/automation/integration_watchdog/integration_watchdog.yaml). For manual installation, copy the file to `/config/blueprints/automation/local/integration_watchdog.yaml`.
 
 This is the only file to install: no configuration file, no script and no restart. Enable the **Uptime** integration if needed; it provides the startup time used to let integrations connect before any retry.
 
@@ -47,7 +47,7 @@ Create another Text helper and another automation from the same blueprint. No ot
 
 The blueprint does not impose a fixed limit on the number of monitored integrations. It limits simultaneous reloads to **50** across all monitoring automations. An additional request tries again one minute later without consuming a retry.
 
-The [Netatmo, TaHoma and Cozytouch examples](../examples/integration_watchdog/) contain fictional identifiers. Adapt them before use. Their `local/surveillance_integrations.yaml` path matches manual installation; after a GitHub import, use the actual blueprint path shown by Home Assistant.
+The [Netatmo, TaHoma and Cozytouch examples](../examples/integration_watchdog/) contain fictional identifiers. Adapt them before use. Their `local/integration_watchdog.yaml` path matches manual installation; after a GitHub import, use the actual blueprint path shown by Home Assistant.
 
 ## Choose suitable settings
 
@@ -95,6 +95,6 @@ Exclusions, observation mode and additional conditions prevent new retries. They
 - Home Assistant must remain responsive for its automations to work. An abrupt shutdown may lose the most recent history update.
 - Tests simulate provider calls; they do not prove that a real Netatmo or Overkiz outage will be repaired.
 
-[How it works, tests and limitations](robustesse_integration_watchdog.en.md)
+[How it works, tests and limitations](integration_watchdog_robustness.en.md)
 
 Home Assistant documentation: [Text helpers](https://www.home-assistant.io/integrations/input_text/), [importing blueprints](https://www.home-assistant.io/docs/automation/using_blueprints/).

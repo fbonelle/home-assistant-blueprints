@@ -1,39 +1,39 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# Profils des télécommandes ZHA.
+# Profiles of the ZHA remotes.
 #
-# Chaque profil décrit uniquement ce qui distingue un modèle : son filtre d'appareil,
-# la traduction de ses événements zha_event en gestes normalisés, la liste de ses gestes
-# et les réglages par défaut. Toute la logique d'éclairage est dans engine.yaml et
-# s'applique de la même manière à tous les modèles.
+# Every profile describes only what sets a model apart: its device filter, the
+# translation of its zha_event events into normalised gestures, the list of its gestures
+# and its default settings. All the lighting logic lives in engine.yaml and applies in
+# the same way to every model.
 #
-# Les formats d'événements ont été relevés sur les profils zha-quirks 2.4.1 appliqués aux
-# appareils de la maison (profil SwitchAQ3B actuel pour le bouton Aqara) et confirmés par
-# les traces d'automatisation existantes.
+# The event formats were read from the zha-quirks 2.4.1 profiles applied to the devices
+# of the house (current SwitchAQ3B profile for the Aqara button) and confirmed by the
+# existing automation traces.
 #
-# Variables disponibles dans « decode » : command (texte), args (liste ou objet),
-# params (objet). Le résultat est un nom de geste, « stop » pour un relâchement qui doit
-# terminer une variation en cours, ou une chaîne vide pour un événement ignoré.
+# Variables available in « decode »: command (text), args (list or mapping), params
+# (mapping). The result is a gesture name, « stop » for a release that must end a running
+# change, or an empty string for an ignored event.
 #
-# Les événements ignorés ne passent pas la condition de l'automatisation : ils ne
-# redémarrent donc jamais une action en cours (mode restart).
+# Ignored events do not pass the automation condition: they therefore never restart a
+# running action (restart mode).
 #
-# « repeating_hold: true » signale un modèle qui répète lui-même l'événement de maintien
-# tant que le bouton est enfoncé : chaque répétition produit alors un seul pas, sans
-# boucle interne, pour garder une vitesse régulière.
+# « repeating_hold: true » marks a model that repeats the hold event itself while the
+# button is held down: every repetition then produces a single step, with no internal
+# loop, to keep a steady speed.
 #
-# « double: true » sur un appui court ajoute le geste « Double appui » (clé
-# <bouton>_double), utilisable avec l'assistant de mémoire ; « double_default » donne
-# son action par défaut (« none » sinon). Il n'est proposé que sur les modèles dont le
-# micrologiciel ne signale pas lui-même le double appui.
+# « double: true » on a short press adds the « Double press » gesture (key
+# <button>_double), usable with the memory helper; « double_default » gives its default
+# action (« none » otherwise). It is offered only on models whose firmware does not report
+# the double press itself.
 #
-# « palette » remplace, pour un modèle, la liste de préréglages proposée par défaut.
+# « palette » replaces, for one model, the list of presets offered by default.
 
 hue_dimmer:
-  file: telecommande_hue_dimmer.yaml
-  name: Télécommande Philips Hue Dimmer (RWL022) — ZHA
+  file: hue_dimmer_remote.yaml
+  name: Philips Hue Dimmer remote (RWL022) — ZHA
   description: >-
-    Quatre boutons (Marche/Arrêt, Plus, Moins, Hue). Pour chaque appui court ou maintenu,
-    choisir l'action dans la liste commune ou une action personnalisée.
+    Four buttons (On/Off, Up, Down, Hue). For every short press or hold, choose the action
+    from the shared list or a custom action.
   filter:
     integration: zha
     manufacturer: Signify Netherlands B.V.
@@ -50,42 +50,42 @@ hue_dimmer:
     {% endif %}
   sections:
   - key: power
-    name: Bouton Marche/Arrêt
+    name: On/Off button
     icon: mdi:power
     gestures:
-    - {key: power_press, label: Appui court, default: toggle}
-    - {key: power_hold, label: Maintien, hold: true, default: none}
+    - {key: power_press, label: Short press, default: toggle}
+    - {key: power_hold, label: Hold, hold: true, default: none}
   - key: up
-    name: Bouton Plus
+    name: Up button
     icon: mdi:brightness-7
     gestures:
-    - {key: up_press, label: Appui court, default: brighter}
-    - {key: up_hold, label: Maintien, hold: true, default: brighter_hold}
+    - {key: up_press, label: Short press, default: brighter}
+    - {key: up_hold, label: Hold, hold: true, default: brighter_hold}
   - key: down
-    name: Bouton Moins
+    name: Down button
     icon: mdi:brightness-5
     gestures:
-    - {key: down_press, label: Appui court, default: dimmer}
-    - {key: down_hold, label: Maintien, hold: true, default: dimmer_hold}
+    - {key: down_press, label: Short press, default: dimmer}
+    - {key: down_hold, label: Hold, hold: true, default: dimmer_hold}
   - key: hue
-    name: Bouton Hue
+    name: Hue button
     icon: mdi:alpha-h-circle-outline
     gestures:
-    - {key: hue_press, label: Appui court, default: full}
-    - {key: hue_hold, label: Maintien, hold: true, default: none}
+    - {key: hue_press, label: Short press, default: full}
+    - {key: hue_hold, label: Hold, hold: true, default: none}
   settings:
     step_pct: 10
     hold_step_pct: 10
     transition: 0
 
 hue_tap_dial:
-  file: telecommande_hue_tap_dial.yaml
-  name: Télécommande Philips Hue Tap Dial (RDM002) — ZHA
+  file: hue_tap_dial_remote.yaml
+  name: Philips Hue Tap Dial remote (RDM002) — ZHA
   description: >-
-    Quatre boutons, une lampe par bouton, et une molette. La molette agit sur la dernière
-    lampe allumée parmi les quatre (ou, si toutes sont éteintes, sur la dernière actionnée),
-    sans assistant de mémoire. Quand un groupe et ses membres changent ensemble, elle agit
-    sur la lampe que la télécommande a commandée.
+    Four buttons, one lamp per button, and a dial. The dial acts on the lamp switched on
+    most recently among the four (or, when all are off, on the one used most recently),
+    with no memory helper. When a group and its members change together, it acts on the
+    lamp the remote commanded.
   filter:
     integration: zha
     manufacturer: Signify Netherlands B.V.
@@ -102,37 +102,37 @@ hue_tap_dial:
     {% endif %}
   sections:
   - key: button_1
-    name: Bouton 1
+    name: Button 1
     icon: mdi:numeric-1-circle-outline
     gestures:
-    - {key: button_1_press, label: Appui court, default: toggle}
-    - {key: button_1_hold, label: Maintien, hold: true, default: none}
+    - {key: button_1_press, label: Short press, default: toggle}
+    - {key: button_1_hold, label: Hold, hold: true, default: none}
   - key: button_2
-    name: Bouton 2
+    name: Button 2
     icon: mdi:numeric-2-circle-outline
     gestures:
-    - {key: button_2_press, label: Appui court, default: toggle}
-    - {key: button_2_hold, label: Maintien, hold: true, default: none}
+    - {key: button_2_press, label: Short press, default: toggle}
+    - {key: button_2_hold, label: Hold, hold: true, default: none}
   - key: button_3
-    name: Bouton 3
+    name: Button 3
     icon: mdi:numeric-3-circle-outline
     gestures:
-    - {key: button_3_press, label: Appui court, default: toggle}
-    - {key: button_3_hold, label: Maintien, hold: true, default: none}
+    - {key: button_3_press, label: Short press, default: toggle}
+    - {key: button_3_hold, label: Hold, hold: true, default: none}
   - key: button_4
-    name: Bouton 4
+    name: Button 4
     icon: mdi:numeric-4-circle-outline
     gestures:
-    - {key: button_4_press, label: Appui court, default: toggle}
-    - {key: button_4_hold, label: Maintien, hold: true, default: none}
+    - {key: button_4_press, label: Short press, default: toggle}
+    - {key: button_4_hold, label: Hold, hold: true, default: none}
   - key: dial
-    name: Molette
+    name: Dial
     icon: mdi:knob
     gestures:
-    - {key: dial_up, label: Rotation vers la droite, default: brighter}
-    - {key: dial_down, label: Rotation vers la gauche, default: dimmer}
-  # La télécommande envoie parfois le même appui deux fois à quelques dizaines de
-  # millisecondes ; la molette émet au plus un événement toutes les 0,5 s.
+    - {key: dial_up, label: Turn right, default: brighter}
+    - {key: dial_down, label: Turn left, default: dimmer}
+  # The remote sometimes sends the same press twice a few tens of milliseconds apart; the
+  # dial sends at most one event every 0.5 s.
   settings:
     step_pct: 10
     hold_step_pct: 10
@@ -140,11 +140,11 @@ hue_tap_dial:
     debounce_ms: 100
 
 ikea_on_off:
-  file: telecommande_ikea_marche_arret.yaml
-  name: Interrupteur IKEA TRÅDFRI marche/arrêt — ZHA
+  file: ikea_on_off_switch.yaml
+  name: IKEA TRÅDFRI on/off switch — ZHA
   description: >-
-    Deux boutons (I et O). Appui court et maintien configurables ; un maintien est
-    arrêté au relâchement ou, si le relâchement radio est perdu, après la durée maximale.
+    Two buttons (I and O). Short press and hold can be set; a hold stops on release or,
+    when the radio release is lost, after the maximum duration.
   filter:
     integration: zha
     manufacturer: IKEA of Sweden
@@ -159,38 +159,38 @@ ikea_on_off:
     {% endif %}
   sections:
   - key: on_button
-    name: Bouton I
+    name: I button
     icon: mdi:toggle-switch
     gestures:
-    - {key: on_press, label: Appui court, default: 'on', double: true}
-    - {key: on_hold, label: Maintien, hold: true, default: brighter_hold}
+    - {key: on_press, label: Short press, default: 'on', double: true}
+    - {key: on_hold, label: Hold, hold: true, default: brighter_hold}
   - key: off_button
-    name: Bouton O
+    name: O button
     icon: mdi:toggle-switch-off
     gestures:
-    - {key: off_press, label: Appui court, default: 'off', double: true}
-    - {key: off_hold, label: Maintien, hold: true, default: dimmer_hold}
+    - {key: off_press, label: Short press, default: 'off', double: true}
+    - {key: off_hold, label: Hold, hold: true, default: dimmer_hold}
   settings:
     hold_step_pct: 10
     hold_interval: 1
     transition: 1
 
 ikea_5_buttons:
-  file: telecommande_ikea_5_boutons.yaml
-  name: Télécommande IKEA TRÅDFRI 5 boutons — ZHA
+  file: ikea_5_button_remote.yaml
+  name: IKEA TRÅDFRI 5-button remote — ZHA
   description: >-
-    Bouton central, Plus, Moins, Gauche et Droite. Remplace les anciennes variantes
-    « blancs » et « préréglages » : choisir pour Gauche et Droite la température du blanc
-    ou la palette de couleurs.
+    Center, Up, Down, Left and Right buttons. Replaces the former « whites » and
+    « presets » variants: choose the white temperature or the color palette for Left and
+    Right.
   filter:
     integration: zha
     manufacturer: IKEA of Sweden
     model: TRADFRI remote control
   repeating_hold: false
   targets: single
-  # Le maintien du bouton central produit « release » avec un premier paramètre nul
-  # (micrologiciels récents) ou « move_to_level_with_on_off » (micrologiciels anciens).
-  # Les relâchements latéraux produisent « release » avec la durée du maintien.
+  # Holding the center button produces « release » with a zero first parameter (recent
+  # firmware) or « move_to_level_with_on_off » (older firmware). Side releases produce
+  # « release » with the hold duration.
   decode: >-
     {% set p1 = params.get('param1') if params is mapping and params.get('param1') is not none
        else (args[0] if args is sequence and args is not string and args | count > 0 else none) %}
@@ -208,35 +208,35 @@ ikea_5_buttons:
     {% endif %}
   sections:
   - key: center
-    name: Bouton central
+    name: Center button
     icon: mdi:power
     gestures:
-    - {key: center_press, label: Appui court, default: toggle, double: true}
-    - {key: center_hold, label: Maintien, hold: true, default: full_reference}
+    - {key: center_press, label: Short press, default: toggle, double: true}
+    - {key: center_hold, label: Hold, hold: true, default: full_reference}
   - key: up
-    name: Bouton Plus
+    name: Up button
     icon: mdi:brightness-7
     gestures:
-    - {key: up_press, label: Appui court, default: brighter, double: true}
-    - {key: up_hold, label: Maintien, hold: true, default: brighter_hold}
+    - {key: up_press, label: Short press, default: brighter, double: true}
+    - {key: up_hold, label: Hold, hold: true, default: brighter_hold}
   - key: down
-    name: Bouton Moins
+    name: Down button
     icon: mdi:brightness-5
     gestures:
-    - {key: down_press, label: Appui court, default: dimmer, double: true}
-    - {key: down_hold, label: Maintien, hold: true, default: dimmer_hold}
+    - {key: down_press, label: Short press, default: dimmer, double: true}
+    - {key: down_hold, label: Hold, hold: true, default: dimmer_hold}
   - key: left
-    name: Bouton Gauche
+    name: Left button
     icon: mdi:chevron-left
     gestures:
-    - {key: left_press, label: Appui court, default: previous_preset, double: true}
-    - {key: left_hold, label: Maintien, hold: true, default: previous_preset_hold}
+    - {key: left_press, label: Short press, default: previous_preset, double: true}
+    - {key: left_hold, label: Hold, hold: true, default: previous_preset_hold}
   - key: right
-    name: Bouton Droite
+    name: Right button
     icon: mdi:chevron-right
     gestures:
-    - {key: right_press, label: Appui court, default: next_preset, double: true}
-    - {key: right_hold, label: Maintien, hold: true, default: next_preset_hold}
+    - {key: right_press, label: Short press, default: next_preset, double: true}
+    - {key: right_hold, label: Hold, hold: true, default: next_preset_hold}
   settings:
     step_pct: 20
     hold_step_pct: 10
@@ -246,11 +246,11 @@ ikea_5_buttons:
     color_transition: 0.5
 
 ikea_styrbar:
-  file: telecommande_ikea_styrbar.yaml
-  name: Télécommande IKEA STYRBAR — ZHA
+  file: ikea_styrbar_remote.yaml
+  name: IKEA STYRBAR remote — ZHA
   description: >-
-    Haut, Bas, Gauche et Droite, appui court et maintien. Avec l'assistant de mémoire,
-    le double appui en haut rappelle la couleur choisie, comme l'ancien blueprint STYRBAR.
+    Up, Down, Left and Right, short press and hold. With the memory helper, a double
+    press on Up recalls the chosen color, like the former STYRBAR blueprint.
   filter:
     integration: zha
     manufacturer: IKEA of Sweden
@@ -272,30 +272,30 @@ ikea_styrbar:
     {% endif %}
   sections:
   - key: up
-    name: Bouton Haut
+    name: Up button
     icon: mdi:chevron-up
     gestures:
-    - {key: up_press, label: Appui court, default: 'on', double: true, double_default: recall}
-    - {key: up_hold, label: Maintien, hold: true, default: brighter_hold}
+    - {key: up_press, label: Short press, default: 'on', double: true, double_default: recall}
+    - {key: up_hold, label: Hold, hold: true, default: brighter_hold}
   - key: down
-    name: Bouton Bas
+    name: Down button
     icon: mdi:chevron-down
     gestures:
-    - {key: down_press, label: Appui court, default: 'off', double: true}
-    - {key: down_hold, label: Maintien, hold: true, default: dimmer_hold}
+    - {key: down_press, label: Short press, default: 'off', double: true}
+    - {key: down_hold, label: Hold, hold: true, default: dimmer_hold}
   - key: left
-    name: Bouton Gauche
+    name: Left button
     icon: mdi:chevron-left
     gestures:
-    - {key: left_press, label: Appui court, default: previous_preset, double: true}
-    - {key: left_hold, label: Maintien, hold: true, default: previous_preset_hold}
+    - {key: left_press, label: Short press, default: previous_preset, double: true}
+    - {key: left_hold, label: Hold, hold: true, default: previous_preset_hold}
   - key: right
-    name: Bouton Droite
+    name: Right button
     icon: mdi:chevron-right
     gestures:
-    - {key: right_press, label: Appui court, default: next_preset, double: true}
-    - {key: right_hold, label: Maintien, hold: true, default: next_preset_hold}
-  # Réglages et palette de l'ancien blueprint STYRBAR (version 1.0.0).
+    - {key: right_press, label: Short press, default: next_preset, double: true}
+    - {key: right_hold, label: Hold, hold: true, default: next_preset_hold}
+  # Settings and palette of the former STYRBAR blueprint (version 1.0.0).
   settings:
     brightness_speed: 35
     hold_interval: 0.3
@@ -308,12 +308,11 @@ ikea_styrbar:
             ikea_blue, ikea_light_blue, ikea_lime, ikea_yellow]
 
 ewelink_button:
-  file: bouton_ewelink.yaml
-  name: Bouton eWeLink / SONOFF (WB01, SNZB-01P, CK-TLSR8656) — ZHA
+  file: ewelink_button.yaml
+  name: eWeLink / SONOFF button (WB01, SNZB-01P, CK-TLSR8656) — ZHA
   description: >-
-    Un bouton : clic simple, double clic et appui long. Les gestes sont lus dans les
-    commandes envoyées par le bouton, jamais dans les rapports d'état, qui peuvent être
-    émis sans aucun appui.
+    One button: single click, double click and long press. Gestures are read from the
+    commands sent by the button, never from state reports, which can be sent with no press.
   filter:
     - integration: zha
       manufacturer: eWeLink
@@ -330,31 +329,30 @@ ewelink_button:
     {{ {'toggle': 'single_press', 'on': 'double_press', 'off': 'long_press'}.get(command, '') }}
   sections:
   - key: button
-    name: Bouton
+    name: Button
     icon: mdi:gesture-tap-button
     gestures:
-    - {key: single_press, label: Clic simple, default: toggle_level}
-    - {key: double_press, label: Double clic, default: alternate}
-    - {key: long_press, label: Appui long, default: none}
+    - {key: single_press, label: Single click, default: toggle_level}
+    - {key: double_press, label: Double click, default: alternate}
+    - {key: long_press, label: Long press, default: none}
   settings:
     on_level_pct: 25
     high_level_pct: 100
     transition: 0
 
-# Profil zha-quirks SwitchAQ3B : le bouton signale lui-même le simple et le double appui,
-# ainsi que le début et la fin d'un maintien, dans l'attribut 0x0055 de son cluster
-# Multistate Input. Chaque valeur devient une commande zha_event dont « args » vaut
-# {'value': <valeur reçue>} : single (1), double (2), hold (0) et release (255).
-# Le double appui étant signalé par le micrologiciel, il ne demande pas d'assistant de
-# mémoire. Le maintien n'est pas répété : la variation tourne à la cadence réglée
-# jusqu'au relâchement.
+# zha-quirks SwitchAQ3B profile: the button reports the single and double press itself, as
+# well as the start and end of a hold, in attribute 0x0055 of its Multistate Input
+# cluster. Every value becomes a zha_event command whose « args » is
+# {'value': <received value>}: single (1), double (2), hold (0) and release (255).
+# Since the firmware reports the double press, it needs no memory helper. The hold is not
+# repeated: the change runs at the set tick until release.
 aqara_button:
-  file: bouton_aqara.yaml
-  name: Bouton sans fil Aqara (WXKG11LM, lumi.remote.b1acn01) — ZHA
+  file: aqara_button.yaml
+  name: Aqara wireless button (WXKG11LM, lumi.remote.b1acn01) — ZHA
   description: >-
-    Un bouton : appui simple, double appui et maintien, tous trois signalés par le
-    bouton lui-même. Un maintien est arrêté au relâchement ou, si le relâchement radio
-    est perdu, après la durée maximale.
+    One button: single press, double press and hold, all three reported by the button
+    itself. A hold stops on release or, when the radio release is lost, after the maximum
+    duration.
   filter:
     integration: zha
     manufacturer: LUMI
@@ -366,9 +364,9 @@ aqara_button:
         'release': 'stop'}.get(command, '') }}
   sections:
   - key: button
-    name: Bouton
+    name: Button
     icon: mdi:gesture-tap-button
     gestures:
-    - {key: single_press, label: Appui simple, default: toggle}
-    - {key: double_press, label: Double appui, default: none}
-    - {key: button_hold, label: Maintien, hold: true, default: none}
+    - {key: single_press, label: Single press, default: toggle}
+    - {key: double_press, label: Double press, default: none}
+    - {key: button_hold, label: Hold, hold: true, default: none}

@@ -8,9 +8,9 @@ Il utilise l’action standard `homeassistant.reload_config_entry`. L’intégra
 
 ## 1. Importer le blueprint
 
-[Importer le blueprint dans Home Assistant](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fintegration_watchdog%2Fsurveillance_integrations.yaml)
+[Importer le blueprint dans Home Assistant](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fintegration_watchdog%2Fintegration_watchdog.yaml)
 
-Vous pouvez aussi ouvrir **Paramètres → Automatisations et scènes → Blueprints → Importer un blueprint**, puis coller [son adresse GitHub](../blueprints/automation/integration_watchdog/surveillance_integrations.yaml). Pour une installation manuelle, copiez ce fichier dans `/config/blueprints/automation/local/surveillance_integrations.yaml`.
+Vous pouvez aussi ouvrir **Paramètres → Automatisations et scènes → Blueprints → Importer un blueprint**, puis coller [son adresse GitHub](../blueprints/automation/integration_watchdog/integration_watchdog.yaml). Pour une installation manuelle, copiez ce fichier dans `/config/blueprints/automation/local/integration_watchdog.yaml`.
 
 C’est le seul fichier à installer : aucun fichier de configuration, aucun script ni redémarrage. Activez l’intégration **Uptime** si elle n’est pas présente ; elle fournit la date de démarrage utilisée pour laisser les intégrations se connecter avant toute tentative.
 
@@ -47,7 +47,7 @@ Créez un autre assistant Texte et une autre automatisation depuis le même blue
 
 Le blueprint ne fixe pas de nombre maximal d’intégrations surveillées. Il limite à **50** le nombre de relances simultanées, toutes surveillances confondues. Une demande supplémentaire réessaie une minute plus tard, sans consommer de tentative.
 
-Les [exemples Netatmo, TaHoma et Cozytouch](../examples/integration_watchdog/) contiennent des identifiants fictifs. Adaptez-les avant utilisation. Leur chemin `local/surveillance_integrations.yaml` correspond à l’installation manuelle ; si vous avez importé le blueprint depuis GitHub, utilisez le chemin affiché par Home Assistant.
+Les [exemples Netatmo, TaHoma et Cozytouch](../examples/integration_watchdog/) contiennent des identifiants fictifs. Adaptez-les avant utilisation. Leur chemin `local/integration_watchdog.yaml` correspond à l’installation manuelle ; si vous avez importé le blueprint depuis GitHub, utilisez le chemin affiché par Home Assistant.
 
 ## Choisir les bons réglages
 
@@ -95,6 +95,6 @@ Les exclusions, le mode observation et les conditions supplémentaires empêchen
 - Home Assistant doit rester réactif pour que ses automatisations fonctionnent. Un arrêt brutal peut perdre la toute dernière mise à jour de l’historique.
 - Les tests simulent les appels aux fournisseurs ; ils ne prouvent pas qu’une panne réelle Netatmo ou Overkiz sera réparée.
 
-[Fonctionnement détaillé, tests et limites](robustesse_integration_watchdog.md)
+[Fonctionnement détaillé, tests et limites](integration_watchdog_robustness.md)
 
 Documentation Home Assistant : [assistant Texte](https://www.home-assistant.io/integrations/input_text/), [importation d’un blueprint](https://www.home-assistant.io/docs/automation/using_blueprints/).

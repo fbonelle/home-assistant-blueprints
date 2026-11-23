@@ -7,49 +7,49 @@
  ('max_backoff',max_backoff,60,86400),('reload_timeout',reload_timeout,30,3600),
  ('native_timeout',native_timeout,60,86400),('max_age',max_age,0,604800),('stagger_seconds',stagger_seconds,0,600)] %}
  {% if value is not number or value is boolean or not (lo <= value <= hi) %}
-  {% set ns.errors = ns.errors + ['Paramètre numérique invalide : ' ~ name] %}
- {% elif value != value | int %}{% set ns.errors = ns.errors + ['Un entier est requis : ' ~ name] %}{% endif %}
+  {% set ns.errors = ns.errors + ['Invalid numeric setting: ' ~ name] %}
+ {% elif value != value | int %}{% set ns.errors = ns.errors + ['An integer is required: ' ~ name] %}{% endif %}
 {% endfor %}
 {% if ns.errors | count == 0 and (recovery_seconds < stable_seconds or incident_reset_seconds < stable_seconds or max_backoff < retry_seconds) %}
- {% set ns.errors = ns.errors + ['Les délais de retour à la normale et de remise à zéro des tentatives doivent couvrir le délai de confirmation. L’attente maximale doit être au moins égale à l’attente initiale.'] %}
+ {% set ns.errors = ns.errors + ['The recovery and attempt reset delays must cover the confirmation delay. The maximum wait must be at least equal to the initial wait.'] %}
 {% endif %}
 {% for value in [include_unknown,logging_enabled,detailed_logging,observation_only] %}
- {% if value is not boolean %}{% set ns.errors = ns.errors + ['Les options doivent être activées ou désactivées.'] %}{% endif %}
+ {% if value is not boolean %}{% set ns.errors = ns.errors + ['Options must be switched on or off.'] %}{% endif %}
 {% endfor %}
 {% if scan_minutes not in ['/1','/2','/5','/10'] or policy not in ['all','any'] or name is not string or not name | trim %}
- {% set ns.errors = ns.errors + ['Fréquence, nom ou critère de panne invalide.'] %}
+ {% set ns.errors = ns.errors + ['Invalid frequency, name or failure criterion.'] %}
 {% endif %}
 {% if entry_id is not string or not entry_id or config_entry_attr(entry_id,'state') is none %}
- {% set ns.errors = ns.errors + ['Choisir une configuration d’intégration existante.'] %}
+ {% set ns.errors = ns.errors + ['Choose an existing integration configuration.'] %}
 {% endif %}
-{% if issues is not defined %}{% set ns.errors = ns.errors + ['Fonction native issues() requise.'] %}{% endif %}
+{% if issues is not defined %}{% set ns.errors = ns.errors + ['Native issues() function required.'] %}{% endif %}
 {% if uptime_entity is not string or not uptime_entity.startswith('sensor.') or as_timestamp(states(uptime_entity),none) is none %}
- {% set ns.errors = ns.errors + ['Capteur Uptime indisponible.'] %}
+ {% set ns.errors = ns.errors + ['Uptime sensor unavailable.'] %}
 {% elif as_timestamp(states(uptime_entity)) > clock_ts + 60 %}
- {% set ns.errors = ns.errors + ['La date fournie par le capteur Uptime est incohérente.'] %}
+ {% set ns.errors = ns.errors + ['The date given by the Uptime sensor is inconsistent.'] %}
 {% endif %}
 {% if entities is not sequence or entities is string or entities is mapping or entities | count == 0 %}
- {% set ns.errors = ns.errors + ['Choisir au moins une entité à surveiller.'] %}
+ {% set ns.errors = ns.errors + ['Choose at least one entity to watch.'] %}
 {% else %}
  {% for entity in entities %}
   {% if entity is not string or config_entry_id(entity) != entry_id %}
-   {% set ns.errors = ns.errors + ['Une entité sélectionnée n’appartient pas à l’intégration choisie.'] %}
+   {% set ns.errors = ns.errors + ['A selected entity does not belong to the chosen integration.'] %}
   {% elif states[entity] is none and config_entry_attr(entry_id,'state') == 'loaded' %}
-   {% set ns.errors = ns.errors + ['Entité sans valeur disponible : ' ~ entity] %}
+   {% set ns.errors = ns.errors + ['Entity with no available value: ' ~ entity] %}
   {% endif %}
  {% endfor %}
 {% endif %}
 {% if source_time_entity is not string or source_time_attribute is not string %}
- {% set ns.errors = ns.errors + ['L’entité indiquant la date de mesure est incorrecte.'] %}
+ {% set ns.errors = ns.errors + ['The entity giving the measurement date is wrong.'] %}
 {% elif source_time_entity != '' and (states[source_time_entity] is none or max_age is not number or max_age <= 0) %}
- {% set ns.errors = ns.errors + ['Vérifier l’entité indiquant la date de mesure et le délai maximal sans nouvelles données.'] %}
+ {% set ns.errors = ns.errors + ['Check the entity giving the measurement date and the maximum delay without new data.'] %}
 {% endif %}
 {% if excluded_instances is not sequence or excluded_instances is string or excluded_instances is mapping %}
- {% set ns.errors = ns.errors + ['Liste d’exclusions invalide.'] %}
+ {% set ns.errors = ns.errors + ['Invalid exclusion list.'] %}
 {% else %}
  {% for item in excluded_instances %}
   {% if item is not mapping or item.get('entry_id') is not string or not item.get('entry_id') %}
-   {% set ns.errors = ns.errors + ['Une exclusion est invalide.'] %}
+   {% set ns.errors = ns.errors + ['An exclusion is invalid.'] %}
   {% endif %}
  {% endfor %}
 {% endif %}
@@ -57,7 +57,7 @@
  {% if helper.entity_id != memory_entity and helper.state.startswith('iw3:') %}
   {% set other = helper.state[4:] | from_json({}) %}
   {% if other is mapping and other.get('e') == entry_key %}
-   {% set ns.errors = ns.errors + ['Une autre surveillance utilise cette configuration avec l’assistant ' ~ helper.entity_id ~ '. Supprimer la copie et son assistant inutilisé après vérification.'] %}
+   {% set ns.errors = ns.errors + ['Another watchdog uses this configuration with the helper ' ~ helper.entity_id ~ '. Delete the copy and its unused helper after checking.'] %}
   {% endif %}
  {% endif %}
 {% endfor %}

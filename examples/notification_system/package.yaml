@@ -1,47 +1,47 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # ==============================================================================
-# Exemple de package : système de notifications complet
+# Example package: complete notification system
 # ==============================================================================
-# À copier dans /config/packages/ (homeassistant: packages: !include_dir_named packages)
-# après avoir importé les quatre blueprints. Remplacer les entités d’exemple par les
-# vôtres. Les identifiants des scripts sont libres ; ceux-ci sont repris par les
-# automatisations qui envoient des notifications (script.notify_dispatch_global).
+# Copy into /config/packages/ (homeassistant: packages: !include_dir_named packages) after
+# importing the four blueprints. Replace the example entities with your own. Script
+# identifiers are free; these ones are used by the automations that send notifications
+# (script.notify_dispatch_global).
 # ==============================================================================
 
-# Interrupteur de silence de la lecture vocale.
+# Mute switch of text-to-speech.
 input_boolean:
   tts_muted:
-    name: Lecture vocale coupée
+    name: Text-to-speech muted
     icon: mdi:volume-mute
 
-# Mémoire anti-doublon du répartiteur : jusqu’à 10 créneaux « <epoch>:<md5 tronqué> »
-# séparés par « | », soit 219 caractères. `max: 255` est indispensable : la valeur par
-# défaut d’un assistant Texte est 100 caractères, ce qui tronquerait la mémoire à
-# 4 créneaux sans erreur visible.
+# Duplicate filter memory of the dispatcher: up to 10 slots « <epoch>:<truncated md5> »
+# separated by « | », that is 219 characters. `max: 255` is required: the default of a
+# Text helper is 100 characters, which would cut the memory down to 4 slots with no
+# visible error.
 input_text:
   notify_dedup_slots:
-    name: Notifications — mémoire anti-doublon
+    name: Notifications — duplicate filter memory
     icon: mdi:fingerprint
     max: 255
 
 script:
-  # Un seul script d’envoi pour les trois canaux.
+  # A single sender script for the three channels.
   notify_send_channel:
-    alias: Notifications — Envoi sur un canal
+    alias: Notifications — Channel sender
     use_blueprint:
-      path: fbonelle/notification_system/envoi_canal.yaml
+      path: fbonelle/notification_system/channel_sender.yaml
       input:
-        mobile_service: notify.mobile_app_mon_telephone
-        family_service: notify.famille
+        mobile_service: notify.mobile_app_my_phone
+        family_service: notify.family
         default_link: /lovelace/0
-        ntfy_entity: notify.ntfy_technique
-        email_entity: notify.smtp_alertes
+        ntfy_entity: notify.ntfy_technical
+        email_entity: notify.smtp_alerts
         home_url: https://ha.example.org
-  # Point d’entrée appelé par toutes les automatisations.
+  # Entry point called by every automation.
   notify_dispatch_global:
-    alias: Notifications — Répartiteur
+    alias: Notifications — Dispatcher
     use_blueprint:
-      path: fbonelle/notification_system/repartiteur.yaml
+      path: fbonelle/notification_system/dispatcher.yaml
       input:
         sender_script: script.notify_send_channel
         tts_script: script.tts_engine
@@ -49,9 +49,9 @@ script:
         home_url: https://ha.example.org
         default_link: /lovelace/0
   tts_engine:
-    alias: Notifications — Lecture vocale
+    alias: Notifications — Text-to-speech
     use_blueprint:
-      path: fbonelle/notification_system/lecture_vocale.yaml
+      path: fbonelle/notification_system/text_to_speech.yaml
       input:
         tts_entity: tts.piper
         speaker_label: tts
@@ -59,11 +59,11 @@ script:
 
 automation:
   - id: notifications_relay_mobile
-    alias: Notifications — Relais vers le mobile
+    alias: Notifications — Mobile relay
     use_blueprint:
-      path: fbonelle/notification_system/relais_mobile.yaml
+      path: fbonelle/notification_system/mobile_relay.yaml
       input:
         dispatcher_script: script.notify_dispatch_global
-        clear_service: notify.mobile_app_mon_telephone
+        clear_service: notify.mobile_app_my_phone
         dismissed_prefixes:
           - capfile_energy_manual_

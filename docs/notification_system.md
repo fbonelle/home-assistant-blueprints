@@ -6,20 +6,20 @@ Quatre blueprints qui forment un système de notifications complet, avec un seul
 
 | Blueprint | Type | Rôle |
 |---|---|---|
-| [Notifications — Répartiteur](../blueprints/script/notification_system/repartiteur.yaml) | script, parallèle | Point d’entrée : choisit les canaux selon le niveau, écarte les doublons, gère la nuit, la bascule de secours et la lecture vocale. |
-| [Notifications — Envoi sur un canal](../blueprints/script/notification_system/envoi_canal.yaml) | script, parallèle | Envoie sur un seul canal (application mobile, ntfy ou e-mail) et renvoie `success` si l’envoi a abouti. |
-| [Notifications — Lecture vocale](../blueprints/script/notification_system/lecture_vocale.yaml) | script, file d’attente | Lit le message sur les enceintes étiquetées, une annonce après l’autre. |
-| [Notifications — Relais vers le mobile](../blueprints/automation/notification_system/relais_mobile.yaml) | automatisation | Envoie les notifications persistantes de Home Assistant au répartiteur et les efface du téléphone quand elles sont supprimées. |
+| [Notifications — Répartiteur](../blueprints/script/notification_system/dispatcher.yaml) | script, parallèle | Point d’entrée : choisit les canaux selon le niveau, écarte les doublons, gère la nuit, la bascule de secours et la lecture vocale. |
+| [Notifications — Envoi sur un canal](../blueprints/script/notification_system/channel_sender.yaml) | script, parallèle | Envoie sur un seul canal (application mobile, ntfy ou e-mail) et renvoie `success` si l’envoi a abouti. |
+| [Notifications — Lecture vocale](../blueprints/script/notification_system/text_to_speech.yaml) | script, file d’attente | Lit le message sur les enceintes étiquetées, une annonce après l’autre. |
+| [Notifications — Relais vers le mobile](../blueprints/automation/notification_system/mobile_relay.yaml) | automatisation | Envoie les notifications persistantes de Home Assistant au répartiteur et les efface du téléphone quand elles sont supprimées. |
 
 Pourquoi quatre et pas un : un blueprint ne produit qu’un script ou qu’une automatisation. L’envoi sur un canal est un script séparé parce que c’est la seule façon, dans Home Assistant, de savoir qu’un envoi a échoué et de basculer sur un autre canal. La lecture vocale est séparée parce qu’elle fonctionne en file d’attente, alors que le répartiteur traite plusieurs notifications à la fois.
 
 ## Installation
 
 1. Importer les quatre blueprints :
-   [Répartiteur](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscript%2Fnotification_system%2Frepartiteur.yaml) ·
-   [Envoi sur un canal](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscript%2Fnotification_system%2Fenvoi_canal.yaml) ·
-   [Lecture vocale](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscript%2Fnotification_system%2Flecture_vocale.yaml) ·
-   [Relais vers le mobile](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fnotification_system%2Frelais_mobile.yaml).
+   [Répartiteur](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscript%2Fnotification_system%2Fdispatcher.yaml) ·
+   [Envoi sur un canal](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscript%2Fnotification_system%2Fchannel_sender.yaml) ·
+   [Lecture vocale](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscript%2Fnotification_system%2Ftext_to_speech.yaml) ·
+   [Relais vers le mobile](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fnotification_system%2Fmobile_relay.yaml).
 2. Créer deux aides : un **assistant Texte** de longueur maximale 255 pour la mémoire anti-doublon, et, si besoin, une **entrée booléenne** pour couper la lecture vocale.
 3. Étiqueter `tts` les lecteurs multimédias qui doivent parler.
 4. Créer les scripts et l’automatisation, de préférence dans un *package* : l’[exemple complet](../examples/notification_system/package.yaml) contient les aides et les quatre instances. Créer d’abord l’envoi sur un canal et la lecture vocale, puis le répartiteur, qui les désigne, puis le relais, qui désigne le répartiteur.

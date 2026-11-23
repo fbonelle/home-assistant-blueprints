@@ -1,55 +1,54 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# Version 2026.11.2.0 — blueprint autonome : aucun fichier de configuration commun.
-# Mémoire : p réservation, f 0 réservée, 1-2 admise ou lancée, >2 fin de la relance.
+# Version 2026.11.2.0 — self-contained blueprint: no shared configuration file.
+# Memory: p reservation, f 0 reserved, 1-2 admitted or started, >2 end of the reload.
 blueprint:
-  name: Surveillance et relance des intégrations — 2026.11.2.0
-  description: Surveille les entités d’une intégration et tente de la relancer en cas de panne. Le nombre de tentatives,
-    les délais, les notifications et les journaux sont réglables. Créer un assistant Texte, puis une automatisation
-    par configuration d’intégration ; aucun autre fichier n’est nécessaire.
+  name: Integration watchdog — 2026.11.2.0
+  description: 'Watches the entities of an integration and tries to reload it when it fails. The number of attempts,
+    the delays, the notifications and the logs can be set. Create a Text helper, then one automation per integration
+    configuration; no other file is needed. Guide: https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/integration_watchdog.en.md'
   domain: automation
   homeassistant:
     min_version: 2026.10.0
   input:
-    surveillance:
-      name: Intégration et entités à surveiller
+    monitoring:
+      name: Integration and entities to watch
       input:
         name:
           selector:
             text: {}
-          name: Nom dans les notifications
-          default: Intégration surveillée
+          name: Name in notifications
+          default: Watched integration
         entry_id:
           selector:
             config_entry: {}
-          name: Configuration de l’intégration à surveiller
-          description: Choisir le compte ou la passerelle concernés. Deux comptes ou deux passerelles d’une même
-            intégration se configurent séparément.
+          name: Configuration of the integration to watch
+          description: Choose the account or gateway concerned. Two accounts or two gateways of the same integration
+            are set up separately.
         entities:
           selector:
             entity:
               multiple: true
-          name: Entités à surveiller
-          description: 'Choisir des entités actives de cette intégration : par exemple une température, un volet
-            ou un thermostat. Leur état permet de détecter une panne.'
+          name: Entities to watch
+          description: 'Choose active entities of this integration: for example a temperature, a cover or a thermostat.
+            Their state shows when something is wrong.'
         memory:
           selector:
             entity:
               filter:
               - domain: input_text
-          name: Assistant Texte pour conserver l’historique
-          description: Créer un assistant Texte dans Home Assistant, longueur minimale 0 et maximale 255. Il conserve
-            les tentatives et leur état après un redémarrage. Utiliser un assistant différent pour chaque configuration
-            surveillée.
+          name: Text helper that keeps the history
+          description: Create a Text helper in Home Assistant, minimum length 0 and maximum 255. It keeps the attempts
+            and their state across a restart. Use a different helper for every watched configuration.
         policy:
           default: all
           selector:
             select:
               options:
-              - label: Lorsque toutes les entités sont en erreur
+              - label: When every entity is failing
                 value: all
-              - label: Lorsqu’au moins une entité est en erreur
+              - label: When at least one entity is failing
                 value: any
-          name: Quand faut-il relancer l’intégration ?
+          name: When should the integration be reloaded?
         max_age:
           selector:
             number:
@@ -58,9 +57,9 @@ blueprint:
               step: 1
               mode: box
           default: 0
-          name: Délai maximal sans nouvelles données (secondes)
-          description: 0 désactive ce contrôle. À utiliser pour des mesures envoyées régulièrement. Sans date de
-            mesure fournie par l’intégration, le contrôle repose sur les données reçues par Home Assistant.
+          name: Maximum delay without new data (seconds)
+          description: 0 disables this check. Use it for measurements sent regularly. When the integration gives
+            no measurement date, the check relies on the data received by Home Assistant.
         stagger_seconds:
           selector:
             number:
@@ -69,45 +68,45 @@ blueprint:
               step: 1
               mode: box
           default: 0
-          name: Délai supplémentaire avant une relance (secondes)
-          description: Permet de décaler les relances de plusieurs intégrations pour éviter de toutes les solliciter
-            au même moment.
+          name: Extra delay before a reload (seconds)
+          description: Spreads the reloads of several integrations so that they are not all requested at the same
+            moment.
         source_time_entity:
           selector:
             entity: {}
-          name: Entité indiquant la date de la dernière mesure (facultatif)
+          name: Entity giving the date of the last measurement (optional)
           default: ''
-          description: À renseigner seulement si une entité fournit la date réelle de la mesure. Le délai sans nouvelles
-            données doit alors être supérieur à 0.
+          description: Fill in only when an entity gives the real date of the measurement. The delay without new
+            data must then be above 0.
         source_time_attribute:
           selector:
             text: {}
-          name: Attribut contenant la date de mesure (facultatif)
+          name: Attribute holding the measurement date (optional)
           default: ''
-          description: Laisser vide si la date est directement dans l’état de l’entité choisie au-dessus.
+          description: Leave empty when the date is directly in the state of the entity chosen above.
         uptime_entity:
-          name: Capteur Uptime de Home Assistant
+          name: Home Assistant Uptime sensor
           selector:
             entity:
               filter:
               - domain: sensor
                 integration: uptime
         scan_minutes:
-          name: Fréquence de vérification
+          name: Check frequency
           default: /1
           selector:
             select:
               options:
-              - label: Toutes les minutes
+              - label: Every minute
                 value: /1
-              - label: Toutes les 2 minutes
+              - label: Every 2 minutes
                 value: /2
-              - label: Toutes les 5 minutes
+              - label: Every 5 minutes
                 value: /5
-              - label: Toutes les 10 minutes
+              - label: Every 10 minutes
                 value: /10
         fault_seconds:
-          name: Durée minimale de la panne avant une relance (secondes)
+          name: Minimum failure duration before a reload (seconds)
           default: 300
           selector:
             number:
@@ -116,15 +115,14 @@ blueprint:
               step: 1
               mode: box
         include_unknown:
-          name: Considérer l’état « inconnu » comme une panne
-          description: L’état unknown signifie que Home Assistant ne connaît pas la valeur. Cette option permet
-            de déclencher une relance si cet état dure suffisamment longtemps. Il ne confirme jamais un retour à
-            la normale.
+          name: Count the « unknown » state as a failure
+          description: The unknown state means that Home Assistant does not know the value. This option triggers
+            a reload when that state lasts long enough. It never confirms a recovery.
           default: false
           selector:
             boolean: {}
         startup_seconds:
-          name: Attente après le démarrage de Home Assistant (secondes)
+          name: Wait after Home Assistant start-up (seconds)
           default: 600
           selector:
             number:
@@ -132,43 +130,43 @@ blueprint:
               max: 86400
               step: 1
               mode: box
-          description: Laisser le temps aux intégrations de se connecter avant de tenter une relance.
-    recuperation:
-      name: Relances et nombre de tentatives
+          description: Gives the integrations time to connect before a reload is attempted.
+    recovery:
+      name: Reloads and number of attempts
       input:
         observation_only:
-          name: Observer sans relancer l’intégration
+          name: Observe without reloading the integration
           default: false
           selector:
             boolean: {}
         logging_enabled:
-          name: Enregistrer les événements dans les journaux
+          name: Record events in the logs
           default: true
-          description: Journal integration_watchdog. La surveillance règle elle-même son niveau (info, ou debug
-            avec les journaux détaillés) ; aucune configuration n’est nécessaire.
+          description: integration_watchdog logger. The watchdog sets its level itself (info, or debug with detailed
+            logs); no configuration is needed.
           selector:
             boolean: {}
         detailed_logging:
-          name: Activer les journaux détaillés
+          name: Enable detailed logs
           default: false
-          description: Ajoute une ligne à chaque vérification. À réserver au diagnostic ; les messages ne contiennent
-            pas les valeurs des capteurs.
+          description: Adds a line at every check. Keep it for diagnosis; the messages do not contain the sensor
+            values.
           selector:
             boolean: {}
         excluded_instances:
-          name: Configurations à exclure
+          name: Configurations to exclude
           default: []
           selector:
             object:
               multiple: true
               fields:
                 entry_id:
-                  label: Configuration à exclure
+                  label: Configuration to exclude
                   required: true
                   selector:
                     config_entry: {}
         max_attempts:
-          name: Nombre maximal de tentatives pour une même panne
+          name: Maximum number of attempts for one failure
           default: 3
           selector:
             number:
@@ -176,10 +174,10 @@ blueprint:
               max: 10
               step: 1
               mode: box
-          description: Une fois cette limite atteinte, les relances s’arrêtent et une notification est envoyée.
-            Le compteur est réinitialisé après un retour durable à la normale ou une action manuelle.
+          description: Once this limit is reached, reloads stop and a notification is sent. The counter is reset
+            after a lasting recovery or a manual action.
         max_daily:
-          name: Nombre maximal de tentatives sur les dernières 24 heures
+          name: Maximum number of attempts over the last 24 hours
           default: 6
           selector:
             number:
@@ -187,10 +185,10 @@ blueprint:
               max: 6
               step: 1
               mode: box
-          description: 'Cette limite reste valable après une nouvelle panne ou un redémarrage normal de Home Assistant.
-            Maximum : 6 tentatives pour conserver l’historique dans un seul assistant Texte.'
+          description: 'This limit still applies after a new failure or a normal Home Assistant restart. Maximum:
+            6 attempts, to keep the history in a single Text helper.'
         recovery_seconds:
-          name: Temps laissé à l’intégration pour récupérer après une relance (secondes)
+          name: Time given to the integration to recover after a reload (seconds)
           default: 600
           selector:
             number:
@@ -198,9 +196,9 @@ blueprint:
               max: 3600
               step: 1
               mode: box
-          description: Doit être au moins égal au délai de confirmation du retour à la normale.
+          description: Must be at least equal to the recovery confirmation delay.
         stable_seconds:
-          name: Durée de fonctionnement normal avant confirmation (secondes)
+          name: Normal operation time before confirmation (seconds)
           default: 180
           selector:
             number:
@@ -208,10 +206,10 @@ blueprint:
               max: 3600
               step: 1
               mode: box
-          description: Toutes les entités surveillées doivent rester disponibles pendant cette durée. Un nouvel
-            état inconnu ou indisponible recommence cette attente.
+          description: Every watched entity must stay available during this time. A new unknown or unavailable state
+            starts this wait again.
         incident_reset_seconds:
-          name: Durée de fonctionnement normal avant remise à zéro des tentatives (secondes)
+          name: Normal operation time before the attempts are reset (seconds)
           default: 1800
           selector:
             number:
@@ -219,10 +217,10 @@ blueprint:
               max: 86400
               step: 1
               mode: box
-          description: Ce délai évite de remettre le compteur à zéro après une amélioration très brève. La limite
-            des dernières 24 heures reste conservée.
+          description: This delay avoids resetting the counter after a very short improvement. The limit over the
+            last 24 hours is kept.
         retry_seconds:
-          name: Attente avant une nouvelle tentative (secondes)
+          name: Wait before a new attempt (seconds)
           default: 300
           selector:
             number:
@@ -231,7 +229,7 @@ blueprint:
               step: 1
               mode: box
         max_backoff:
-          name: Attente maximale entre deux tentatives (secondes)
+          name: Maximum wait between two attempts (seconds)
           default: 3600
           selector:
             number:
@@ -239,9 +237,9 @@ blueprint:
               max: 86400
               step: 1
               mode: box
-          description: L’attente augmente après chaque échec, jusqu’à cette valeur.
+          description: The wait grows after every failure, up to this value.
         reload_timeout:
-          name: Délai avant alerte si une relance ne se termine pas (secondes)
+          name: Delay before an alert when a reload does not finish (seconds)
           default: 180
           selector:
             number:
@@ -249,11 +247,11 @@ blueprint:
               max: 3600
               step: 1
               mode: box
-          description: Une alerte est envoyée si la relance n’est pas terminée après ce délai. La relance n’est
-            pas annulée ; la surveillance reprend dès qu’elle se termine et aucune autre relance n’est lancée pour
-            cette intégration entre-temps.
+          description: An alert is sent when the reload has not finished after this delay. The reload is not cancelled;
+            watching resumes as soon as it finishes, and no other reload is started for this integration in the
+            meantime.
         native_timeout:
-          name: Délai avant alerte si Home Assistant essaie déjà de reconnecter l’intégration (secondes)
+          name: Delay before an alert when Home Assistant is already reconnecting the integration (seconds)
           default: 1800
           selector:
             number:
@@ -261,12 +259,11 @@ blueprint:
               max: 86400
               step: 1
               mode: box
-          description: La surveillance laisse Home Assistant poursuivre sa reconnexion et signale seulement une
-            attente trop longue.
+          description: The watchdog lets Home Assistant carry on reconnecting and only reports a wait that lasts
+            too long.
         additional_conditions:
-          name: Conditions supplémentaires pour autoriser les relances
-          description: Les vérifications et les alertes continuent lorsque ces conditions empêchent une nouvelle
-            relance.
+          name: Extra conditions allowing reloads
+          description: Checks and alerts go on when these conditions prevent a new reload.
           default: []
           selector:
             condition: {}
@@ -274,24 +271,24 @@ blueprint:
       name: Notifications
       input:
         failure_actions:
-          name: Actions lorsqu’une intervention est nécessaire
-          description: 'Par défaut : une notification dans Home Assistant. Variables disponibles pour personnaliser
-            le message : entry_id, integration_title, reason, attempts_used, daily_attempts, failed_entities, status.
-            Une notification en erreur est retentée lors d’un contrôle suivant.'
+          name: Actions when an intervention is needed
+          description: 'Default: a notification in Home Assistant. Variables available to customise the message:
+            entry_id, integration_title, reason, attempts_used, daily_attempts, failed_entities, status. A notification
+            that fails is retried at a later check.'
           selector:
             action: {}
           default:
           - action: persistent_notification.create
             data:
               notification_id: integration_watchdog_{{ entry_id }}
-              title: 'Intégration à vérifier : {{ integration_title }}'
+              title: 'Integration to check: {{ integration_title }}'
               message: |-
                 {{ reason }}
-                Tentatives pour cette panne : {{ attempts_used }} ; sur les dernières 24 h : {{ daily_attempts }}.
-                Entités en erreur : {{ failed_entities | join(", ") }}.
+                Attempts for this failure: {{ attempts_used }}; over the last 24 h: {{ daily_attempts }}.
+                Failing entities: {{ failed_entities | join(", ") }}.
         success_actions:
-          name: Actions après le retour à la normale
-          description: Par défaut, efface la notification de panne. Les mêmes variables que pour l’alerte sont disponibles.
+          name: Actions after recovery
+          description: By default, clears the failure notification. The same variables as for the alert are available.
           selector:
             action: {}
           default:
@@ -299,28 +296,27 @@ blueprint:
             data:
               notification_id: integration_watchdog_{{ entry_id }}
         configuration_error_actions:
-          name: Actions si la configuration de la surveillance est incorrecte
-          description: 'Par défaut : une notification expliquant les réglages à corriger. Variable disponible :
-            configuration_errors.'
+          name: Actions when the watchdog configuration is wrong
+          description: 'Default: a notification explaining the settings to fix. Available variable: configuration_errors.'
           selector:
             action: {}
           default:
           - action: persistent_notification.create
             data:
               notification_id: integration_watchdog_configuration_{{ owner_id }}
-              title: Surveillance des intégrations indisponible
+              title: Integration watchdog unavailable
               message: '{{ configuration_errors | join("\n") }}'
         configuration_resolved_actions:
-          name: Actions lorsque la configuration est correcte
-          description: 'Par défaut, efface l’alerte de configuration. Ces actions sont exécutées à chaque contrôle
-            valide : elles doivent être rapides et supporter plusieurs exécutions.'
+          name: Actions when the configuration is correct
+          description: 'By default, clears the configuration alert. These actions run at every valid check: they
+            must be quick and safe to run several times.'
           selector:
             action: {}
           default:
           - action: persistent_notification.dismiss
             data:
               notification_id: integration_watchdog_configuration_{{ owner_id }}
-  source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/automation/integration_watchdog/surveillance_integrations.yaml
+  source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/automation/integration_watchdog/integration_watchdog.yaml
   author: fbonelle
 mode: queued
 max: 10
@@ -385,37 +381,37 @@ actions:
       {% set ns = namespace(errors=[],data=none) %}
       {% set raw = states(memory_entity) if memory_entity is string else '' %}
       {% if memory_entity is not string or not memory_entity.startswith('input_text.') %}
-        {% set ns.errors = ns.errors + ['Choisir un assistant Texte réservé à cette surveillance.'] %}
+        {% set ns.errors = ns.errors + ['Choose a Text helper used by this watchdog only.'] %}
       {% elif states[memory_entity] is none or raw == 'unavailable' or state_attr(memory_entity,'min') | int(-1) != 0 or state_attr(memory_entity,'max') | int(0) != 255 %}
-        {% set ns.errors = ns.errors + ['Assistant Texte absent ou mal configuré : longueur minimale 0 et maximale 255 requises.'] %}
+        {% set ns.errors = ns.errors + ['Text helper missing or badly set up: minimum length 0 and maximum length 255 required.'] %}
       {% elif raw in ['', 'unknown'] %}
         {% set ns.data = {'v':3,'o':owner_id,'e':entry_key,'a':[],'i':0,'n':0,'p':0,'f':0,'h':0,'t':0,'s':'new','k':''} %}
       {% else %}
         {% set d = raw[4:] | from_json(none) if raw.startswith('iw3:') or raw.startswith('iw2:') else none %}
         {% if d is not mapping %}
-          {% set ns.errors = ns.errors + ['L’historique contenu dans l’assistant Texte est illisible. Il n’a pas été effacé.'] %}
+          {% set ns.errors = ns.errors + ['The history held in the Text helper is unreadable. It was not cleared.'] %}
         {% elif (d.get('v') == 3 and (not raw.startswith('iw3:') or d.get('o') != owner_id or d.get('e') != entry_key)) or (d.get('v') == 2 and (not raw.startswith('iw2:') or d.get('o') != legacy_owner)) or d.get('v') not in [2,3] %}
-          {% set ns.errors = ns.errors + ['L’assistant Texte contient l’historique d’une autre surveillance ou un format non reconnu.'] %}
+          {% set ns.errors = ns.errors + ['The Text helper holds the history of another watchdog or an unknown format.'] %}
         {% elif d.get('s') not in ['new','startup','healthy','degraded','waiting','running','verify','limited','suspended','auth','fatal','timeout','paused','disabled','native','observation','deferred','duplicate','interrupted'] or d.get('k') is not string %}
-          {% set ns.errors = ns.errors + ['L’état enregistré dans l’historique est incorrect.'] %}
+          {% set ns.errors = ns.errors + ['The state recorded in the history is wrong.'] %}
         {% else %}
           {% for key in ['i','n','p','f','h','t'] %}
             {% set value = d.get(key) %}
             {% set upper = 4294967295000000 if key == 'p' and d.v == 3 else 4294967295 %}
             {% if value is not number or value is boolean or not (0 <= value <= upper) %}
-              {% set ns.errors = ns.errors + ['Compteur ou horodatage invalide : ' ~ key] %}
+              {% set ns.errors = ns.errors + ['Invalid counter or timestamp: ' ~ key] %}
             {% elif value != value | int or (key == 'i' and value > 10) or (key in ['h','t'] and value > clock_ts + 60) or (key == 'f' and value > clock_ts + 60) or (key == 'p' and value > (clock_ts + 60) * (1000000 if d.v == 3 else 1)) %}
-              {% set ns.errors = ns.errors + ['Historique ou horloge incohérents : ' ~ key] %}
+              {% set ns.errors = ns.errors + ['Inconsistent history or clock: ' ~ key] %}
             {% endif %}
           {% endfor %}
           {% if d.get('a') is not sequence or d.get('a') is string or d.get('a') is mapping or d.a | count > 6 %}
-            {% set ns.errors = ns.errors + ['Historique de demandes invalide.'] %}
+            {% set ns.errors = ns.errors + ['Invalid request history.'] %}
           {% else %}
             {% for value in d.a %}
               {% if value is not number or value is boolean or not (0 <= value <= clock_ts + 60) %}
-                {% set ns.errors = ns.errors + ['Historique ou horloge incohérente.'] %}
+                {% set ns.errors = ns.errors + ['Inconsistent history or clock.'] %}
               {% elif value != value | int %}
-                {% set ns.errors = ns.errors + ['Horodatage non entier.'] %}
+                {% set ns.errors = ns.errors + ['Timestamp is not an integer.'] %}
               {% endif %}
             {% endfor %}
           {% endif %}
@@ -433,7 +429,7 @@ actions:
   - variables:
       configuration_errors: '{{ read.errors }}'
   - sequence: !input 'configuration_error_actions'
-  - stop: Mémoire non valide ; aucune remise à zéro.
+  - stop: Invalid memory; no reset.
 - &id004
   variables:
     normalized: |-
@@ -457,9 +453,9 @@ actions:
     then: &id001
     - variables:
         configuration_errors:
-        - L’historique n’a pas pu être enregistré. Aucune nouvelle relance n’a été lancée.
+        - The history could not be saved. No new reload was started.
     - sequence: !input 'configuration_error_actions'
-    - stop: Écriture de mémoire non confirmée.
+    - stop: Memory write not confirmed.
   - if: '{{ states(memory_entity) != new_memory }}'
     then:
     - action: input_text.set_value
@@ -480,49 +476,49 @@ actions:
        ('max_backoff',max_backoff,60,86400),('reload_timeout',reload_timeout,30,3600),
        ('native_timeout',native_timeout,60,86400),('max_age',max_age,0,604800),('stagger_seconds',stagger_seconds,0,600)] %}
        {% if value is not number or value is boolean or not (lo <= value <= hi) %}
-        {% set ns.errors = ns.errors + ['Paramètre numérique invalide : ' ~ name] %}
-       {% elif value != value | int %}{% set ns.errors = ns.errors + ['Un entier est requis : ' ~ name] %}{% endif %}
+        {% set ns.errors = ns.errors + ['Invalid numeric setting: ' ~ name] %}
+       {% elif value != value | int %}{% set ns.errors = ns.errors + ['An integer is required: ' ~ name] %}{% endif %}
       {% endfor %}
       {% if ns.errors | count == 0 and (recovery_seconds < stable_seconds or incident_reset_seconds < stable_seconds or max_backoff < retry_seconds) %}
-       {% set ns.errors = ns.errors + ['Les délais de retour à la normale et de remise à zéro des tentatives doivent couvrir le délai de confirmation. L’attente maximale doit être au moins égale à l’attente initiale.'] %}
+       {% set ns.errors = ns.errors + ['The recovery and attempt reset delays must cover the confirmation delay. The maximum wait must be at least equal to the initial wait.'] %}
       {% endif %}
       {% for value in [include_unknown,logging_enabled,detailed_logging,observation_only] %}
-       {% if value is not boolean %}{% set ns.errors = ns.errors + ['Les options doivent être activées ou désactivées.'] %}{% endif %}
+       {% if value is not boolean %}{% set ns.errors = ns.errors + ['Options must be switched on or off.'] %}{% endif %}
       {% endfor %}
       {% if scan_minutes not in ['/1','/2','/5','/10'] or policy not in ['all','any'] or name is not string or not name | trim %}
-       {% set ns.errors = ns.errors + ['Fréquence, nom ou critère de panne invalide.'] %}
+       {% set ns.errors = ns.errors + ['Invalid frequency, name or failure criterion.'] %}
       {% endif %}
       {% if entry_id is not string or not entry_id or config_entry_attr(entry_id,'state') is none %}
-       {% set ns.errors = ns.errors + ['Choisir une configuration d’intégration existante.'] %}
+       {% set ns.errors = ns.errors + ['Choose an existing integration configuration.'] %}
       {% endif %}
-      {% if issues is not defined %}{% set ns.errors = ns.errors + ['Fonction native issues() requise.'] %}{% endif %}
+      {% if issues is not defined %}{% set ns.errors = ns.errors + ['Native issues() function required.'] %}{% endif %}
       {% if uptime_entity is not string or not uptime_entity.startswith('sensor.') or as_timestamp(states(uptime_entity),none) is none %}
-       {% set ns.errors = ns.errors + ['Capteur Uptime indisponible.'] %}
+       {% set ns.errors = ns.errors + ['Uptime sensor unavailable.'] %}
       {% elif as_timestamp(states(uptime_entity)) > clock_ts + 60 %}
-       {% set ns.errors = ns.errors + ['La date fournie par le capteur Uptime est incohérente.'] %}
+       {% set ns.errors = ns.errors + ['The date given by the Uptime sensor is inconsistent.'] %}
       {% endif %}
       {% if entities is not sequence or entities is string or entities is mapping or entities | count == 0 %}
-       {% set ns.errors = ns.errors + ['Choisir au moins une entité à surveiller.'] %}
+       {% set ns.errors = ns.errors + ['Choose at least one entity to watch.'] %}
       {% else %}
        {% for entity in entities %}
         {% if entity is not string or config_entry_id(entity) != entry_id %}
-         {% set ns.errors = ns.errors + ['Une entité sélectionnée n’appartient pas à l’intégration choisie.'] %}
+         {% set ns.errors = ns.errors + ['A selected entity does not belong to the chosen integration.'] %}
         {% elif states[entity] is none and config_entry_attr(entry_id,'state') == 'loaded' %}
-         {% set ns.errors = ns.errors + ['Entité sans valeur disponible : ' ~ entity] %}
+         {% set ns.errors = ns.errors + ['Entity with no available value: ' ~ entity] %}
         {% endif %}
        {% endfor %}
       {% endif %}
       {% if source_time_entity is not string or source_time_attribute is not string %}
-       {% set ns.errors = ns.errors + ['L’entité indiquant la date de mesure est incorrecte.'] %}
+       {% set ns.errors = ns.errors + ['The entity giving the measurement date is wrong.'] %}
       {% elif source_time_entity != '' and (states[source_time_entity] is none or max_age is not number or max_age <= 0) %}
-       {% set ns.errors = ns.errors + ['Vérifier l’entité indiquant la date de mesure et le délai maximal sans nouvelles données.'] %}
+       {% set ns.errors = ns.errors + ['Check the entity giving the measurement date and the maximum delay without new data.'] %}
       {% endif %}
       {% if excluded_instances is not sequence or excluded_instances is string or excluded_instances is mapping %}
-       {% set ns.errors = ns.errors + ['Liste d’exclusions invalide.'] %}
+       {% set ns.errors = ns.errors + ['Invalid exclusion list.'] %}
       {% else %}
        {% for item in excluded_instances %}
         {% if item is not mapping or item.get('entry_id') is not string or not item.get('entry_id') %}
-         {% set ns.errors = ns.errors + ['Une exclusion est invalide.'] %}
+         {% set ns.errors = ns.errors + ['An exclusion is invalid.'] %}
         {% endif %}
        {% endfor %}
       {% endif %}
@@ -530,7 +526,7 @@ actions:
        {% if helper.entity_id != memory_entity and helper.state.startswith('iw3:') %}
         {% set other = helper.state[4:] | from_json({}) %}
         {% if other is mapping and other.get('e') == entry_key %}
-         {% set ns.errors = ns.errors + ['Une autre surveillance utilise cette configuration avec l’assistant ' ~ helper.entity_id ~ '. Supprimer la copie et son assistant inutilisé après vérification.'] %}
+         {% set ns.errors = ns.errors + ['Another watchdog uses this configuration with the helper ' ~ helper.entity_id ~ '. Delete the copy and its unused helper after checking.'] %}
         {% endif %}
        {% endif %}
       {% endfor %}
@@ -538,12 +534,12 @@ actions:
 - if: '{{ configuration_errors | count > 0 }}'
   then:
   - sequence: !input 'configuration_error_actions'
-  - stop: Paramètres invalides ; fin des relances conservée.
+  - stop: Invalid settings; reload endings kept.
 - variables:
     excluded: '{{ entry_id in (excluded_instances | map(attribute=''entry_id'') | list) }}'
 - if: '{{ excluded }}'
   then:
-  - stop: Configuration exclue ; fin des relances conservée.
+  - stop: Configuration excluded; reload endings kept.
 - sequence: !input 'configuration_resolved_actions'
 - variables:
     interventions_allowed: false
@@ -645,39 +641,39 @@ actions:
             {% if auth %}
               {% set ns.h = 0 %}
               {% set ns.s = 'auth' %}
-              {% set ns.reason = 'Une réauthentification est requise. Renouveler la connexion dans Home Assistant ; aucun rechargement automatique.' %}
+              {% set ns.reason = 'Reauthentication is required. Renew the connection in Home Assistant; no automatic reload.' %}
               {% set alarm = true %}
             {% elif config_entry_attr(row.entry_id,'disabled_by') is not none %}
               {% set ns.h = 0 %}
               {% set ns.s = 'disabled' %}
-              {% set ns.reason = 'Cette configuration d’intégration est désactivée.' %}
+              {% set ns.reason = 'This integration configuration is disabled.' %}
             {% elif not startup_ok %}
               {% set ns.h = 0 %}
               {% set ns.s = 'startup' %}
-              {% set ns.reason = 'Attente après le démarrage de Home Assistant.' %}
+              {% set ns.reason = 'Waiting after Home Assistant start-up.' %}
             {% elif entry_state in ['migration_error','failed_unload','setup_error','not_loaded'] and not force %}
               {% set ns.h = 0 %}
               {% set ns.s = 'fatal' %}
-              {% set ns.reason = 'État ' ~ entry_state ~ ' : intervention manuelle nécessaire ; aucune relance forcée.' %}
+              {% set ns.reason = 'State ' ~ entry_state ~ ': manual intervention needed; no forced reload.' %}
               {% set alarm = true %}
             {% elif config_entry_attr(row.entry_id,'pref_disable_polling') %}
               {% set ns.h = 0 %}
               {% set ns.n = 0 %}
               {% set ns.s = 'native' %}
-              {% set ns.reason = 'Interrogation désactivée volontairement ; aucune relance forcée.' %}
+              {% set ns.reason = 'Polling deliberately disabled; no forced reload.' %}
             {% elif entry_state != 'loaded' and not force %}
               {% set ns.h = 0 %}
               {% if old_status != 'native' or ns.n == 0 %}{% set ns.n = now_ts + native_timeout %}{% endif %}
               {% set ns.s = 'native' %}
-              {% set ns.reason = 'Home Assistant essaie déjà de reconnecter l’intégration.' %}
+              {% set ns.reason = 'Home Assistant is already trying to reconnect the integration.' %}
               {% if now_ts >= ns.n %}
-                {% set ns.reason = 'La reconnexion gérée par Home Assistant prend trop de temps. Vérifier les erreurs de l’intégration.' %}
+                {% set ns.reason = 'The reconnection handled by Home Assistant is taking too long. Check the errors of the integration.' %}
                 {% set alarm = true %}
               {% endif %}
             {% elif health.source_invalid %}
               {% set ns.h = 0 %}
               {% set ns.s = 'fatal' %}
-              {% set ns.reason = 'L’horodatage source est absent ou incohérent : vérifier sa provenance et l’horloge. Relances suspendues.' %}
+              {% set ns.reason = 'The source timestamp is missing or inconsistent: check where it comes from and the clock. Reloads suspended.' %}
               {% set alarm = true %}
             {% elif health.recovered %}
               {% if ns.h == 0 %}
@@ -685,7 +681,7 @@ actions:
               {% endif %}
               {% if now_ts - ns.h >= stable_seconds %}
                 {% set ns.s = 'healthy' %}
-                {% set ns.reason = 'Toutes les entités surveillées fonctionnent depuis la durée de confirmation prévue.' %}
+                {% set ns.reason = 'Every watched entity has been working for the planned confirmation time.' %}
                 {% if old_notice != '' or (old_status != 'healthy' and ns.i > 0) %}
                   {% set ns.notice = 'success' %}
                 {% endif %}
@@ -694,50 +690,50 @@ actions:
                 {% endif %}
                 {% set ns.n = 0 %}
               {% else %}
-                {% set ns.reason = 'Les entités sont à nouveau disponibles. Attente de confirmation du retour à la normale.' %}
+                {% set ns.reason = 'The entities are available again. Waiting for the recovery to be confirmed.' %}
                 {% if ns.s != 'verify' %}{% set ns.s = 'degraded' %}{% endif %}
               {% endif %}
             {% else %}
               {% set ns.h = 0 %}
               {% if ns.s == 'verify' and now_ts < ns.n %}
-                {% set ns.reason = 'Attente du retour des données après la relance.' %}
+                {% set ns.reason = 'Waiting for the data to come back after the reload.' %}
               {% elif ns.s == 'verify' %}
                 {% set ns.s = 'waiting' %}
                 {% set ns.n = now_ts + [retry_seconds * (2 ** ([ns.i - 1,0] | max)),max_backoff] | min + row.get('stagger_seconds',0) %}
-                {% set ns.reason = 'Les données attendues ne sont pas revenues. Une nouvelle tentative sera proposée après le délai prévu.' %}
+                {% set ns.reason = 'The expected data did not come back. A new attempt will be offered after the planned delay.' %}
                 {% if ns.i >= max_attempts %}
                   {% set ns.s = 'suspended' %}
-                  {% set ns.reason = 'Le nombre maximal de tentatives pour cette panne est atteint. Les relances sont suspendues jusqu’au retour durable à la normale ou à une réinitialisation manuelle.' %}
+                  {% set ns.reason = 'The maximum number of attempts for this failure is reached. Reloads are suspended until a lasting recovery or a manual reset.' %}
                   {% set alarm = true %}
                 {% endif %}
               {% elif not health.fault and not force and not (ns.i > 0 and old_status in ['verify','waiting','running','limited','suspended','timeout']) %}
                 {% set ns.s = 'degraded' %}
-                {% set ns.reason = 'Certaines entités sont en erreur, mais les conditions de relance ne sont pas encore réunies.' %}
+                {% set ns.reason = 'Some entities are failing, but the reload conditions are not met yet.' %}
               {% elif ns.i >= max_attempts %}
                 {% set ns.s = 'suspended' %}
-                {% set ns.reason = 'Le nombre maximal de tentatives pour cette panne est atteint. Les relances sont suspendues jusqu’au retour durable à la normale ou à une réinitialisation manuelle.' %}
+                {% set ns.reason = 'The maximum number of attempts for this failure is reached. Reloads are suspended until a lasting recovery or a manual reset.' %}
                 {% set alarm = true %}
               {% elif not interventions_allowed %}
                 {% set ns.s = 'observation' if observation_only else 'paused' %}
-                {% set ns.reason = 'Observation seule ; aucune nouvelle demande de rechargement.' if observation_only else 'Interventions suspendues par les conditions supplémentaires.' %}
+                {% set ns.reason = 'Observation only; no new reload request.' if observation_only else 'Interventions suspended by the extra conditions.' %}
               {% elif ns.a | count >= max_daily %}
                 {% set ns.s = 'limited' %}
                 {% set ns.n = (ns.a | min) + 86400 %}
-                {% set ns.reason = 'Le nombre maximal de tentatives sur les dernières 24 heures est atteint. Les relances reprendront lorsque cette limite le permettra.' %}
+                {% set ns.reason = 'The maximum number of attempts over the last 24 hours is reached. Reloads will resume when this limit allows it.' %}
                 {% set alarm = true %}
               {% elif now_ts < ns.n %}
                 {% set ns.s = 'waiting' %}
-                {% set ns.reason = 'Pause avant la prochaine demande autorisée.' %}
+                {% set ns.reason = 'Pause before the next allowed request.' %}
               {% elif old_status not in ['waiting','limited','suspended','verify'] and ns.i == 0 and row.get('stagger_seconds',0) > 0 %}
                 {% set ns.s = 'waiting' %}
                 {% set ns.n = now_ts + row.get('stagger_seconds',0) %}
-                {% set ns.reason = 'Décalage initial entre les intégrations.' %}
+                {% set ns.reason = 'Initial offset between integrations.' %}
               {% else %}
                 {% set ns.s = 'running' %}
                 {% set ns.p = reservation_ts %}
                 {% set ns.f = 0 %}
                 {% set ns.reload = true %}
-                {% set ns.reason = 'Reprise de la relance interrompue : l’intégration est restée déchargée.' if force else 'Relance de l’intégration. La tentative est comptée à son démarrage.' %}
+                {% set ns.reason = 'Resuming the interrupted reload: the integration stayed unloaded.' if force else 'Reloading the integration. The attempt is counted when it starts.' %}
               {% endif %}
             {% endif %}
             {% if alarm and old_notice != ns.s %}{% set ns.notice = 'failure' %}{% endif %}
@@ -808,7 +804,7 @@ actions:
               logger: integration_watchdog
               level: '{{ ''warning'' if plan.notice == ''failure'' else ''debug'' if detailed_logging and plan.status
                 == memory.s and not plan.reload else ''info'' }}'
-              message: '{{ name }} [{{ entry_id }}] : {{ status }} ; incident={{ attempts_used }}, 24h={{ daily_attempts
+              message: '{{ name }} [{{ entry_id }}]: {{ status }}; incident={{ attempts_used }}, 24h={{ daily_attempts
                 }}. {{ reason }}'
       - if: '{{ plan.reload }}'
         then:
@@ -883,8 +879,8 @@ actions:
               data:
                 logger: integration_watchdog
                 level: info
-                message: '{{ name }} [{{ entry_id }}] : relance reportée d’une minute ({{ ''autre surveillance de
-                  cette intégration'' if contenders.conflict else ''plafond de relances simultanées atteint'' }}).'
+                message: '{{ name }} [{{ entry_id }}]: reload postponed by one minute ({{ ''another watchdog of
+                  this integration'' if contenders.conflict else ''limit of simultaneous reloads reached'' }}).'
         - if: '{{ admitted }}'
           then:
           - parallel:
@@ -930,8 +926,8 @@ actions:
                 then:
                 - variables:
                     status: timeout
-                    reason: La relance dure depuis plus de {{ reload_timeout }} secondes. Elle n’est pas annulée
-                      ; la surveillance reprendra à sa fin. Vérifier les traces et les journaux de l’intégration.
+                    reason: The reload has been running for more than {{ reload_timeout }} seconds. It is not cancelled;
+                      watching resumes when it ends. Check the traces and the logs of the integration.
                     integration_title: '{{ name }}'
                     attempts_used: '{{ plan.attempts + 1 }}'
                     daily_attempts: '{{ plan.daily + 1 }}'
@@ -948,4 +944,4 @@ actions:
                     data:
                       logger: integration_watchdog
                       level: warning
-                      message: '{{ name }} [{{ entry_id }}] : relance non terminée après {{ reload_timeout }} s.'
+                      message: '{{ name }} [{{ entry_id }}]: reload not finished after {{ reload_timeout }} s.'

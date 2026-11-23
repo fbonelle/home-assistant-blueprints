@@ -1,48 +1,48 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# Extinction automatique d'un éclairage après une durée d'allumage.
+# Automatic switch-off of lighting after an on time.
 #
-# Écrit pour ce dépôt. Il reprend seulement l'idée générale d'une minuterie d'extinction ;
-# aucun code d'un autre blueprint n'est repris (voir NOTICE).
+# Written for this repository. It only takes the general idea of a switch-off timer; no
+# code of another blueprint is reused (see NOTICE).
 #
-# Fonctionnement :
-# - une entité suivie passe à « on » → la minuterie démarre (ou redémarre) ;
-# - toutes les entités suivies sont éteintes à la main → la minuterie est annulée ;
-# - la minuterie arrive à son terme → les entités encore allumées sont éteintes ;
-# - au démarrage de Home Assistant, une entité restée allumée sans minuterie active
-#   relance la minuterie, pour qu'aucune lampe ne reste allumée indéfiniment.
+# Behaviour:
+# - a watched entity turns « on » → the timer starts (or starts again);
+# - every watched entity is switched off by hand → the timer is cancelled;
+# - the timer runs out → the entities still on are switched off;
+# - at Home Assistant start-up, an entity left on without an active timer starts the
+#   timer again, so that no lamp stays on forever.
 #
-# Avec un assistant Minuteur, le décompte est visible dans l'interface et peut survivre
-# à un redémarrage (option « Restaurer » de l'assistant). Sans assistant, l'automatisation
-# attend elle-même la durée ; un redémarrage ou une modification de l'automatisation
-# interrompt alors l'attente, rattrapée au démarrage suivant.
+# With a Timer helper, the countdown is visible in the interface and can survive a
+# restart (« Restore » option of the helper). Without a helper, the automation waits for
+# the duration itself; a restart or an edit of the automation then interrupts the wait,
+# which is caught up at the next start-up.
 blueprint:
-  name: Extinction automatique de l'éclairage
+  name: Lighting automatic switch-off
   description: >-
-    Éteint une ou plusieurs lampes ou prises après une durée d'allumage, quelle que soit
-    la façon dont elles ont été allumées. Une extinction manuelle annule le décompte.
-    Assistant Minuteur facultatif pour voir le temps restant.
+    Switches one or more lamps or plugs off after an on time, however they were switched
+    on. Switching them off by hand cancels the countdown. Optional Timer helper to see the
+    remaining time.
   domain: automation
   homeassistant:
     min_version: '@min_version'  # tools/versioning.py (MIN_HA)
   input:
     entities:
-      name: Éclairages à éteindre
-      description: Lampes, interrupteurs ou prises. L'allumage de l'un d'eux relance le décompte.
+      name: Lighting to switch off
+      description: Lamps, switches or plugs. Switching one of them on restarts the countdown.
       selector:
         entity:
           multiple: true
           filter:
           - domain: [light, switch]
     duration:
-      name: Durée d'allumage
+      name: On time
       default: {hours: 0, minutes: 3, seconds: 0}
       selector:
         duration: {}
     timer:
-      name: Assistant Minuteur (facultatif)
+      name: Timer helper (optional)
       description: >-
-        Laisser vide pour que l'automatisation attende elle-même. Un même assistant ne
-        doit servir qu'à une seule automatisation de ce type.
+        Leave empty for the automation to wait by itself. A helper must serve only one
+        automation of this kind.
       default: ''
       selector:
         entity:
@@ -72,18 +72,18 @@ variables:
   use_timer: "{{ timer_entity is string and timer_entity.startswith('timer.') }}"
   lit: "{{ entities | select('is_state', 'on') | list }}"
 conditions:
-# L'événement de fin ne concerne que l'assistant de cette automatisation.
+# The finished event only concerns the helper of this automation.
 - condition: template
   value_template: >-
     {{ trigger.id != 'finished' or
        (use_timer and trigger.event.data.get('entity_id') == timer_entity) }}
-# L'extinction d'un éclairage alors qu'un autre reste allumé ne change rien : elle ne doit
-# surtout pas redémarrer (et donc interrompre) une attente en cours.
+# Switching one lamp off while another stays on changes nothing: above all it must not
+# restart (and therefore interrupt) a running wait.
 - condition: template
   value_template: "{{ trigger.id != 'turned_off' or lit | count == 0 }}"
 actions:
 - choose:
-  # Allumage, ou démarrage avec un éclairage resté allumé.
+  # Switched on, or start-up with lighting left on.
   - conditions: >-
       {{ trigger.id == 'turned_on' or
          (trigger.id == 'started' and lit | count > 0 and
@@ -96,18 +96,18 @@ actions:
         data:
           duration: '{{ duration }}'
       else:
-      # Sans assistant, l'attente est interrompue par tout nouveau déclenchement
-      # (mode restart) ; une extinction manuelle l'annule donc naturellement.
+      # Without a helper, the wait is interrupted by any new trigger (restart mode);
+      # switching off by hand therefore cancels it naturally.
       - delay: '{{ duration }}'
       - action: homeassistant.turn_off
         target:
           entity_id: "{{ entities | select('is_state', 'on') | list }}"
-  # Extinction manuelle de tous les éclairages suivis.
+  # Every watched lamp switched off by hand.
   - conditions: "{{ trigger.id == 'turned_off' and lit | count == 0 and use_timer and is_state(timer_entity, 'active') }}"
     sequence:
     - action: timer.cancel
       target: {entity_id: '{{ timer_entity }}'}
-  # Fin du décompte.
+  # End of the countdown.
   - conditions: "{{ trigger.id == 'finished' and lit | count > 0 }}"
     sequence:
     - action: homeassistant.turn_off

@@ -1,43 +1,43 @@
-surveillance:
-  name: Intégration et entités à surveiller
+monitoring:
+  name: Integration and entities to watch
   input:
     name:
       selector:
         text: {}
-      name: Nom dans les notifications
-      default: Intégration surveillée
+      name: Name in notifications
+      default: Watched integration
     entry_id:
       selector:
         config_entry: {}
-      name: Configuration de l’intégration à surveiller
-      description: Choisir le compte ou la passerelle concernés. Deux comptes ou deux passerelles d’une
-        même intégration se configurent séparément.
+      name: Configuration of the integration to watch
+      description: Choose the account or gateway concerned. Two accounts or two gateways of the same
+        integration are set up separately.
     entities:
       selector:
         entity:
           multiple: true
-      name: Entités à surveiller
-      description: 'Choisir des entités actives de cette intégration : par exemple une température, un
-        volet ou un thermostat. Leur état permet de détecter une panne.'
+      name: Entities to watch
+      description: 'Choose active entities of this integration: for example a temperature, a cover or
+        a thermostat. Their state shows when something is wrong.'
     memory:
       selector:
         entity:
           filter:
           - domain: input_text
-      name: Assistant Texte pour conserver l’historique
-      description: Créer un assistant Texte dans Home Assistant, longueur minimale 0 et maximale 255.
-        Il conserve les tentatives et leur état après un redémarrage. Utiliser un assistant différent
-        pour chaque configuration surveillée.
+      name: Text helper that keeps the history
+      description: Create a Text helper in Home Assistant, minimum length 0 and maximum 255. It keeps the
+        attempts and their state across a restart. Use a different helper for every watched
+        configuration.
     policy:
       default: all
       selector:
         select:
           options:
-          - label: Lorsque toutes les entités sont en erreur
+          - label: When every entity is failing
             value: all
-          - label: Lorsqu’au moins une entité est en erreur
+          - label: When at least one entity is failing
             value: any
-      name: Quand faut-il relancer l’intégration ?
+      name: When should the integration be reloaded?
     max_age:
       selector:
         number:
@@ -46,9 +46,9 @@ surveillance:
           step: 1
           mode: box
       default: 0
-      name: Délai maximal sans nouvelles données (secondes)
-      description: 0 désactive ce contrôle. À utiliser pour des mesures envoyées régulièrement. Sans date
-        de mesure fournie par l’intégration, le contrôle repose sur les données reçues par Home Assistant.
+      name: Maximum delay without new data (seconds)
+      description: 0 disables this check. Use it for measurements sent regularly. When the integration
+        gives no measurement date, the check relies on the data received by Home Assistant.
     stagger_seconds:
       selector:
         number:
@@ -57,45 +57,45 @@ surveillance:
           step: 1
           mode: box
       default: 0
-      name: Délai supplémentaire avant une relance (secondes)
-      description: Permet de décaler les relances de plusieurs intégrations pour éviter de toutes les
-        solliciter au même moment.
+      name: Extra delay before a reload (seconds)
+      description: Spreads the reloads of several integrations so that they are not all requested at the
+        same moment.
     source_time_entity:
       selector:
         entity: {}
-      name: Entité indiquant la date de la dernière mesure (facultatif)
+      name: Entity giving the date of the last measurement (optional)
       default: ''
-      description: À renseigner seulement si une entité fournit la date réelle de la mesure. Le délai
-        sans nouvelles données doit alors être supérieur à 0.
+      description: Fill in only when an entity gives the real date of the measurement. The delay without
+        new data must then be above 0.
     source_time_attribute:
       selector:
         text: {}
-      name: Attribut contenant la date de mesure (facultatif)
+      name: Attribute holding the measurement date (optional)
       default: ''
-      description: Laisser vide si la date est directement dans l’état de l’entité choisie au-dessus.
+      description: Leave empty when the date is directly in the state of the entity chosen above.
     uptime_entity:
-      name: Capteur Uptime de Home Assistant
+      name: Home Assistant Uptime sensor
       selector:
         entity:
           filter:
           - domain: sensor
             integration: uptime
     scan_minutes:
-      name: Fréquence de vérification
+      name: Check frequency
       default: /1
       selector:
         select:
           options:
-          - label: Toutes les minutes
+          - label: Every minute
             value: /1
-          - label: Toutes les 2 minutes
+          - label: Every 2 minutes
             value: /2
-          - label: Toutes les 5 minutes
+          - label: Every 5 minutes
             value: /5
-          - label: Toutes les 10 minutes
+          - label: Every 10 minutes
             value: /10
     fault_seconds:
-      name: Durée minimale de la panne avant une relance (secondes)
+      name: Minimum failure duration before a reload (seconds)
       default: 300
       selector:
         number:
@@ -104,15 +104,14 @@ surveillance:
           step: 1
           mode: box
     include_unknown:
-      name: Considérer l’état « inconnu » comme une panne
-      description: L’état unknown signifie que Home Assistant ne connaît pas la valeur. Cette option permet
-        de déclencher une relance si cet état dure suffisamment longtemps. Il ne confirme jamais un retour
-        à la normale.
+      name: Count the « unknown » state as a failure
+      description: The unknown state means that Home Assistant does not know the value. This option
+        triggers a reload when that state lasts long enough. It never confirms a recovery.
       default: false
       selector:
         boolean: {}
     startup_seconds:
-      name: Attente après le démarrage de Home Assistant (secondes)
+      name: Wait after Home Assistant start-up (seconds)
       default: 600
       selector:
         number:
@@ -120,43 +119,43 @@ surveillance:
           max: 86400
           step: 1
           mode: box
-      description: Laisser le temps aux intégrations de se connecter avant de tenter une relance.
-recuperation:
-  name: Relances et nombre de tentatives
+      description: Gives the integrations time to connect before a reload is attempted.
+recovery:
+  name: Reloads and number of attempts
   input:
     observation_only:
-      name: Observer sans relancer l’intégration
+      name: Observe without reloading the integration
       default: false
       selector:
         boolean: {}
     logging_enabled:
-      name: Enregistrer les événements dans les journaux
+      name: Record events in the logs
       default: true
-      description: Journal integration_watchdog. La surveillance règle elle-même son niveau (info, ou debug
-        avec les journaux détaillés) ; aucune configuration n’est nécessaire.
+      description: integration_watchdog logger. The watchdog sets its level itself (info, or debug with
+        detailed logs); no configuration is needed.
       selector:
         boolean: {}
     detailed_logging:
-      name: Activer les journaux détaillés
+      name: Enable detailed logs
       default: false
-      description: Ajoute une ligne à chaque vérification. À réserver au diagnostic ; les messages ne
-        contiennent pas les valeurs des capteurs.
+      description: Adds a line at every check. Keep it for diagnosis; the messages do not contain the
+        sensor values.
       selector:
         boolean: {}
     excluded_instances:
-      name: Configurations à exclure
+      name: Configurations to exclude
       default: []
       selector:
         object:
           multiple: true
           fields:
             entry_id:
-              label: Configuration à exclure
+              label: Configuration to exclude
               required: true
               selector:
                 config_entry: {}
     max_attempts:
-      name: Nombre maximal de tentatives pour une même panne
+      name: Maximum number of attempts for one failure
       default: 3
       selector:
         number:
@@ -164,10 +163,10 @@ recuperation:
           max: 10
           step: 1
           mode: box
-      description: Une fois cette limite atteinte, les relances s’arrêtent et une notification est envoyée.
-        Le compteur est réinitialisé après un retour durable à la normale ou une action manuelle.
+      description: Once this limit is reached, reloads stop and a notification is sent. The counter is
+        reset after a lasting recovery or a manual action.
     max_daily:
-      name: Nombre maximal de tentatives sur les dernières 24 heures
+      name: Maximum number of attempts over the last 24 hours
       default: 6
       selector:
         number:
@@ -175,10 +174,10 @@ recuperation:
           max: 6
           step: 1
           mode: box
-      description: 'Cette limite reste valable après une nouvelle panne ou un redémarrage normal de Home
-        Assistant. Maximum : 6 tentatives pour conserver l’historique dans un seul assistant Texte.'
+      description: 'This limit still applies after a new failure or a normal Home Assistant restart.
+        Maximum: 6 attempts, to keep the history in a single Text helper.'
     recovery_seconds:
-      name: Temps laissé à l’intégration pour récupérer après une relance (secondes)
+      name: Time given to the integration to recover after a reload (seconds)
       default: 600
       selector:
         number:
@@ -186,9 +185,9 @@ recuperation:
           max: 3600
           step: 1
           mode: box
-      description: Doit être au moins égal au délai de confirmation du retour à la normale.
+      description: Must be at least equal to the recovery confirmation delay.
     stable_seconds:
-      name: Durée de fonctionnement normal avant confirmation (secondes)
+      name: Normal operation time before confirmation (seconds)
       default: 180
       selector:
         number:
@@ -196,10 +195,10 @@ recuperation:
           max: 3600
           step: 1
           mode: box
-      description: Toutes les entités surveillées doivent rester disponibles pendant cette durée. Un nouvel
-        état inconnu ou indisponible recommence cette attente.
+      description: Every watched entity must stay available during this time. A new unknown or unavailable
+        state starts this wait again.
     incident_reset_seconds:
-      name: Durée de fonctionnement normal avant remise à zéro des tentatives (secondes)
+      name: Normal operation time before the attempts are reset (seconds)
       default: 1800
       selector:
         number:
@@ -207,10 +206,10 @@ recuperation:
           max: 86400
           step: 1
           mode: box
-      description: Ce délai évite de remettre le compteur à zéro après une amélioration très brève. La
-        limite des dernières 24 heures reste conservée.
+      description: This delay avoids resetting the counter after a very short improvement. The limit over
+        the last 24 hours is kept.
     retry_seconds:
-      name: Attente avant une nouvelle tentative (secondes)
+      name: Wait before a new attempt (seconds)
       default: 300
       selector:
         number:
@@ -219,7 +218,7 @@ recuperation:
           step: 1
           mode: box
     max_backoff:
-      name: Attente maximale entre deux tentatives (secondes)
+      name: Maximum wait between two attempts (seconds)
       default: 3600
       selector:
         number:
@@ -227,9 +226,9 @@ recuperation:
           max: 86400
           step: 1
           mode: box
-      description: L’attente augmente après chaque échec, jusqu’à cette valeur.
+      description: The wait grows after every failure, up to this value.
     reload_timeout:
-      name: Délai avant alerte si une relance ne se termine pas (secondes)
+      name: Delay before an alert when a reload does not finish (seconds)
       default: 180
       selector:
         number:
@@ -237,11 +236,11 @@ recuperation:
           max: 3600
           step: 1
           mode: box
-      description: Une alerte est envoyée si la relance n’est pas terminée après ce délai. La relance n’est
-        pas annulée ; la surveillance reprend dès qu’elle se termine et aucune autre relance n’est lancée
-        pour cette intégration entre-temps.
+      description: An alert is sent when the reload has not finished after this delay. The reload is not
+        cancelled; watching resumes as soon as it finishes, and no other reload is started for this
+        integration in the meantime.
     native_timeout:
-      name: Délai avant alerte si Home Assistant essaie déjà de reconnecter l’intégration (secondes)
+      name: Delay before an alert when Home Assistant is already reconnecting the integration (seconds)
       default: 1800
       selector:
         number:
@@ -249,12 +248,11 @@ recuperation:
           max: 86400
           step: 1
           mode: box
-      description: La surveillance laisse Home Assistant poursuivre sa reconnexion et signale seulement
-        une attente trop longue.
+      description: The watchdog lets Home Assistant carry on reconnecting and only reports a wait that
+        lasts too long.
     additional_conditions:
-      name: Conditions supplémentaires pour autoriser les relances
-      description: Les vérifications et les alertes continuent lorsque ces conditions empêchent une nouvelle
-        relance.
+      name: Extra conditions allowing reloads
+      description: Checks and alerts go on when these conditions prevent a new reload.
       default: []
       selector:
         condition: {}
@@ -262,27 +260,27 @@ notifications:
   name: Notifications
   input:
     failure_actions:
-      name: Actions lorsqu’une intervention est nécessaire
-      description: 'Par défaut : une notification dans Home Assistant. Variables disponibles pour personnaliser
-        le message : entry_id, integration_title, reason, attempts_used, daily_attempts, failed_entities,
-        status. Une notification en erreur est retentée lors d’un contrôle suivant.'
+      name: Actions when an intervention is needed
+      description: 'Default: a notification in Home Assistant. Variables available to customise the
+        message: entry_id, integration_title, reason, attempts_used, daily_attempts, failed_entities,
+        status. A notification that fails is retried at a later check.'
       selector:
         action: {}
       default:
       - action: persistent_notification.create
         data:
           notification_id: integration_watchdog_{{ entry_id }}
-          title: 'Intégration à vérifier : {{ integration_title }}'
+          title: 'Integration to check: {{ integration_title }}'
           message: '{{ reason }}
 
-            Tentatives pour cette panne : {{ attempts_used }} ; sur les dernières 24 h : {{ daily_attempts
+            Attempts for this failure: {{ attempts_used }}; over the last 24 h: {{ daily_attempts
             }}.
 
-            Entités en erreur : {{ failed_entities | join(", ") }}.'
+            Failing entities: {{ failed_entities | join(", ") }}.'
     success_actions:
-      name: Actions après le retour à la normale
-      description: Par défaut, efface la notification de panne. Les mêmes variables que pour l’alerte
-        sont disponibles.
+      name: Actions after recovery
+      description: By default, clears the failure notification. The same variables as for the alert are
+        available.
       selector:
         action: {}
       default:
@@ -290,21 +288,21 @@ notifications:
         data:
           notification_id: integration_watchdog_{{ entry_id }}
     configuration_error_actions:
-      name: Actions si la configuration de la surveillance est incorrecte
-      description: 'Par défaut : une notification expliquant les réglages à corriger. Variable disponible
-        : configuration_errors.'
+      name: Actions when the watchdog configuration is wrong
+      description: 'Default: a notification explaining the settings to fix. Available variable:
+        configuration_errors.'
       selector:
         action: {}
       default:
       - action: persistent_notification.create
         data:
           notification_id: integration_watchdog_configuration_{{ owner_id }}
-          title: Surveillance des intégrations indisponible
+          title: Integration watchdog unavailable
           message: '{{ configuration_errors | join("\n") }}'
     configuration_resolved_actions:
-      name: Actions lorsque la configuration est correcte
-      description: 'Par défaut, efface l’alerte de configuration. Ces actions sont exécutées à chaque
-        contrôle valide : elles doivent être rapides et supporter plusieurs exécutions.'
+      name: Actions when the configuration is correct
+      description: 'By default, clears the configuration alert. These actions run at every valid check:
+        they must be quick and safe to run several times.'
       selector:
         action: {}
       default:

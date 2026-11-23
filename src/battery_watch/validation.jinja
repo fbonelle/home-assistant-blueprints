@@ -1,20 +1,20 @@
 {%- set ns = namespace(errors=[]) -%}
-{#- Liste de tâches capable d’ajouter, supprimer, modifier et décrire ses éléments (1 + 2 + 4 + 64). -#}
+{#- To-do list able to add, delete, update and describe its items (1 + 2 + 4 + 64). -#}
 {%- set features = state_attr(memory_entity, 'supported_features') | int(0) -%}
 {%- if not memory_entity.startswith('todo.') or states[memory_entity] is none
       or states(memory_entity) in ['unavailable', 'unknown']
       or (features | bitwise_and(71)) != 71 -%}
-  {%- set ns.errors = ns.errors + ['Créer une liste de tâches locale réservée à cette automatisation (intégration « Liste de tâches locale »).'] -%}
+  {%- set ns.errors = ns.errors + ['Create a local to-do list used by this automation only (« Local To-do » integration).'] -%}
 {%- endif -%}
 {%- for value, lower, upper in [(threshold, 1, 100), (recovery_margin, 0, 50), (unavailable_hours, 0, 168)] -%}
   {%- if value is not number or value is boolean or not lower <= value <= upper -%}
-    {%- set ns.errors = ns.errors + ['Un réglage numérique dépasse ses limites.'] -%}
+    {%- set ns.errors = ns.errors + ['A numeric setting is outside its limits.'] -%}
   {%- endif -%}
 {%- endfor -%}
 {%- for value in [excluded_integrations, excluded_manufacturers, excluded_entities, excluded_devices,
                   excluded_labels, summary_weekdays] -%}
   {%- if value is not sequence or value is string or value is mapping -%}
-    {%- set ns.errors = ns.errors + ['Une liste d’exclusions ou de jours n’est pas une liste.'] -%}
+    {%- set ns.errors = ns.errors + ['A list of exclusions or days is not a list.'] -%}
   {%- endif -%}
 {%- endfor -%}
 {{ ns.errors | unique | list }}

@@ -7,7 +7,7 @@ Version **2026.11.2.0**. A standalone blueprint that reports each battery to rep
 ## Installation
 
 1. Use Home Assistant **2026.10 or later**.
-2. [Import the blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fbattery_watch%2Fsurveillance_piles.yaml).
+2. [Import the blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fbattery_watch%2Fbattery_watch.yaml).
 3. In **Settings → Devices & services → Add integration**, add **Local To-do** and create a dedicated list, for example “Batteries”. Reserve it for this automation.
 4. Create an automation from the blueprint, select the list, then fill in the **Immediate alert actions** and the **Summary actions** (for example a phone notification or an existing notification script).
 5. Disable the previous automation that sent the same summary, to avoid receiving two messages.

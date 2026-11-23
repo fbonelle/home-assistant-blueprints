@@ -6,20 +6,20 @@ Four blueprints that make up a complete notification system, with a single entry
 
 | Blueprint | Type | Role |
 |---|---|---|
-| [Notifications — Répartiteur](../blueprints/script/notification_system/repartiteur.yaml) (dispatcher) | script, parallel | Entry point: picks channels by level, drops duplicates, handles night time, fallback and speech. |
-| [Notifications — Envoi sur un canal](../blueprints/script/notification_system/envoi_canal.yaml) (channel sender) | script, parallel | Sends on one channel (mobile app, ntfy or e-mail) and returns `success` when the send went through. |
-| [Notifications — Lecture vocale](../blueprints/script/notification_system/lecture_vocale.yaml) (speech) | script, queued | Speaks the message on labelled speakers, one announcement after another. |
-| [Notifications — Relais vers le mobile](../blueprints/automation/notification_system/relais_mobile.yaml) (relay) | automation | Sends Home Assistant persistent notifications to the dispatcher and clears them from the phone when they are dismissed. |
+| [Notifications — Répartiteur](../blueprints/script/notification_system/dispatcher.yaml) (dispatcher) | script, parallel | Entry point: picks channels by level, drops duplicates, handles night time, fallback and speech. |
+| [Notifications — Envoi sur un canal](../blueprints/script/notification_system/channel_sender.yaml) (channel sender) | script, parallel | Sends on one channel (mobile app, ntfy or e-mail) and returns `success` when the send went through. |
+| [Notifications — Lecture vocale](../blueprints/script/notification_system/text_to_speech.yaml) (speech) | script, queued | Speaks the message on labelled speakers, one announcement after another. |
+| [Notifications — Relais vers le mobile](../blueprints/automation/notification_system/mobile_relay.yaml) (relay) | automation | Sends Home Assistant persistent notifications to the dispatcher and clears them from the phone when they are dismissed. |
 
 Why four rather than one: a blueprint produces a single script or automation. The channel sender is a separate script because, in Home Assistant, that is the only way to know a send failed and fall back to another channel. Speech is separate because it runs queued, while the dispatcher handles several notifications at once.
 
 ## Installation
 
 1. Import the four blueprints:
-   [Dispatcher](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscript%2Fnotification_system%2Frepartiteur.yaml) ·
-   [Channel sender](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscript%2Fnotification_system%2Fenvoi_canal.yaml) ·
-   [Speech](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscript%2Fnotification_system%2Flecture_vocale.yaml) ·
-   [Relay](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fnotification_system%2Frelais_mobile.yaml).
+   [Dispatcher](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscript%2Fnotification_system%2Fdispatcher.yaml) ·
+   [Channel sender](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscript%2Fnotification_system%2Fchannel_sender.yaml) ·
+   [Speech](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscript%2Fnotification_system%2Ftext_to_speech.yaml) ·
+   [Relay](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fnotification_system%2Fmobile_relay.yaml).
 2. Create two helpers: a **text** helper with a maximum length of 255 for the duplicate memory and, if needed, a **toggle** to mute speech.
 3. Label the media players that should speak `tts`.
 4. Create the scripts and the automation, preferably in a *package*: the [complete example](../examples/notification_system/package.yaml) holds the helpers and the four instances. Create the channel sender and speech first, then the dispatcher, which points to them, then the relay, which points to the dispatcher.

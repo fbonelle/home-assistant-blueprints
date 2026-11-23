@@ -7,7 +7,7 @@ Version **2026.11.2.0**. Un blueprint autonome qui signale tout de suite chaque 
 ## Installation
 
 1. Utiliser Home Assistant **2026.10 ou plus récent**.
-2. [Importer le blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fbattery_watch%2Fsurveillance_piles.yaml).
+2. [Importer le blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fbattery_watch%2Fbattery_watch.yaml).
 3. Dans **Paramètres → Appareils et services → Ajouter une intégration**, ajouter **Liste de tâches locale** et créer une liste dédiée, par exemple « Piles et batteries ». La réserver à cette automatisation.
 4. Créer une automatisation depuis le blueprint, choisir la liste, puis renseigner les **Actions d’alerte immédiate** et les **Actions du récapitulatif** (par exemple une notification sur un téléphone ou un script de notification existant).
 5. Désactiver l’ancienne automatisation qui envoyait le même récapitulatif, pour ne pas recevoir deux messages.

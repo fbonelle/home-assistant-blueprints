@@ -48,9 +48,9 @@ Dumper.add_representer(str, lambda d, v: d.represent_scalar(
     'tag:yaml.org,2002:str', '\n'.join(x.rstrip() for x in v.split('\n')), style='|' if '\n' in v else None))
 
 DESTINATIONS = {
-    'surveillance_integrations.yaml': 'blueprints/automation/integration_watchdog/surveillance_integrations.yaml',
-    'automatisations_netatmo_overkiz.yaml': 'examples/integration_watchdog/automatisations_netatmo_overkiz.yaml',
-    'memoires_surveillance_integrations.yaml': 'examples/integration_watchdog/memoires_surveillance_integrations.yaml',
+    'integration_watchdog.yaml': 'blueprints/automation/integration_watchdog/integration_watchdog.yaml',
+    'netatmo_overkiz_automations.yaml': 'examples/integration_watchdog/netatmo_overkiz_automations.yaml',
+    'watchdog_memories.yaml': 'examples/integration_watchdog/watchdog_memories.yaml',
 }
 
 
@@ -78,11 +78,11 @@ READ_STEP = var(read=READ)
 READ_CHECK = {'if': '{{ read.errors | count > 0 }}', 'then': [
     var(configuration_errors='{{ read.errors }}'),
     {'sequence': Input('configuration_error_actions')},
-    {'stop': 'Mémoire non valide ; aucune remise à zéro.'}]}
+    {'stop': 'Invalid memory; no reset.'}]}
 WRITE_FAILURE = [
-    var(configuration_errors=['L’historique n’a pas pu être enregistré. Aucune nouvelle relance n’a été lancée.']),
+    var(configuration_errors=['The history could not be saved. No new reload was started.']),
     {'sequence': Input('configuration_error_actions')},
-    {'stop': 'Écriture de mémoire non confirmée.'}]
+    {'stop': 'Memory write not confirmed.'}]
 
 
 def write(value):
@@ -176,8 +176,8 @@ RELOAD = [
      # Deferred: the reservation is withdrawn and nothing is spent; retry in one minute.
      'else': [*write("iw3:{{ dict(plan.memory, p=0, f=0, n=admitted_at + 60,"
                      " s=('duplicate' if contenders.conflict else 'deferred')) | to_json }}"),
-              LOG('info', "{{ name }} [{{ entry_id }}] : relance reportée d’une minute ({{ 'autre surveillance de"
-                          " cette intégration' if contenders.conflict else 'plafond de relances simultanées atteint' }}).")]},
+              LOG('info', "{{ name }} [{{ entry_id }}]: reload postponed by one minute ({{ 'another watchdog of"
+                          " this integration' if contenders.conflict else 'limit of simultaneous reloads reached' }}).")]},
     {'if': '{{ admitted }}', 'then': [{'parallel': [
         # Branch 1: the reload itself, then its end. The end is recorded only for this
         # very reservation, so a stale branch can never close another one.
@@ -199,11 +199,11 @@ RELOAD = [
         {'sequence': [
             {'wait_template': FINISHED, 'timeout': '{{ reload_timeout }}', 'continue_on_timeout': True},
             {'if': '{{ not wait.completed }}', 'then': [
-                var(status='timeout', reason=('La relance dure depuis plus de {{ reload_timeout }} secondes. Elle n’est pas'
-                                              ' annulée ; la surveillance reprendra à sa fin. Vérifier les traces et les'
-                                              ' journaux de l’intégration.'), **NOTICE_VARIABLES),
+                var(status='timeout', reason=('The reload has been running for more than {{ reload_timeout }} seconds.'
+                                              ' It is not cancelled; watching resumes when it ends. Check the traces and'
+                                              ' the logs of the integration.'), **NOTICE_VARIABLES),
                 {'sequence': Input('failure_actions')},
-                LOG('warning', '{{ name }} [{{ entry_id }}] : relance non terminée après {{ reload_timeout }} s.'),
+                LOG('warning', '{{ name }} [{{ entry_id }}]: reload not finished after {{ reload_timeout }} s.'),
             ]},
         ]},
     ]}]},
@@ -237,7 +237,7 @@ EVALUATION = [
     {'if': '{{ logging_enabled and (detailed_logging or plan.reload or plan.notice != "none" or plan.status != memory.s) }}',
      'then': [LOG("{{ 'warning' if plan.notice == 'failure' else 'debug' if detailed_logging and plan.status == memory.s"
                   " and not plan.reload else 'info' }}",
-                  '{{ name }} [{{ entry_id }}] : {{ status }} ; incident={{ attempts_used }}, 24h={{ daily_attempts }}.'
+                  '{{ name }} [{{ entry_id }}]: {{ status }}; incident={{ attempts_used }}, 24h={{ daily_attempts }}.'
                   ' {{ reason }}')]},
     {'if': '{{ plan.reload }}', 'then': RELOAD},
 ]
@@ -248,7 +248,7 @@ JUST_RELOADED = ("{% set c = states(memory_entity)[4:] | from_json({}) if states
                  "{{ repeat.index == 1 or (c is mapping and c.get('o') == owner_id and c.get('p', 0) > 0"
                  " and c.get('f', 0) > 2) }}")
 
-variables = {k: Input(k) for group in [inputs['surveillance'], inputs['recuperation']]
+variables = {k: Input(k) for group in [inputs['monitoring'], inputs['recovery']]
              for k in group['input'] if k not in ['memory', 'additional_conditions']}
 variables.update(
     memory_entity=Input('memory'),
@@ -264,9 +264,9 @@ actions = [
     *CLOSE_EARLIER_WORK,
     var(configuration_errors=template('validation.jinja')),
     {'if': '{{ configuration_errors | count > 0 }}', 'then': [
-        {'sequence': Input('configuration_error_actions')}, {'stop': 'Paramètres invalides ; fin des relances conservée.'}]},
+        {'sequence': Input('configuration_error_actions')}, {'stop': 'Invalid settings; reload endings kept.'}]},
     var(excluded="{{ entry_id in (excluded_instances | map(attribute='entry_id') | list) }}"),
-    {'if': '{{ excluded }}', 'then': [{'stop': 'Configuration exclue ; fin des relances conservée.'}]},
+    {'if': '{{ excluded }}', 'then': [{'stop': 'Configuration excluded; reload endings kept.'}]},
     {'sequence': Input('configuration_resolved_actions')},
     var(interventions_allowed=False),
     {'if': [{'condition': 'template', 'value_template': '{{ not observation_only }}'},
@@ -280,18 +280,19 @@ actions = [
             *EVALUATION]}]}},
 ]
 
-DESCRIPTION = ('Surveille les entités d’une intégration et tente de la relancer en cas de panne. Le nombre de'
-               ' tentatives, les délais, les notifications et les journaux sont réglables. Créer un assistant Texte,'
-               ' puis une automatisation par configuration d’intégration ; aucun autre fichier n’est nécessaire.')
+DESCRIPTION = ('Watches the entities of an integration and tries to reload it when it fails. The number of'
+               ' attempts, the delays, the notifications and the logs can be set. Create a Text helper, then one'
+               ' automation per integration configuration; no other file is needed.'
+               ' Guide: https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/integration_watchdog.en.md')
 blueprint = {
     'blueprint': {
-        'name': f'Surveillance et relance des intégrations — {VERSION}',
+        'name': f'Integration watchdog — {VERSION}',
         'description': DESCRIPTION,
         'domain': 'automation',
         'homeassistant': {'min_version': versioning.MIN_HA},
         'input': inputs,
         'source_url': 'https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/automation/'
-                      'integration_watchdog/surveillance_integrations.yaml',
+                      'integration_watchdog/integration_watchdog.yaml',
         'author': 'fbonelle',
     },
     # One run at a time: the run is the only writer of its helper. Waiting runs are
@@ -313,12 +314,12 @@ blueprint = {
         " != (trigger.to_state.state in ['unknown','unavailable'] or trigger.to_state.attributes.get('restored',false))) }}")}],
     'actions': actions,
 }
-save('surveillance_integrations.yaml', blueprint,
-     f'# Version {VERSION} — blueprint autonome : aucun fichier de configuration commun.\n'
-     '# Mémoire : p réservation, f 0 réservée, 1-2 admise ou lancée, >2 fin de la relance.\n')
+save('integration_watchdog.yaml', blueprint,
+     f'# Version {VERSION} — self-contained blueprint: no shared configuration file.\n'
+     '# Memory: p reservation, f 0 reserved, 1-2 admitted or started, >2 end of the reload.\n')
 
 # Examples reuse fictitious identifiers only.
 examples = yaml.safe_load((BASE / 'examples.yaml').read_text())
-save('automatisations_netatmo_overkiz.yaml', examples,
-     '# Trois exemples ; autres instances ajoutées par le même formulaire.\n')
-save('memoires_surveillance_integrations.yaml', yaml.safe_load((BASE / 'memoires.yaml').read_text()))
+save('netatmo_overkiz_automations.yaml', examples,
+     '# Three examples; other instances are added with the same form.\n')
+save('watchdog_memories.yaml', yaml.safe_load((BASE / 'memories.yaml').read_text()))
