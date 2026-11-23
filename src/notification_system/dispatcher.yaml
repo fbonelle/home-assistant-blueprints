@@ -1,228 +1,226 @@
-# Source du blueprint « Notifications — Répartiteur ».
-# tools/build_notifications.py ajoute la version au nom et écrit le fichier publié.
+# Source of the « Notifications — Dispatcher » blueprint.
+# tools/build_notifications.py adds the version to the name and writes the published file.
 blueprint:
-  name: Notifications — Répartiteur
+  name: Notifications — Dispatcher
   description: >-
-    Point d’entrée unique de toutes les notifications : choisit les canaux selon le niveau
-    (info, warning, critical, technical), adapte liens et pièces jointes à chaque canal,
-    écarte les doublons, rend les notifications silencieuses la nuit, bascule de ntfy vers
-    l’application mobile si ntfy échoue, et déclenche la lecture vocale. Les envois passent
-    par le script « Notifications — Envoi sur un canal », qui isole chaque canal.
-    Créer ce script avec l’identifiant voulu (par exemple notify_dispatch_global) : ses
-    champs title, message, level, target, entity_id, tts et data forment l’interface
-    appelée par les automatisations.
-    Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/notification_system.md
+    Single entry point of every notification: chooses the channels by level (info, warning,
+    critical, technical), adapts links and attachments to each channel, drops duplicates,
+    makes notifications silent at night, falls back from ntfy to the mobile app when ntfy
+    fails, and starts text-to-speech. Messages go through the « Notifications — Channel
+    sender » script, which isolates each channel. Create this script with the identifier you
+    want (for example notify_dispatch_global): its fields title, message, level, target,
+    entity_id, tts and data form the interface called by automations.
+    Guide: https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/notification_system.en.md
   domain: script
   homeassistant:
     min_version: '@min_version'  # tools/versioning.py (MIN_HA)
-  source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/script/notification_system/repartiteur.yaml
+  source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/script/notification_system/dispatcher.yaml
   author: fbonelle
   input:
     scripts:
-      name: Scripts utilisés
+      name: Scripts used
       input:
         sender_script:
-          name: Script d’envoi sur un canal
-          description: Script créé à partir du blueprint « Notifications — Envoi sur un canal ».
+          name: Channel sender script
+          description: Script created from the « Notifications — Channel sender » blueprint.
           selector:
             entity:
               filter:
                 - domain: script
         tts_script:
-          name: Script de lecture vocale
+          name: Text-to-speech script
           description: >-
-            Script créé à partir du blueprint « Notifications — Lecture vocale ». Laisser vide
-            pour ne jamais lire les notifications à voix haute.
+            Script created from the « Notifications — Text-to-speech » blueprint. Leave empty to
+            never read notifications aloud.
           default: ''
           selector:
             entity:
               filter:
                 - domain: script
     routing:
-      name: Canaux par niveau
+      name: Channels by level
       input:
         mobile_levels:
-          name: Niveaux envoyés à l’application mobile
+          name: Levels sent to the mobile app
           default: [info, warning, critical]
           selector:
             select:
               multiple: true
               options: [info, warning, critical, technical]
         ntfy_levels:
-          name: Niveaux envoyés à ntfy
+          name: Levels sent to ntfy
           default: [technical]
           selector:
             select:
               multiple: true
               options: [info, warning, critical, technical]
         ntfy_fallback:
-          name: Basculer sur l’application mobile si ntfy échoue
+          name: Fall back to the mobile app when ntfy fails
           description: >-
-            Si l’envoi ntfy échoue, le message part sur l’application mobile, titre précédé de
-            « 🚨 FALLBACK NTFY : ».
+            When the ntfy send fails, the message goes to the mobile app, with the title
+            prefixed by « 🚨 FALLBACK NTFY: ».
           default: true
           selector:
             boolean: {}
         email_levels:
-          name: Niveaux envoyés par e-mail
+          name: Levels sent by e-mail
           default: [critical]
           selector:
             select:
               multiple: true
               options: [info, warning, critical, technical]
         logbook_levels:
-          name: Niveaux inscrits dans le journal de bord
+          name: Levels written to the logbook
           default: [warning, critical, technical]
           selector:
             select:
               multiple: true
               options: [info, warning, critical, technical]
         ntfy_tags:
-          name: Étiquettes ntfy par défaut
-          description: Étiquettes émoji ntfy quand le message n’en fournit pas (data.tags).
+          name: Default ntfy tags
+          description: ntfy emoji tags when the message gives none (data.tags).
           default: [hammer_and_wrench, server]
           selector:
             object: {}
     links:
-      name: Liens et pièces jointes
+      name: Links and attachments
       input:
         home_url:
-          name: Adresse de Home Assistant
+          name: Home Assistant address
           description: >-
-            Adresse utilisée pour les liens web (e-mail), les icônes et les pièces jointes
-            envoyées à ntfy et à l’application mobile. Sans barre oblique finale.
+            Address used for web links (e-mail), icons and the attachments sent to ntfy and to
+            the mobile app. No trailing slash.
           default: http://homeassistant.local:8123
           selector:
             text:
               type: url
         default_link:
-          name: Page ouverte par défaut
-          description: Chemin ouvert par une notification qui n’indique ni lien ni entité.
+          name: Page opened by default
+          description: Path opened by a notification that gives neither a link nor an entity.
           default: /lovelace/0
           selector:
             text: {}
         technical_link:
-          name: Page ouverte par une notification technique
+          name: Page opened by a technical notification
           default: /config/logs
           selector:
             text: {}
         media_root:
-          name: Racine média des images jointes
+          name: Media root of attached images
           description: >-
-            Racine media source du dossier /config/www, utilisée pour joindre les images à
-            l’e-mail. Elle doit correspondre à configuration.yaml (homeassistant > media_dirs).
+            Media source root of the /config/www folder, used to attach images to the e-mail. It
+            must match configuration.yaml (homeassistant > media_dirs).
           default: media-source://media_source/local
           selector:
             text: {}
     quiet:
-      name: Nuit et lecture vocale
+      name: Night and text-to-speech
       input:
         night_start_hour:
-          name: Début de la nuit
-          description: Heure à partir de laquelle les notifications mobiles sont silencieuses.
+          name: Night start
+          description: Hour from which mobile notifications are silent.
           default: 21
           selector:
             number: {min: 0, max: 23, step: 1, unit_of_measurement: h, mode: box}
         night_end_hour:
-          name: Fin de la nuit
+          name: Night end
           default: 8
           selector:
             number: {min: 0, max: 23, step: 1, unit_of_measurement: h, mode: box}
         speak_levels:
-          name: Niveaux toujours lus à voix haute
+          name: Levels always read aloud
           default: [critical]
           selector:
             select:
               multiple: true
               options: [info, warning, critical, technical]
         speak_present_levels:
-          name: Niveaux lus à voix haute en journée quand quelqu’un est présent
+          name: Levels read aloud by day when someone is home
           default: [warning]
           selector:
             select:
               multiple: true
               options: [info, warning, critical, technical]
         presence_entity:
-          name: Présence
-          description: Zone ou entité dont la valeur numérique est le nombre de personnes présentes.
+          name: Presence
+          description: Zone or entity whose numeric value is the number of people at home.
           default: zone.home
           selector:
             entity:
               filter:
                 - domain: zone
     dedup:
-      name: Anti-doublon
+      name: Duplicate filter
       input:
         dedup_memory:
-          name: Mémoire anti-doublon
+          name: Duplicate filter memory
           description: >-
-            Assistant Texte réservé à cette mémoire, longueur maximale 255. Il retient les
-            empreintes des dernières notifications envoyées.
+            Text helper used for this memory only, maximum length 255. It keeps the
+            fingerprints of the last notifications sent.
           selector:
             entity:
               filter:
                 - domain: input_text
         dedup_window:
-          name: Fenêtre anti-doublon
-          description: Un message identique (même niveau, titre et texte) n’est pas renvoyé pendant ce délai.
+          name: Duplicate window
+          description: An identical message (same level, title and text) is not sent again during this delay.
           default: 300
           selector:
             number: {min: 0, max: 3600, step: 10, unit_of_measurement: s, mode: box}
         dedup_slots:
-          name: Nombre de messages mémorisés
-          description: 21 caractères par message ; 10 tiennent dans un assistant Texte de 255 caractères.
+          name: Number of messages remembered
+          description: 21 characters per message; 10 fit in a Text helper of 255 characters.
           default: 10
           selector:
             number: {min: 1, max: 11, step: 1, mode: box}
-# Point d’entrée de toutes les notifications : le plafond par défaut de 10 exécutions se
-# ferait sentir ici en premier, d’autant que le répartiteur attend le retour de l’e-mail
-# (SMTP prend plusieurs secondes).
+# Entry point of every notification: the default limit of 10 runs would be felt here first,
+# all the more since the dispatcher waits for the e-mail to return (SMTP takes several
+# seconds).
 mode: parallel
 max: 25
 icon: mdi:call-split
 fields:
   title:
-    name: Titre
-    example: Lave-linge
+    name: Title
+    example: Washing machine
     selector:
       text: {}
   message:
     name: Message
-    example: Le cycle est terminé.
+    example: The cycle is finished.
     selector:
       text:
         multiline: true
   level:
-    name: Niveau
+    name: Level
     default: info
     selector:
       select:
         options: [info, warning, critical, technical]
   target:
-    name: Destinataire
+    name: Recipient
     description: >-
-      « all » : toute la famille. Toute autre valeur (par défaut « principal ») : le
-      téléphone principal.
-    default: principal
+      « all »: the whole family. Any other value (« main » by default): the main phone.
+    default: main
     selector:
       select:
-        options: [principal, all]
+        options: [main, all]
   entity_id:
-    name: Entité concernée
-    description: Sans lien explicite, la notification ouvre l’historique de cette entité.
+    name: Related entity
+    description: Without an explicit link, the notification opens the history of this entity.
     selector:
       entity: {}
   tts:
-    name: Forcer la lecture vocale
+    name: Force text-to-speech
     default: false
     selector:
       boolean: {}
   data:
-    name: Données avancées
+    name: Advanced data
     description: >-
-      click (lien), icon (icône ntfy), snapshot_file (image), actions (boutons), priority
-      et tags (ntfy), html (ajout à l’e-mail), notif_id (identifiant), skip_trace (pas de
-      notification persistante).
+      click (link), icon (ntfy icon), snapshot_file (image), actions (buttons), priority and
+      tags (ntfy), html (added to the e-mail), notif_id (identifier), skip_trace (no
+      persistent notification).
     default: {}
     selector:
       object: {}
@@ -248,15 +246,15 @@ variables:
   dedup_window_s: !input dedup_window
   dedup_max_slots: !input dedup_slots
 sequence:
-  # Les valeurs par défaut des champs ne s’appliquent qu’à l’interface : un appel qui omet
-  # un champ le laisse indéfini. Chaque champ est donc normalisé ici, une fois.
+  # Field defaults only apply in the interface: a call that omits a field leaves it
+  # undefined. Every field is therefore normalised here, once.
   - variables:
       title: "{{ title | default('', true) }}"
       message: "{{ message | default('', true) }}"
       level: >
         {% set l = level | default('info', true) | string | lower | trim %}
         {{ l if l in ['info', 'warning', 'critical', 'technical'] else 'info' }}
-      target: "{{ target | default('principal', true) }}"
+      target: "{{ target | default('main', true) }}"
       tts: "{{ tts | default(false) | bool }}"
       sdata: "{{ data if data is defined and data is mapping else {} }}"
   - variables:
@@ -268,10 +266,10 @@ sequence:
       send_ha: "{{ level in mobile_levels }}"
       send_ntfy: "{{ level in ntfy_levels }}"
       send_email: "{{ level in email_levels }}"
-      # Lecture vocale : les niveaux « toujours lus » sont inconditionnels, `tts: true`
-      # force la lecture quel que soit le niveau, et les niveaux « présence » ne sont lus
-      # qu’en journée quand quelqu’un est là. Sans ce filtre, les messages spontanés de
-      # Home Assistant relayés par le relais seraient lus à voix haute.
+      # Text-to-speech: the « always read » levels are unconditional, `tts: true` forces the
+      # reading whatever the level, and the « presence » levels are read only by day when
+      # someone is home. Without this filter, the spontaneous Home Assistant messages
+      # forwarded by the relay would be read aloud.
       should_speak: >
         {{ tts_script | default('') | string | trim != ''
            and (level in speak_levels
@@ -283,9 +281,9 @@ sequence:
         {% elif level == 'technical' %}#607D8B
         {% else %}#2196F3{% endif %}
       ios_subtitle: >
-        {% if level == 'critical' %}🚨 URGENCE
-        {% elif level == 'warning' %}⚠️ AVERTISSEMENT
-        {% elif level == 'technical' %}🔧 SYSTÈME
+        {% if level == 'critical' %}🚨 EMERGENCY
+        {% elif level == 'warning' %}⚠️ WARNING
+        {% elif level == 'technical' %}🔧 SYSTEM
         {% else %}ℹ️ INFO{% endif %}
       notify_group: "ha_{{ level }}"
       link_path: >
@@ -298,22 +296,22 @@ sequence:
       app_url: "{{ link_clean if link_clean.startswith('http') else 'homeassistant://navigate' ~ (link_clean if link_clean.startswith('/') else '/' ~ link_clean) }}"
       icon_url: "{{ sdata.get('icon', domain_url ~ '/static/icons/favicon-192x192.png') }}"
       # ------------------------------------------------------------------------
-      # PIÈCE JOINTE — SOURCE UNIQUE
-      # data.snapshot_file est partagé par trois canaux qui n’attendent pas le même
-      # format : ntfy veut une URL absolue, l’application mobile une URL ou un chemin
-      # /local/…, et SMTP un URI media source. Les deux formes utiles sont dérivées ici.
+      # ATTACHMENT — SINGLE SOURCE
+      # data.snapshot_file is shared by three channels that do not expect the same format:
+      # ntfy wants an absolute URL, the mobile app a URL or a /local/… path, and SMTP a
+      # media source URI. The two useful forms are derived here.
       # ------------------------------------------------------------------------
       attach_raw: "{{ sdata.get('snapshot_file', '') | string | trim }}"
-      # Discriminant textuel : une variable rendue à « False » resterait une chaîne vraie
-      # si le typage natif ne s’appliquait pas. La comparaison de chaînes est sûre.
+      # Text discriminant: a variable rendered as « False » would stay a truthy string if
+      # native typing did not apply. Comparing strings is safe.
       attach_kind: >
         {% if attach_raw in ['', 'None'] %}none
         {% elif attach_raw.startswith('http') %}remote
         {% elif attach_raw.startswith('media-source://') %}media
         {% else %}local{% endif %}
-      # Chemin relatif à /config/www, sous-dossiers préservés :
-      #   /config/www/snapshots/cam.jpg, /local/snapshots/cam.jpg ou www/snapshots/cam.jpg
-      #   donnent tous /snapshots/cam.jpg.
+      # Path relative to /config/www, sub-folders kept:
+      #   /config/www/snapshots/cam.jpg, /local/snapshots/cam.jpg or www/snapshots/cam.jpg
+      #   all give /snapshots/cam.jpg.
       attach_path: >
         {% set p = attach_raw %}
         {% if p.startswith('/config/www') %}{% set p = p[11:] %}
@@ -321,13 +319,13 @@ sequence:
         {% elif p.startswith('www/') %}{% set p = p[3:] %}
         {% endif %}
         {{ p if p.startswith('/') else '/' ~ p }}
-      # Forme URL absolue : ntfy (attach) et application mobile (image).
+      # Absolute URL form: ntfy (attach) and mobile app (image).
       attach_url: >
         {% if attach_kind == 'remote' %}{{ attach_raw }}
         {% elif attach_kind == 'local' %}{{ domain_url ~ '/local' ~ attach_path }}
         {% endif %}
-      # Forme media source : e-mail. Une URL distante passe telle quelle : l’envoi par
-      # e-mail la cite dans le HTML, SMTP ne sachant pas joindre une URL.
+      # Media source form: e-mail. A remote URL is passed as is: the e-mail send quotes it
+      # in the HTML, since SMTP cannot attach a URL.
       attach_media: >
         {% if attach_kind in ['remote', 'media'] %}{{ attach_raw }}
         {% elif attach_kind == 'local' %}{{ snapshot_media_root ~ attach_path }}
@@ -335,25 +333,24 @@ sequence:
       actions: "{{ sdata.get('actions', []) }}"
       skip_trace: "{{ sdata.get('skip_trace', false) | bool }}"
       # ------------------------------------------------------------------------
-      # FILTRE ANTI-DOUBLON
-      # Neutralise toutes les causes de répétition quel que soit le chemin d’entrée :
-      # double producteur, double enregistrement de l’application mobile, republication
-      # du même identifiant et rebouclage relais -> répartiteur. C’est aussi le garde-fou
-      # contre l’inondation par un capteur qui bat de l’aile.
-      # Réserve : deux exécutions réellement simultanées (mode parallel) peuvent lire la
-      # mémoire avant que l’une n’écrive ; Home Assistant n’offre pas de
-      # comparaison-et-échange atomique. Le relais étant en file d’attente, le chemin
-      # principal est sérialisé.
+      # DUPLICATE FILTER
+      # Neutralises every cause of repetition whatever the entry path: double producer,
+      # double registration of the mobile app, republishing of the same identifier and
+      # relay -> dispatcher loops. It is also the safeguard against flooding by a flapping
+      # sensor.
+      # Caveat: two truly simultaneous runs (parallel mode) may read the memory before one
+      # of them writes; Home Assistant offers no atomic compare-and-swap. Since the relay is
+      # queued, the main path is serialised.
       # ------------------------------------------------------------------------
       dedup_now: "{{ as_timestamp(now()) | int(0) }}"
-      # Empreinte : md5 tronqué à 10 caractères hexadécimaux (40 bits), soit une
-      # probabilité de collision de l’ordre de 1e-11 par envoi sur 10 créneaux. Le niveau
-      # fait partie de l’empreinte : une escalade info -> critical du même texte passe.
+      # Fingerprint: md5 truncated to 10 hexadecimal characters (40 bits), a collision
+      # probability of about 1e-11 per send over 10 slots. The level is part of the
+      # fingerprint: an info -> critical escalation of the same text goes through.
       dedup_fp: "{{ ((level ~ '::' ~ title ~ '::' ~ message) | md5)[:10] }}"
       dedup_state: "{{ states(dedup_memory) | default('', true) }}"
-      # Relecture défensive : un créneau malformé, non numérique ou expiré est écarté.
-      # Un état corrompu, « unknown » ou « unavailable » donne une liste vide, donc jamais
-      # d’étouffement à tort.
+      # Defensive read: a malformed, non-numeric or expired slot is dropped. A corrupt,
+      # « unknown » or « unavailable » state gives an empty list, so nothing is ever
+      # suppressed by mistake.
       dedup_fresh: >
         {% set ns = namespace(slots=[]) %}
         {% for item in dedup_state.split('|') %}
@@ -366,9 +363,9 @@ sequence:
           {% endif %}
         {% endfor %}
         {{ ns.slots }}
-      # Doublon si l’empreinte figure dans un créneau encore valide, quel que soit son
-      # rang : c’est ce qui attrape l’alternance A, B, A, B. Une seule boucle donne à la
-      # fois le verdict et l’âge du créneau correspondant.
+      # Duplicate when the fingerprint is in a slot still valid, whatever its rank: this is
+      # what catches the A, B, A, B alternation. A single loop gives both the verdict and
+      # the age of the matching slot.
       dedup_match_age: >
         {% set ns = namespace(age=-1) %}
         {% for item in dedup_fresh %}
@@ -378,21 +375,21 @@ sequence:
         {% endfor %}
         {{ ns.age }}
       is_duplicate: "{{ (dedup_match_age | int(-1)) >= 0 }}"
-      # Nouveau créneau en tête, anciens conservés, purgés et plafonnés. La fenêtre est
-      # FIXE : l’horodatage d’un doublon n’est pas rafraîchi, sinon une source qui bat de
-      # l’aile en continu resterait muette indéfiniment ; elle repasse une fois par
-      # fenêtre, ce qui signale qu’elle flanche toujours.
+      # New slot first, older ones kept, purged and capped. The window is FIXED: the
+      # timestamp of a duplicate is not refreshed, otherwise a source that keeps flapping
+      # would stay silent forever; it gets through once per window, which shows it is still
+      # failing.
       dedup_next_state: >
         {{ ([dedup_now | string ~ ':' ~ dedup_fp] + dedup_fresh)[:dedup_max_slots | int(10)] | join('|') }}
       notif_uid_in: "{{ sdata.get('notif_id', '') }}"
-  # Sortie immédiate sur doublon, AVANT tout envoi et avant toute notification
-  # persistante : aucun canal n’est sollicité.
+  # Immediate exit on a duplicate, BEFORE any send and before any persistent
+  # notification: no channel is used.
   - if:
       - condition: template
         value_template: "{{ is_duplicate }}"
     then:
-      # Écarter un doublon est le fonctionnement normal : niveau INFO, et non un
-      # avertissement. Le répartiteur règle lui-même ce niveau, sans configuration.
+      # Dropping a duplicate is normal operation: INFO level, not a warning. The dispatcher
+      # sets this level itself, with no configuration.
       - action: logger.set_level
         continue_on_error: true
         data:
@@ -403,10 +400,10 @@ sequence:
           level: info
           logger: notification_system
           message: >-
-            [Répartiteur] Doublon écarté après {{ dedup_match_age }} s (fenêtre
-            {{ dedup_window_s }} s) — niveau {{ level }} : {{ title }}
-      - stop: Doublon écarté
-  # Mémoire mise à jour seulement une fois le doublon écarté.
+            [Dispatcher] Duplicate dropped after {{ dedup_match_age }} s (window
+            {{ dedup_window_s }} s) — level {{ level }}: {{ title }}
+      - stop: Duplicate dropped
+  # Memory updated only once a duplicate has been ruled out.
   - action: input_text.set_value
     target:
       entity_id: "{{ dedup_memory }}"
@@ -424,14 +421,14 @@ sequence:
           domain: script
   - parallel:
       # ======================================================================
-      # NTFY, puis bascule de secours sur l’application mobile
+      # NTFY, then fallback to the mobile app
       # ======================================================================
       - if:
           - condition: template
             value_template: "{{ send_ntfy }}"
         then:
-          # Appel du script d’envoi : une erreur y interrompt le script appelé, et
-          # continue_on_error la retient ici. L’absence de « success » signale l’échec.
+          # Call of the sender script: an error stops the called script, and
+          # continue_on_error catches it here. A missing « success » signals the failure.
           - action: "{{ sender_script }}"
             continue_on_error: true
             response_variable: res_ntfy
@@ -457,7 +454,7 @@ sequence:
                   level: warning
                   logger: notification_system
                   message: >-
-                    [Répartiteur] Échec ntfy{{ ' ; bascule sur l’application mobile' if ntfy_fallback else '' }}.
+                    [Dispatcher] ntfy failed{{ '; falling back to the mobile app' if ntfy_fallback else '' }}.
               - if:
                   - condition: template
                     value_template: "{{ ntfy_fallback }}"
@@ -467,7 +464,7 @@ sequence:
                     data:
                       channel: mobile
                       target: "{{ target }}"
-                      title: "🚨 FALLBACK NTFY : {{ title }}"
+                      title: "🚨 FALLBACK NTFY: {{ title }}"
                       message: "{{ message }}"
                       click_url: "{{ link_clean }}"
                       group_tag: "{{ notify_group }}"
@@ -480,7 +477,7 @@ sequence:
                       notif_id: "{{ notif_uid_in }}"
                       actions: "{{ actions }}"
       # ======================================================================
-      # APPLICATION MOBILE
+      # MOBILE APP
       # ======================================================================
       - if:
           - condition: template
@@ -533,11 +530,11 @@ sequence:
                   level: warning
                   logger: notification_system
                   message: >-
-                    [Répartiteur] Échec de l’e-mail ; les autres canaux ont été servis.
+                    [Dispatcher] E-mail failed; the other channels were served.
       # ======================================================================
-      # LECTURE VOCALE
-      # Lancée sans attendre (script.turn_on) : le script de lecture vocale est en file
-      # d’attente et peut durer ; le répartiteur ne doit pas en dépendre.
+      # TEXT-TO-SPEECH
+      # Started without waiting (script.turn_on): the text-to-speech script is queued and
+      # may take time; the dispatcher must not depend on it.
       # ======================================================================
       - if:
           - condition: template

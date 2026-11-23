@@ -2,34 +2,32 @@
 
 [Français](lighting.md) · **English**
 
-A family of blueprints that drive lamps the same way whatever the ZHA remote, plus an automatic switch-off blueprint. The forms are in French.
+A family of blueprints that drive lamps the same way whatever the ZHA remote, plus an automatic switch-off blueprint.
 
 | Blueprint | Devices | Gestures |
 |---|---|---|
-| [Philips Hue Dimmer remote](../blueprints/automation/lighting/telecommande_hue_dimmer.yaml) | RWL022 | On/Off, Up, Down, Hue: short press and hold |
-| [Philips Hue Tap Dial remote](../blueprints/automation/lighting/telecommande_hue_tap_dial.yaml) | RDM002 | 4 buttons (one lamp each): short press and hold; dial |
-| [IKEA TRÅDFRI on/off switch](../blueprints/automation/lighting/telecommande_ikea_marche_arret.yaml) | TRADFRI on/off switch | I and O: short press, double press, hold |
-| [IKEA TRÅDFRI 5-button remote](../blueprints/automation/lighting/telecommande_ikea_5_boutons.yaml) | TRADFRI remote control | Centre, Up, Down, Left, Right: short press, double press, hold |
-| [IKEA STYRBAR remote](../blueprints/automation/lighting/telecommande_ikea_styrbar.yaml) | Remote Control N2 | Up, Down, Left, Right: short press, double press, hold |
-| [eWeLink / SONOFF button](../blueprints/automation/lighting/bouton_ewelink.yaml) | WB01, SNZB-01P, CK-TLSR8656-SS5-01 | Single, double and long press |
-| [Aqara wireless button](../blueprints/automation/lighting/bouton_aqara.yaml) | lumi.remote.b1acn01 (WXKG11LM) | Single press, double press, hold |
-| [Automatic lighting switch-off](../blueprints/automation/lighting/extinction_automatique.yaml) | Lights, switches, plugs | — |
-
-The STYRBAR blueprint keeps every feature and every default of this collection's former STYRBAR blueprint, which it replaces.
+| [Aqara wireless button](../blueprints/automation/lighting/aqara_button.yaml) | lumi.remote.b1acn01 (WXKG11LM) | Single press, double press, hold |
+| [eWeLink / SONOFF button](../blueprints/automation/lighting/ewelink_button.yaml) | WB01, SNZB-01P, CK-TLSR8656-SS5-01 | Single, double and long press |
+| [IKEA STYRBAR remote](../blueprints/automation/lighting/ikea_styrbar_remote.yaml) | Remote Control N2 | Up, Down, Left, Right: short press, double press, hold |
+| [IKEA TRÅDFRI 5-button remote](../blueprints/automation/lighting/ikea_5_button_remote.yaml) | TRADFRI remote control | Centre, Up, Down, Left, Right: short press, double press, hold |
+| [IKEA TRÅDFRI on/off switch](../blueprints/automation/lighting/ikea_on_off_switch.yaml) | TRADFRI on/off switch | I and O: short press, double press, hold |
+| [Lighting automatic switch-off](../blueprints/automation/lighting/auto_off.yaml) | Lights, switches, plugs | — |
+| [Philips Hue Dimmer remote](../blueprints/automation/lighting/hue_dimmer_remote.yaml) | RWL022 | On/Off, Up, Down, Hue: short press and hold |
+| [Philips Hue Tap Dial remote](../blueprints/automation/lighting/hue_tap_dial_remote.yaml) | RDM002 | 4 buttons (one lamp each): short press and hold; dial |
 
 ## Installation
 
 1. Import the blueprints you need:
-   [Hue Dimmer](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Ftelecommande_hue_dimmer.yaml) ·
-   [Hue Tap Dial](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Ftelecommande_hue_tap_dial.yaml) ·
-   [IKEA on/off](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Ftelecommande_ikea_marche_arret.yaml) ·
-   [IKEA 5 buttons](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Ftelecommande_ikea_5_boutons.yaml) ·
-   [IKEA STYRBAR](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Ftelecommande_ikea_styrbar.yaml) ·
-   [eWeLink](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fbouton_ewelink.yaml) ·
-   [Aqara](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fbouton_aqara.yaml) ·
-   [Automatic switch-off](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fextinction_automatique.yaml).
-2. Create one automation per remote: pick the remote, the lamp, then the action of each gesture.
-3. Optional: pick a **memory helper** (see below).
+   [Aqara](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Faqara_button.yaml) ·
+   [eWeLink](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fewelink_button.yaml) ·
+   [Hue Dimmer](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fhue_dimmer_remote.yaml) ·
+   [Hue Tap Dial](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fhue_tap_dial_remote.yaml) ·
+   [IKEA 5-button](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fikea_5_button_remote.yaml) ·
+   [IKEA on/off](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fikea_on_off_switch.yaml) ·
+   [IKEA STYRBAR](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fikea_styrbar_remote.yaml) ·
+   [Lighting automatic switch-off](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flighting%2Fauto_off.yaml).
+2. Create one automation per remote: pick the remote (**Remote**), the lamp (**Lamp**), then the action of each gesture.
+3. Optional: pick a **Memory helper (optional)** (see below).
 4. Check with **Menu → Run actions**: a notification describes the lamp, the memory and any problem, without commanding the lamp.
 
 The [example](../examples/lighting/automations.yaml) shows a typical setup of each blueprint.
@@ -54,51 +52,51 @@ An unreadable helper, or one already used by another automation, is never modifi
 
 ## Actions available for each gesture
 
-| Action (French label) | Effect |
+| Action | Effect |
 |---|---|
-| Aucune action | The gesture is ignored and never interrupts a running change. |
-| Basculer marche/arrêt | Turns on (brightness remembered by the lamp) or off. |
-| Basculer, en allumant au niveau d’allumage | Turns off, or turns on at the **on level**. |
-| Allumer · Éteindre | Turn on · turn off. |
-| Allumer au niveau d’allumage | Turn on at the on level. |
-| Pleine luminosité | 100 %, colour unchanged. |
-| Pleine luminosité et couleur de référence | 100 % and the first palette preset; for a white-only lamp, the **reference white**. |
-| Couleur de rappel | The chosen **recall colour**, brightness kept. |
-| Alterner entre niveau d’allumage et niveau haut | Off → on level; on below the high level → high level; at the high level → on level. |
-| Augmenter / Baisser la luminosité d’un pas | Lamp off: Up turns it on, Down does nothing. Dimming stops at the minimum brightness and never turns off. |
-| … en continu *(holds)* | Change until release, end stop or maximum duration. Up on a lamp that is off starts at the minimum brightness. |
-| Blanc plus froid / plus chaud | Colour temperature in kelvin, bounded by the lamp limits; one step or continuous. |
-| Préréglage de couleur suivant / précédent | See the memory helper for the position. Lamp off: first preset. One step or continuous. |
-| Action personnalisée | Runs the actions entered under the gesture; the `gesture` variable holds the gesture name. |
+| No action | The gesture is ignored and never interrupts a running change. |
+| Toggle on/off | Turns on (brightness remembered by the lamp) or off. |
+| Toggle, turning on at the on level | Turns off, or turns on at the **On level**. |
+| Turn on · Turn off | — |
+| Turn on at the on level | — |
+| Full brightness | 100 %, colour unchanged. |
+| Full brightness and reference color | 100 % and the first palette preset; for a white-only lamp, the **Reference white**. |
+| Recall color (brightness kept) | The chosen **Recall color**, brightness kept. |
+| Alternate between on level and high level | Off → on level; on below the high level → high level; at the high level → on level. |
+| Brighter by one step · Dimmer by one step | Lamp off: brighter turns it on, dimmer does nothing. Dimming stops at the minimum brightness and never turns off. |
+| Brighter continuously · Dimmer continuously *(holds)* | Change until release, end stop or maximum duration. Up on a lamp that is off starts at the minimum brightness. |
+| Cooler / Warmer white by one step · continuously | Colour temperature in kelvin, bounded by the lamp limits. |
+| Next / Previous color preset · presets continuously | See the memory helper for the position. Lamp off: first preset. |
+| Custom action | Runs the actions entered under the gesture; the `gesture` variable holds the gesture name. |
 
-Continuous actions are offered for holds only. **Double press** on IKEA remotes needs the memory helper, because their firmware does not report it: the first press acts at once, the second runs the double-press action. The eWeLink and Aqara buttons report their double press themselves, with no helper.
+*Continuously* actions are offered for holds (**Hold**) only. **Double press** on IKEA remotes needs the memory helper, because their firmware does not report it: the first press acts at once, the second runs the double-press action. The eWeLink and Aqara buttons report their double press themselves, with no helper.
 
 ## Common settings
 
-In the collapsed section **Réglages de variation et de couleur**. Values in brackets are model-specific defaults.
+In the collapsed section **Dimming and color settings**. Values in brackets are model-specific defaults.
 
 | Setting | Default | Purpose |
 |---|---|---|
 | Brightness step | 10 % (IKEA 5 buttons: 20 %) | Single-step presses. |
-| Speed while holding | 0 (STYRBAR: 35 %/s) | In %/s; 0 uses the step while holding. |
-| Step while holding | 10 % | Used when the speed is 0. |
-| Brightness interval | 0.5 s (STYRBAR: 0.3 s; IKEA on/off: 1 s) | Interval of brightness commands while holding. |
-| Colour and white interval | 0.5 s (STYRBAR: 0.4 s) | Interval of presets or temperature steps while holding. |
+| Dimming speed during a hold | 0 (STYRBAR: 35 %/s) | In %/s; 0 uses the step while holding. |
+| Brightness step during a hold | 10 % | Used when the speed is 0. |
+| Brightness tick during a hold | 0.5 s (STYRBAR: 0.3 s; IKEA on/off: 1 s) | Interval of brightness commands while holding. |
+| Color and white tick during a hold | 0.5 s (STYRBAR: 0.4 s) | Interval of presets or temperature steps while holding. |
 | Maximum hold duration | 10 s (STYRBAR: 15 s) | Stops if the radio release is lost. |
-| Smooth dimming | yes | Each step fades until the next one. |
-| Minimum · maximum brightness | 1 % · 100 % | End stops. |
+| Smooth dimming during a hold | yes | Each step fades until the next one. |
+| Minimum brightness · Maximum brightness of dimming | 1 % · 100 % | End stops. |
 | On level · High level | 50 % · 100 % (eWeLink: 25 % · 100 %) | Fixed-level switch-on and alternate. |
-| Brightness fade | 0 s (Tap Dial, IKEA on/off: 1 s; IKEA 5 buttons: 0.5 s) | Switch-on, switch-off, single steps. |
-| Colour fade | 0 s (STYRBAR: 0.3 s; IKEA 5 buttons: 0.5 s) | Colours, whites, recall. |
-| Temperature step · Reference white | 250 K · 2,500 K | — |
-| Colour presets | 21 presets (STYRBAR: the former blueprint's 16) | Cycling order among 44; the first is the reference colour. |
-| Recall colour | RGB 255, 192, 140 | — |
-| Colours may switch on · Recall may switch on | yes · yes | Otherwise no effect on a lamp that is off. |
-| Double press delay | 800 ms | Memory helper required. |
+| Brightness transition | 0 s (Tap Dial, IKEA on/off: 1 s; IKEA 5 buttons: 0.5 s) | Switch-on, switch-off, single steps. |
+| Color transition | 0 s (STYRBAR: 0.3 s; IKEA 5 buttons: 0.5 s) | Colours, whites, recall. |
+| White temperature step · Reference white | 250 K · 2,500 K | — |
+| Color presets | 21 presets (STYRBAR: the former blueprint's 16) | Cycling order among 44; the first is the reference colour. |
+| Recall color | RGB 255, 192, 140 | — |
+| Color and white changes may switch the lamp on · Color recall may switch the lamp on | yes · yes | Otherwise no effect on a lamp that is off. |
+| Maximum double press delay | 800 ms | Memory helper required. |
 | Ignore events too close together | 0 (STYRBAR: 50 ms; Tap Dial: 100 ms) | Must stay below the double press delay. |
-| Logging | no | INFO level, `lighting_remote` logger. The automation sets this level itself: no configuration is needed. |
+| Log gestures and actions | no | INFO level, `lighting_remote` logger. The automation sets this level itself: no configuration is needed. |
 
-On the Tap Dial, the dial sends an amount that grows with rotation speed: about 3 % for a slow notch, up to 80 % for a fast spin. **Sensibilité de la molette** scales it (1 by default). The 100 ms filter drops presses received twice and contradictory rotation reports a few milliseconds apart. Without a memory helper, it measures the gap from the start of the previous gesture’s processing: when Home Assistant is heavily loaded, a real gesture that follows the previous one very closely may also be dropped.
+On the Tap Dial, the dial sends an amount that grows with rotation speed: about 3 % for a slow notch, up to 80 % for a fast spin. **Dial sensitivity** scales it (1 by default). The 100 ms filter drops presses received twice and contradictory rotation reports a few milliseconds apart. Without a memory helper, it measures the gap from the start of the previous gesture’s processing: when Home Assistant is heavily loaded, a real gesture that follows the previous one very closely may also be dropped.
 
 An inconsistent configuration (minimum above maximum, unknown preset, black recall colour, filter longer than the double press delay, helper too short) blocks every command. It is reported by a notification and in the log.
 
@@ -114,7 +112,7 @@ An inconsistent configuration (minimum above maximum, unknown preset, black reca
 
 ## Automatic switch-off
 
-- Pick the lights, the duration and, optionally, a dedicated **Timer helper**.
+- Pick the lights (**Lighting to switch off**), the duration (**On time**) and, optionally, a dedicated **Timer helper (optional)**.
 - Any switch-on, by any means, restarts the countdown. Switching every light off by hand cancels it. When the countdown ends, lights still on are switched off.
 - When Home Assistant starts, a light left on with no active countdown starts the countdown again.
 - With a Timer helper, the remaining time is visible. Enable its *Restore* option so it survives a restart.
@@ -124,15 +122,15 @@ An inconsistent configuration (minimum above maximum, unknown preset, black reca
 
 | Former setup | New setup |
 |---|---|
-| Hue Dimmer: Power → `light.toggle` · Up/Down → `brightness_increase`/`decrease` · Hue → 100 % | Hue Dimmer defaults. Hue button with no action: short press = *Aucune action*. |
-| Tap Dial: 4 lamps, `input_text` current-lamp helper, scale | The 4 lamps and the dial sensitivity. The helper is no longer used. |
-| IKEA on/off: 1 s fade, hold of 10 × 10 % per second | 1 s fade, 1 s interval, 10 % step, 10 s maximum. |
+| Aqara automation on the “single press” device trigger | Aqara blueprint defaults; carry the former transition over to *Brightness transition*. |
+| eWeLink automation on `attribute_updated` | Single press: toggle at a 25 % on level; double press: alternate 25 % / 100 %. |
+| Hue Dimmer: Power → `light.toggle` · Up/Down → `brightness_increase`/`decrease` · Hue → 100 % | Hue Dimmer defaults. Hue button with no action: *Short press* = *No action*. |
 | IKEA 5 buttons “presets” + `input_select` | Defaults; the palette replaces the `input_select`. |
 | IKEA 5 buttons “whites” | Left: warmer, Right: cooler (press and hold), reference white 2,500 K. The former blueprint used the `color_temp` parameter in mireds, which Home Assistant 2026.10 no longer accepts. |
-| STYRBAR: Text helper, `styrbar_maintiens` script | Same defaults. Keep the same helper for the double press: its former content is replaced at the first gesture. Disable the former automation first. The script is no longer needed. *Recall on right / left hold*: pick *Couleur de rappel* for that hold. *Brightness forced on Up*: action *Allumer au niveau d’allumage*. |
-| Aqara automation on the “single press” device trigger | Aqara blueprint defaults; carry the former transition over to *Fondu de la luminosité*. |
-| eWeLink automation on `attribute_updated` | Single press: toggle at a 25 % on level; double press: alternate 25 % / 100 %. |
-| Lighting timer (manual light) | Automatic switch-off with the same Timer helper and duration. |
+| IKEA on/off: 1 s fade, hold of 10 × 10 % per second | 1 s fade, 1 s interval, 10 % step, 10 s maximum. |
+| Lighting timer (manual light) | *Lighting automatic switch-off* with the same Timer helper and duration. |
+| STYRBAR: Text helper, `styrbar_maintiens` script | Same defaults. Keep the same helper for the double press: its former content is replaced at the first gesture. Disable the former automation first. The script is no longer needed. *Recall on right / left hold*: pick *Recall color (brightness kept)* for that hold. *Brightness forced on Up*: action *Turn on at the on level*. |
+| Tap Dial: 4 lamps, `input_text` current-lamp helper, scale | The 4 lamps and the **Dial sensitivity**. The helper is no longer used. |
 
 ## Limits
 

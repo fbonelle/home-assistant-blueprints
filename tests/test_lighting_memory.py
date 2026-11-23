@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
-"""Native Home Assistant 2026.10.4: STYRBAR in the lighting family and the optional memory.
+"""Native Home Assistant: STYRBAR in the lighting family and the optional memory.
 
 These tests replay the scenarios of the former STYRBAR suite against the shared engine:
 double press, recall colour, bounded holds, release at the level actually reached,
@@ -21,7 +21,7 @@ from homeassistant.util.yaml import load_yaml
 
 from test_lighting import FOLDER, Env, REMOTE
 
-STYRBAR = 'telecommande_ikea_styrbar.yaml'
+STYRBAR = 'ikea_styrbar_remote.yaml'
 RIGHT = dict(args=[256, 13, 0], params={'param1': 256, 'param2': 13, 'param3': 0})
 LEFT = dict(args=[257, 13, 0], params={'param1': 257, 'param2': 13, 'param3': 0})
 RIGHT_HOLD = dict(args=[3328, 0], params={'param1': 3328, 'param2': 0})
@@ -64,7 +64,7 @@ def test_styrbar_defaults_match_the_former_blueprint():
     assert catalog['ikea_blue']['data'] == {'xy_color': [0.17, 0.05]}
 
 
-@pytest.mark.parametrize('name', ['telecommande_ikea_5_boutons.yaml', 'telecommande_ikea_marche_arret.yaml', STYRBAR])
+@pytest.mark.parametrize('name', ['ikea_5_button_remote.yaml', 'ikea_on_off_switch.yaml', STYRBAR])
 def test_double_press_inputs_only_on_ikea_presses(name):
     inputs = Blueprint(load_yaml(str(FOLDER / name)), expected_domain='automation', schema=BLUEPRINT_SCHEMA).inputs
     doubles = [k for k in inputs if k.endswith('_double_action')]
@@ -108,8 +108,8 @@ async def test_double_press_needs_memory_and_diagnostic_says_so(env):
                                        {'entity_id': 'automation.under_test', 'skip_condition': True}, blocking=True)
     await env.hass.async_block_till_done()
     text = env.notification()
-    assert 'double appui est configuré mais ne peut pas fonctionner' in text
-    assert 'light.color' in text and 'aucune commande envoyée' in text
+    assert 'double press is configured but cannot work' in text
+    assert 'light.color' in text and 'no command sent' in text
     assert len(env.lamps['color'].calls) == 2
 
 
@@ -347,8 +347,8 @@ async def test_future_timestamps_in_memory_are_discarded(env):
 
 # ---------------------------------------------------------------- invalid configurations
 
-@pytest.mark.parametrize('value, word', [('lr1:{not json', 'illisible'), ('lr1:' + json.dumps(dict(v=1, o='someone')), 'autre automatisation'),
-                                         ('free text', 'illisible')])
+@pytest.mark.parametrize('value, word', [('lr1:{not json', 'unreadable'), ('lr1:' + json.dumps(dict(v=1, o='someone')), 'another automation'),
+                                         ('free text', 'unreadable')])
 async def test_unusable_memory_is_never_overwritten(env, value, word):
     await env.hass.services.async_call('input_text', 'set_value', {'entity_id': 'input_text.memory', 'value': value},
                                        blocking=True)
@@ -363,12 +363,12 @@ async def test_too_short_memory_is_a_configuration_error(env):
     await env.automation(STYRBAR, remote=REMOTE, light='light.color', memory='input_text.short_memory')
     await env.press('off', settle=.1)
     assert env.lamps['color'].calls == []
-    assert 'longueur maximale 255' in env.notification()
+    assert 'maximum length of 255' in env.notification()
 
 
-@pytest.mark.parametrize('settings, word', [(dict(min_pct=60, max_pct=40), 'minimale dépasse'),
-                                            (dict(debounce_ms=200, double_press_ms=200), 'doublons'),
-                                            (dict(recall_color=[0, 0, 0]), 'couleur de rappel'),
+@pytest.mark.parametrize('settings, word', [(dict(min_pct=60, max_pct=40), 'minimum brightness is above'),
+                                            (dict(debounce_ms=200, double_press_ms=200), 'duplicate filter'),
+                                            (dict(recall_color=[0, 0, 0]), 'recall color'),
                                             (dict(palette=['ikea_blue', 'not_a_colour']), 'palette')])
 async def test_inconsistent_settings_are_reported_and_block_commands(env, settings, word):
     await env.automation(STYRBAR, remote=REMOTE, light='light.color', **settings)
@@ -392,13 +392,13 @@ async def test_without_memory_a_badly_rendered_colour_can_skip_a_preset(env):
 # ---------------------------------------------------------------- diagnostic of every model
 
 @pytest.mark.parametrize('name, inputs', [
-    ('telecommande_hue_dimmer.yaml', dict(light='light.plain')),
-    ('telecommande_hue_tap_dial.yaml', dict(light_1='light.one', light_2='light.color')),
-    ('telecommande_ikea_marche_arret.yaml', dict(light='light.plain', memory='input_text.memory')),
-    ('telecommande_ikea_5_boutons.yaml', dict(light='light.white')),
+    ('hue_dimmer_remote.yaml', dict(light='light.plain')),
+    ('hue_tap_dial_remote.yaml', dict(light_1='light.one', light_2='light.color')),
+    ('ikea_on_off_switch.yaml', dict(light='light.plain', memory='input_text.memory')),
+    ('ikea_5_button_remote.yaml', dict(light='light.white')),
     (STYRBAR, dict(light='light.color', memory='input_text.memory')),
-    ('bouton_ewelink.yaml', dict(light='light.xy')),
-    ('bouton_aqara.yaml', dict(light='light.plain', memory='input_text.memory')),
+    ('ewelink_button.yaml', dict(light='light.xy')),
+    ('aqara_button.yaml', dict(light='light.plain', memory='input_text.memory')),
 ])
 async def test_manual_run_shows_a_diagnostic_without_commands(env, caplog, name, inputs):
     await env.automation(name, remote=REMOTE, **inputs)
@@ -408,8 +408,8 @@ async def test_manual_run_shows_a_diagnostic_without_commands(env, caplog, name,
     text = env.notification()
     assert 'diagnostic' in text
     # One line per item, so that the notification shows a real list.
-    assert text.count('\n- communication : ') == len([k for k in inputs if k.startswith('light')])
-    assert '\n- modes : ' in text and ' ;\n' not in text
+    assert text.count('\n- communication: ') == len([k for k in inputs if k.startswith('light')])
+    assert '\n- modes: ' in text and ';\n' not in text
     for target in [v for k, v in inputs.items() if k.startswith('light')]:
         assert target in text
     assert all(lamp.calls == [] for lamp in env.lamps.values())

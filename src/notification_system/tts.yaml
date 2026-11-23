@@ -1,74 +1,73 @@
-# Source du blueprint « Notifications — Lecture vocale ».
-# tools/build_notifications.py ajoute la version au nom et écrit le fichier publié.
+# Source of the « Notifications — Text-to-speech » blueprint.
+# tools/build_notifications.py adds the version to the name and writes the published file.
 blueprint:
-  name: Notifications — Lecture vocale
+  name: Notifications — Text-to-speech
   description: >-
-    Lit un message à voix haute sur les enceintes portant une étiquette choisie, une
-    annonce après l’autre. Au niveau « critical », le volume est monté puis l’état des
-    enceintes est restauré après la lecture. Un interrupteur coupe toute lecture.
-    Appelé par le « Répartiteur de notifications » ; utilisable seul avec les champs
-    message et level.
-    Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/notification_system.md
+    Reads a message aloud on the speakers carrying a chosen label, one announcement after the
+    other. At the « critical » level, the volume is raised and the speakers' state is restored
+    after the reading. A switch mutes all reading. Called by the « Notifications —
+    Dispatcher »; usable on its own with the message and level fields.
+    Guide: https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/notification_system.en.md
   domain: script
   homeassistant:
     min_version: '@min_version'  # tools/versioning.py (MIN_HA)
-  source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/script/notification_system/lecture_vocale.yaml
+  source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/script/notification_system/text_to_speech.yaml
   author: fbonelle
   input:
     tts_entity:
-      name: Moteur de synthèse vocale
-      description: Entité tts utilisée pour parler, par exemple tts.piper.
+      name: Text-to-speech engine
+      description: tts entity used to speak, for example tts.piper.
       selector:
         entity:
           filter:
             - domain: tts
     speaker_label:
-      name: Étiquette des enceintes
+      name: Speaker label
       description: >-
-        Seuls les lecteurs multimédias portant cette étiquette parlent. Sans enceinte
-        étiquetée disponible, rien n’est lu et un avertissement est écrit dans le journal :
-        le script ne choisit jamais d’enceinte au hasard.
+        Only the media players carrying this label speak. Without an available labelled
+        speaker, nothing is read and a warning is written to the log: the script never picks
+        a speaker at random.
       default: tts
       selector:
         label: {}
     mute_entity:
-      name: Interrupteur de silence
-      description: Entrée booléenne qui, activée, coupe toute lecture. Laisser vide pour ne jamais couper.
+      name: Mute switch
+      description: Boolean input that, when on, mutes all reading. Leave empty to never mute.
       default: ''
       selector:
         entity:
           filter:
             - domain: input_boolean
     critical_volume:
-      name: Volume des annonces critiques
+      name: Volume of critical announcements
       default: 0.8
       selector:
         number: {min: 0.1, max: 1, step: 0.05, mode: slider}
     chars_per_second:
-      name: Débit de lecture estimé
+      name: Estimated reading rate
       description: >-
-        Sert à estimer la durée d’une annonce critique avant de restaurer les enceintes :
-        longueur du texte divisée par ce débit, plus 2 secondes.
+        Used to estimate the duration of a critical announcement before restoring the
+        speakers: text length divided by this rate, plus 2 seconds.
       default: 12
       selector:
-        number: {min: 5, max: 30, step: 1, unit_of_measurement: caractères/s, mode: box}
-# File d’attente : deux annonces ne se coupent jamais, la seconde attend la fin de la
-# première. Ce mode est la raison pour laquelle la lecture vocale reste un script séparé
-# du répartiteur, qui lui fonctionne en parallèle.
+        number: {min: 5, max: 30, step: 1, unit_of_measurement: characters/s, mode: box}
+# Queued: two announcements never cut each other, the second one waits for the end of the
+# first. This mode is why text-to-speech stays a script separate from the dispatcher, which
+# runs in parallel.
 mode: queued
 max: 15
 icon: mdi:account-voice
 fields:
   message:
-    name: Texte à dire
-    example: Bonjour
+    name: Text to say
+    example: Hello
     required: true
     selector:
       text:
         multiline: true
   level:
-    name: Niveau
-    description: « critical » monte le volume puis restaure l’état des enceintes.
+    name: Level
+    description: « critical » raises the volume, then restores the speakers' state.
     default: info
     selector:
       select:
@@ -80,8 +79,8 @@ variables:
   critical_volume: !input critical_volume
   chars_per_second: !input chars_per_second
 sequence:
-  # Les valeurs par défaut des champs ne s’appliquent qu’à l’interface : un appel qui omet
-  # le niveau le laisse indéfini.
+  # Field defaults only apply in the interface: a call that omits the level leaves it
+  # undefined.
   - variables:
       message: "{{ message | default('', true) }}"
       level: "{{ level | default('info', true) }}"
@@ -89,9 +88,9 @@ sequence:
     value_template: >
       {{ mute_entity | default('') | string | trim == '' or not is_state(mute_entity, 'on') }}
   - variables:
-      # Seuls les lecteurs étiquetés et joignables sont retenus. L’absence d’étiquette est
-      # une erreur de configuration, pas un cas normal : mieux vaut se taire et le
-      # signaler que de parler sur un ampli, un Spotify Connect ou une enceinte invitée.
+      # Only labelled, reachable players are kept. A missing label is a configuration
+      # error, not a normal case: better to stay silent and report it than to speak on an
+      # amplifier, a Spotify Connect device or a guest speaker.
       active_speakers: >
         {{ label_entities(speaker_label) | default([], true)
            | select('match', '^media_player[.]')
@@ -108,9 +107,9 @@ sequence:
           level: warning
           logger: notification_system
           message: >-
-            [Lecture vocale] Aucune enceinte disponible avec l’étiquette « {{ speaker_label }} ».
-      - stop: Aucune enceinte cible
-  # Annonce critique : instantané de l’état des enceintes avant de monter le volume.
+            [Text-to-speech] No speaker available with the « {{ speaker_label }} » label.
+      - stop: No target speaker
+  # Critical announcement: snapshot of the speakers' state before raising the volume.
   - if:
       - condition: template
         value_template: "{{ level == 'critical' }}"
@@ -132,7 +131,7 @@ sequence:
                 entity_id: "{{ repeat.item }}"
               data:
                 volume_level: "{{ critical_volume | float(0.8) }}"
-        # Une enceinte en échec ne doit pas empêcher les autres de parler.
+        # A failing speaker must not prevent the others from speaking.
         - action: tts.speak
           continue_on_error: true
           target:
@@ -141,7 +140,7 @@ sequence:
             media_player_entity_id: "{{ repeat.item }}"
             message: "{{ message }}"
             cache: true
-  # Restauration après la durée estimée de l’annonce critique.
+  # Restore after the estimated duration of the critical announcement.
   - if:
       - condition: template
         value_template: "{{ level == 'critical' }}"

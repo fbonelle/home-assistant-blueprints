@@ -1,16 +1,16 @@
-# Surveillance et relance des intégrations — 2026.11.2.0
+# Integration watchdog — surveillance et relance des intégrations — 2026.11.2.0
 
 **Français** · [English](integration_watchdog.en.md) · [Accueil](../README.md)
 
-Ce blueprint vérifie les entités que vous choisissez et tente de relancer leur intégration lorsqu’une panne est détectée. Si les tentatives ne suffisent pas, il envoie une notification pour demander une intervention.
+Ce blueprint vérifie les entités que vous choisissez et tente de relancer leur intégration lorsqu’une panne est détectée. Si les tentatives ne suffisent pas, il envoie une notification pour demander une intervention. Le formulaire et les messages du blueprint sont en anglais ; ce guide cite ses libellés tels qu’ils apparaissent.
 
 Il utilise l’action standard `homeassistant.reload_config_entry`. L’intégration doit prendre en charge cette action. Home Assistant **2026.10 minimum** est requis ; les tests tournent sur la version testée et sur cette version minimale (voir le [README](../README.md#développement)).
 
 ## 1. Importer le blueprint
 
-[Importer le blueprint dans Home Assistant](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fintegration_watchdog%2Fsurveillance_integrations.yaml)
+[Importer le blueprint dans Home Assistant](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fintegration_watchdog%2Fintegration_watchdog.yaml)
 
-Vous pouvez aussi ouvrir **Paramètres → Automatisations et scènes → Blueprints → Importer un blueprint**, puis coller [son adresse GitHub](../blueprints/automation/integration_watchdog/surveillance_integrations.yaml). Pour une installation manuelle, copiez ce fichier dans `/config/blueprints/automation/local/surveillance_integrations.yaml`.
+Vous pouvez aussi ouvrir **Paramètres → Automatisations et scènes → Blueprints → Importer un blueprint**, puis coller [son adresse GitHub](../blueprints/automation/integration_watchdog/integration_watchdog.yaml). Pour une installation manuelle, copiez ce fichier dans `/config/blueprints/automation/local/integration_watchdog.yaml`.
 
 C’est le seul fichier à installer : aucun fichier de configuration, aucun script ni redémarrage. Activez l’intégration **Uptime** si elle n’est pas présente ; elle fournit la date de démarrage utilisée pour laisser les intégrations se connecter avant toute tentative.
 
@@ -28,16 +28,16 @@ L’automatisation remplit cet assistant. Il conserve le nombre de tentatives et
 
 ### Remplir le formulaire
 
-Créez une automatisation à partir du blueprint **Surveillance et relance des intégrations — 2026.11.2.0**, puis renseignez :
+Créez une automatisation à partir du blueprint **Integration watchdog — 2026.11.2.0**, puis renseignez, dans la section **Integration and entities to watch** :
 
 | Champ | Ce qu’il faut choisir |
 |---|---|
-| Configuration de l’intégration à surveiller | Le compte ou la passerelle concernés. |
-| Entités à surveiller | Des entités actives de cette intégration, par exemple une température ou un thermostat. |
-| Assistant Texte pour conserver l’historique | L’assistant créé à l’étape précédente. |
-| Capteur Uptime de Home Assistant | Le capteur fourni par l’intégration Uptime. |
+| Configuration of the integration to watch | Le compte ou la passerelle concernés. |
+| Entities to watch | Des entités actives de cette intégration, par exemple une température ou un thermostat. |
+| Text helper that keeps the history | L’assistant créé à l’étape précédente. |
+| Home Assistant Uptime sensor | Le capteur fourni par l’intégration Uptime. |
 
-Donnez un nom à la surveillance, adaptez les réglages si nécessaire et enregistrez. Vous pouvez commencer avec **Observer sans relancer l’intégration** pour vérifier le comportement dans les journaux.
+Donnez un nom à la surveillance (**Name in notifications**), adaptez les réglages si nécessaire et enregistrez. Vous pouvez commencer avec **Observe without reloading the integration** pour vérifier le comportement dans les journaux.
 
 Créez une seule surveillance par configuration d’intégration. Deux comptes ou deux passerelles d’une même intégration se configurent séparément : TaHoma et Cozytouch sont par exemple deux configurations Overkiz distinctes.
 
@@ -47,36 +47,36 @@ Créez un autre assistant Texte et une autre automatisation depuis le même blue
 
 Le blueprint ne fixe pas de nombre maximal d’intégrations surveillées. Il limite à **50** le nombre de relances simultanées, toutes surveillances confondues. Une demande supplémentaire réessaie une minute plus tard, sans consommer de tentative.
 
-Les [exemples Netatmo, TaHoma et Cozytouch](../examples/integration_watchdog/) contiennent des identifiants fictifs. Adaptez-les avant utilisation. Leur chemin `local/surveillance_integrations.yaml` correspond à l’installation manuelle ; si vous avez importé le blueprint depuis GitHub, utilisez le chemin affiché par Home Assistant.
+Les [exemples Netatmo, TaHoma et Cozytouch](../examples/integration_watchdog/) contiennent des identifiants fictifs. Adaptez-les avant utilisation. Leur chemin `local/integration_watchdog.yaml` correspond à l’installation manuelle ; si vous avez importé le blueprint depuis GitHub, utilisez le chemin affiché par Home Assistant.
 
 ## Choisir les bons réglages
 
 | Réglage | Valeur par défaut |
 |---|---|
-| Fréquence de vérification | Toutes les minutes |
-| Durée minimale de la panne avant une tentative | 5 minutes |
-| Attente après le démarrage de Home Assistant | 10 minutes |
-| Tentatives maximales pour une même panne | 3 |
-| Tentatives maximales sur les dernières 24 heures | 6 |
-| Temps laissé à l’intégration après une relance | 10 minutes |
-| Fonctionnement normal avant confirmation | 3 minutes |
-| Fonctionnement normal avant remise à zéro des tentatives de la panne | 30 minutes |
-| Attente entre deux nouvelles tentatives | De 5 minutes à 1 heure, selon les échecs précédents |
-| Délai avant alerte si une relance ne se termine pas | 3 minutes |
+| Check frequency | Toutes les minutes (*Every minute*) |
+| Minimum failure duration before a reload (seconds) | 5 minutes |
+| Wait after Home Assistant start-up (seconds) | 10 minutes |
+| Maximum number of attempts for one failure | 3 |
+| Maximum number of attempts over the last 24 hours | 6 |
+| Time given to the integration to recover after a reload (seconds) | 10 minutes |
+| Normal operation time before confirmation (seconds) | 3 minutes |
+| Normal operation time before the attempts are reset (seconds) | 30 minutes |
+| Wait before a new attempt (seconds) · Maximum wait between two attempts (seconds) | De 5 minutes à 1 heure, selon les échecs précédents |
+| Delay before an alert when a reload does not finish (seconds) | 3 minutes |
 
 Les délais sont évalués lors des vérifications : une action peut attendre le contrôle suivant. La limite sur les dernières 24 heures est conservée quand le compteur de la panne est remis à zéro.
 
-**Entités en erreur.** Vous pouvez attendre que toutes soient en erreur, ou intervenir dès qu’au moins une l’est suffisamment longtemps. L’état `unavailable` signifie « indisponible ». L’état `unknown` signifie « inconnu » : il ne déclenche une tentative que si son option est activée, et ne confirme jamais un retour à la normale.
+**Entités en erreur.** Avec **When should the integration be reloaded?**, vous pouvez attendre que toutes soient en erreur (*When every entity is failing*), ou intervenir dès qu’au moins une l’est suffisamment longtemps (*When at least one entity is failing*). L’état `unavailable` signifie « indisponible ». L’état `unknown` signifie « inconnu » : il ne déclenche une tentative que si l’option **Count the « unknown » state as a failure** est activée, et ne confirme jamais un retour à la normale.
 
-**Absence de nouvelles données.** Le contrôle est désactivé par défaut : son délai vaut **0**. Activez-le pour des mesures envoyées régulièrement. Pour un volet immobile ou un thermostat dont la valeur change peu, gardez 0 sauf si l’intégration fournit une date de mesure fiable. Sans cette date, le contrôle mesure les données reçues par Home Assistant, pas leur fraîcheur réelle chez le fournisseur.
+**Absence de nouvelles données.** Le contrôle est désactivé par défaut : son délai, **Maximum delay without new data (seconds)**, vaut **0**. Activez-le pour des mesures envoyées régulièrement. Pour un volet immobile ou un thermostat dont la valeur change peu, gardez 0 sauf si l’intégration fournit une date de mesure fiable (**Entity giving the date of the last measurement (optional)**). Sans cette date, le contrôle mesure les données reçues par Home Assistant, pas leur fraîcheur réelle chez le fournisseur.
 
 **Retour à la normale.** Toutes les entités surveillées doivent fonctionner pendant la durée de confirmation, même si une seule entité en erreur suffit à déclencher une tentative. Une amélioration très brève ne remet pas le nombre de tentatives à zéro.
 
 ## Notifications et journaux
 
-Par défaut, une notification apparaît dans Home Assistant lorsqu’une intervention est nécessaire. Elle est effacée après un retour confirmé à la normale. Vous pouvez remplacer ces actions par vos propres notifications dans le formulaire.
+Par défaut, une notification apparaît dans Home Assistant lorsqu’une intervention est nécessaire. Elle est effacée après un retour confirmé à la normale. Vous pouvez remplacer ces actions par vos propres notifications dans la section **Notifications** du formulaire (**Actions when an intervention is needed**, **Actions after recovery**).
 
-Les événements utiles sont écrits dans le journal `integration_watchdog`. La surveillance règle elle-même son niveau (info, ou debug avec les journaux détaillés) : aucune configuration n’est nécessaire. Les journaux détaillés ajoutent les vérifications de routine ; utilisez-les pour comprendre un problème. Les alertes sont envoyées avant l’écriture du journal, qui ne peut donc pas les bloquer.
+Les événements utiles sont écrits dans le journal `integration_watchdog`. La surveillance règle elle-même son niveau (info, ou debug avec **Enable detailed logs**) : aucune configuration n’est nécessaire. Les journaux détaillés ajoutent les vérifications de routine ; utilisez-les pour comprendre un problème. Les alertes sont envoyées avant l’écriture du journal, qui ne peut donc pas les bloquer.
 
 Les exclusions, le mode observation et les conditions supplémentaires empêchent de nouvelles tentatives. Ils n’annulent pas une relance déjà en cours.
 
@@ -95,6 +95,6 @@ Les exclusions, le mode observation et les conditions supplémentaires empêchen
 - Home Assistant doit rester réactif pour que ses automatisations fonctionnent. Un arrêt brutal peut perdre la toute dernière mise à jour de l’historique.
 - Les tests simulent les appels aux fournisseurs ; ils ne prouvent pas qu’une panne réelle Netatmo ou Overkiz sera réparée.
 
-[Fonctionnement détaillé, tests et limites](robustesse_integration_watchdog.md)
+[Fonctionnement détaillé, tests et limites](integration_watchdog_robustness.md)
 
 Documentation Home Assistant : [assistant Texte](https://www.home-assistant.io/integrations/input_text/), [importation d’un blueprint](https://www.home-assistant.io/docs/automation/using_blueprints/).

@@ -50,3 +50,27 @@ def test_links_reach_existing_files_and_headings(page):
 @pytest.mark.parametrize('page', [p for p in PAGES if not p.endswith('.en.md')])
 def test_every_french_page_has_an_english_page(page):
     assert (ROOT / page.replace('.md', '.en.md')).exists(), page
+
+
+def listing_tables(text):
+    """First column of every table whose header starts with « Blueprint », « Ancien réglage »
+    or « Former setup »: tables that list items. Tables of actions and settings follow the
+    form order and are not listed here."""
+    tables = []
+    for block in re.split(r'\n\s*\n', text):
+        rows = [line for line in block.split('\n') if line.startswith('|')]
+        if len(rows) > 2 and re.match(r'\| (Blueprint|Ancien réglage|Former setup) \|', rows[0]):
+            tables.append([re.sub(r'[\[\]*]', '', row.split('|')[1]).strip() for row in rows[2:]])
+    return tables
+
+
+@pytest.mark.parametrize('page', PAGES)
+def test_listing_tables_are_sorted(page):
+    for names in listing_tables((ROOT / page).read_text()):
+        assert names == sorted(names, key=str.casefold), (page, names)
+
+
+def test_listing_tables_are_found():
+    found = {page for page in PAGES if listing_tables((ROOT / page).read_text())}
+    assert {'README.md', 'README.en.md', 'docs/lighting.md', 'docs/lighting.en.md',
+            'docs/notification_system.md', 'docs/notification_system.en.md'} <= found

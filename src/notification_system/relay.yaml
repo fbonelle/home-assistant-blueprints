@@ -1,96 +1,96 @@
-# Source du blueprint « Notifications — Relais vers le mobile ».
-# tools/build_notifications.py ajoute la version au nom et écrit le fichier publié.
+# Source of the « Notifications — Mobile relay » blueprint.
+# tools/build_notifications.py adds the version to the name and writes the published file.
 blueprint:
-  name: Notifications — Relais vers le mobile
+  name: Notifications — Mobile relay
   description: >-
-    Relaie vers le répartiteur chaque notification persistante créée par Home Assistant ou
-    une intégration, avec un niveau déduit du titre, et efface la notification du téléphone
-    quand elle est supprimée de Home Assistant. Les notifications dont l’identifiant
-    commence par un préfixe choisi peuvent être ignorées, ou supprimées dès leur apparition
-    sans jamais atteindre le téléphone.
-    Guide : https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/notification_system.md
+    Forwards to the dispatcher every persistent notification created by Home Assistant or an
+    integration, with a level deduced from the title, and clears the notification on the
+    phone when it is dismissed in Home Assistant. Notifications whose identifier starts with
+    a chosen prefix can be ignored, or dismissed as soon as they appear without ever
+    reaching the phone.
+    Guide: https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/notification_system.en.md
   domain: automation
   homeassistant:
     min_version: '@min_version'  # tools/versioning.py (MIN_HA)
-  source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/automation/notification_system/relais_mobile.yaml
+  source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/automation/notification_system/mobile_relay.yaml
   author: fbonelle
   input:
     delivery:
-      name: Envoi
+      name: Delivery
       input:
         dispatcher_script:
-          name: Répartiteur de notifications
-          description: Script créé à partir du blueprint « Notifications — Répartiteur ».
+          name: Notification dispatcher
+          description: Script created from the « Notifications — Dispatcher » blueprint.
           selector:
             entity:
               filter:
                 - domain: script
         target:
-          name: Destinataire
-          description: « all » pour toute la famille, « principal » pour le téléphone principal.
-          default: principal
+          name: Recipient
+          description: « all » for the whole family, « main » for the main phone.
+          default: main
           selector:
             select:
-              options: [principal, all]
+              options: [main, all]
         clear_service:
-          name: Action de notification utilisée pour l’effacement
+          name: Notification action used for clearing
           description: >-
-            Action notify de l’application mobile qui reçoit l’ordre d’effacer une notification
-            supprimée de Home Assistant, par exemple notify.mobile_app_mon_telephone. Laisser
-            vide pour ne rien effacer sur le téléphone.
+            notify action of the mobile app that receives the order to clear a notification
+            dismissed in Home Assistant, for example notify.mobile_app_my_phone. Leave empty to
+            clear nothing on the phone.
           default: ''
           selector:
             text: {}
     filters:
-      name: Filtres
+      name: Filters
       input:
         ignored_prefixes:
-          name: Préfixes jamais relayés
+          name: Prefixes never forwarded
           description: >-
-            Les notifications dont l’identifiant commence par l’un de ces préfixes restent dans
-            Home Assistant sans être envoyées. Les notifications du répartiteur (sys_disp_)
-            sont toujours ignorées, ce qui empêche toute boucle.
+            Notifications whose identifier starts with one of these prefixes stay in Home
+            Assistant without being sent. The dispatcher's notifications (sys_disp_) are always
+            ignored, which prevents any loop.
           default: []
           selector:
             text:
               multiple: true
         dismissed_prefixes:
-          name: Préfixes supprimés automatiquement
+          name: Prefixes dismissed automatically
           description: >-
-            Les notifications dont l’identifiant commence par l’un de ces préfixes sont
-            supprimées dès leur apparition et ne sont jamais envoyées au téléphone. Exemple :
+            Notifications whose identifier starts with one of these prefixes are dismissed as
+            soon as they appear and are never sent to the phone. Example:
             capfile_energy_manual_.
           default: []
           selector:
             text:
               multiple: true
     levels:
-      name: Niveau déduit du titre
+      name: Level deduced from the title
       input:
         critical_markers:
-          name: Marqueurs du niveau « critical »
-          description: Un titre contenant l’un de ces textes est envoyé en « critical ».
-          default: ['🚨', Urgence, Panne]
+          name: « critical » level markers
+          description: A title containing one of these texts is sent as « critical ».
+          default: ['🚨', Emergency, Failure]
           selector:
             text:
               multiple: true
         warning_markers:
-          name: Marqueurs du niveau « warning »
-          default: ['⚠️', Alerte]
+          name: « warning » level markers
+          default: ['⚠️', Alert]
           selector:
             text:
               multiple: true
         technical_markers:
-          name: Marqueurs du niveau « technical »
-          description: Les autres titres sont envoyés en « info ».
+          name: « technical » level markers
+          description: Other titles are sent as « info ».
           default: ['🔧', '📡', '🔴', '🟢']
           selector:
             text:
               multiple: true
-# File d’attente et non `single` : les notifications arrivent en rafale lors d’une panne
-# en cascade, et un « tout marquer comme lu » produit plusieurs suppressions simultanées.
-# En `single`, les suivantes seraient abandonnées. La file traite aussi suppression et
-# relais dans l’ordre d’arrivée.
+# Queued and not `single`: notifications arrive in bursts during a cascading failure, and a
+# « mark all as read » produces several simultaneous dismissals. In `single` mode the
+# following ones would be dropped. The queue also handles dismissal and forwarding in the
+# order of arrival.
 mode: queued
 max: 30
 max_exceeded: warning
@@ -104,10 +104,10 @@ variables:
   warning_markers: !input warning_markers
   technical_markers: !input technical_markers
   notification_id: "{{ trigger.notification.notification_id | default('', true) | string | trim }}"
-  # Préfixe propre aux notifications du répartiteur : jamais relayé (anti-boucle).
+  # Prefix of the dispatcher's own notifications: never forwarded (loop guard).
   own_notification: "{{ notification_id.startswith('sys_disp_') }}"
-  # Comparaison de préfixes par boucle explicite : Jinja n’a pas de test « commence par »
-  # applicable à une liste. Les préfixes vides sont ignorés.
+  # Prefix comparison with an explicit loop: Jinja has no « starts with » test applicable to
+  # a list. Empty prefixes are ignored.
   auto_dismissed: >
     {% set ns = namespace(hit=false) %}
     {% for p in dismissed_prefixes | default([], true) %}
@@ -121,26 +121,25 @@ variables:
     {% endfor %}
     {{ ns.hit }}
 triggers:
-  # Déclencheur dédié et non un événement call_service : une notification créée en Python
-  # par une intégration (persistent_notification.async_create) ne passe pas par le bus de
-  # services. Ce déclencheur capte toutes les voies.
-  # `current` n’est jamais émis vers les automatisations (seulement vers les clients de
-  # l’interface) : seules les notifications créées après le chargement de l’automatisation
-  # sont vues. Les notifications persistantes ne survivent pas à un redémarrage, et les
-  # intégrations recréent les leurs après le démarrage. `updated` est retenu : une notification republiée avec un contenu
-  # modifié porte une information nouvelle ; à contenu identique, l’anti-doublon du
-  # répartiteur l’absorbe.
+  # Dedicated trigger and not a call_service event: a notification created in Python by an
+  # integration (persistent_notification.async_create) does not go through the service
+  # bus. This trigger catches every path.
+  # `current` is never sent to automations (only to interface clients): only notifications
+  # created after the automation was loaded are seen. Persistent notifications do not
+  # survive a restart, and integrations create theirs again after start-up. `updated` is
+  # kept: a notification republished with a changed content carries new information; with
+  # identical content, the dispatcher's duplicate filter absorbs it.
   - trigger: persistent_notification
     update_type: [added, updated]
     id: relay
-  # Suppression faite depuis l’interface, par une intégration ou par un service : toutes
-  # les voies sont couvertes.
+  # Dismissal made from the interface, by an integration or by a service: every path is
+  # covered.
   - trigger: persistent_notification
     update_type: [removed]
     id: removed
 actions:
   - choose:
-      # Suppression automatique : la notification disparaît avant tout envoi.
+      # Automatic dismissal: the notification disappears before any send.
       - conditions:
           - condition: template
             value_template: "{{ trigger.id == 'relay' and auto_dismissed }}"
@@ -148,7 +147,7 @@ actions:
           - action: persistent_notification.dismiss
             data:
               notification_id: "{{ notification_id }}"
-      # Relais vers le répartiteur.
+      # Forwarding to the dispatcher.
       - conditions:
           - condition: template
             value_template: >
@@ -163,18 +162,18 @@ actions:
                 {% else %}info{% endif %}
           - action: "{{ dispatcher_script }}"
             data:
-              title: "{{ trigger.notification.title | default('Alerte Système', true) }}"
-              message: "{{ trigger.notification.message | default('Aucun détail fourni.', true) }}"
+              title: "{{ trigger.notification.title | default('System alert', true) }}"
+              message: "{{ trigger.notification.message | default('No details given.', true) }}"
               target: "{{ target }}"
               level: "{{ level }}"
-              # skip_trace : le message est déjà une notification persistante, il ne doit
-              # pas en créer une seconde. notif_id : même identifiant, pour l’effacement 1:1.
+              # skip_trace: the message already is a persistent notification, it must not
+              # create a second one. notif_id: same identifier, for 1:1 clearing.
               data:
                 skip_trace: true
                 notif_id: "{{ notification_id }}"
-      # Effacement sur le téléphone. Le tag applique la MÊME normalisation idempotente que
-      # l’envoi sur l’application mobile, sinon la correspondance 1:1 casse. Une
-      # notification supprimée automatiquement n’a jamais été envoyée : rien à effacer.
+      # Clearing on the phone. The tag applies the SAME idempotent normalisation as the send
+      # to the mobile app, otherwise the 1:1 match breaks. A notification dismissed
+      # automatically was never sent: nothing to clear.
       - conditions:
           - condition: template
             value_template: >

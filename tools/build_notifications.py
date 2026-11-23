@@ -12,10 +12,10 @@ BASE = ROOT / 'src/notification_system'
 
 # Source file -> published blueprint, relative to the repository root.
 BLUEPRINTS = {
-    'sender.yaml': 'blueprints/script/notification_system/envoi_canal.yaml',
-    'dispatcher.yaml': 'blueprints/script/notification_system/repartiteur.yaml',
-    'tts.yaml': 'blueprints/script/notification_system/lecture_vocale.yaml',
-    'relay.yaml': 'blueprints/automation/notification_system/relais_mobile.yaml',
+    'sender.yaml': 'blueprints/script/notification_system/channel_sender.yaml',
+    'dispatcher.yaml': 'blueprints/script/notification_system/dispatcher.yaml',
+    'tts.yaml': 'blueprints/script/notification_system/text_to_speech.yaml',
+    'relay.yaml': 'blueprints/automation/notification_system/mobile_relay.yaml',
 }
 
 

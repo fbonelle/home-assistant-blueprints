@@ -1,6 +1,6 @@
-# How it works, tests and limitations — 2.0.0
+# How it works, tests and limitations
 
-[Français](robustesse_integration_watchdog.md) · **English** · [Installation guide](integration_watchdog.en.md)
+[Français](integration_watchdog_robustness.md) · **English** · [Installation guide](integration_watchdog.en.md)
 
 This page describes the monitoring safeguards and how they are tested. The installation guide is enough to configure monitoring.
 

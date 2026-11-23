@@ -2,11 +2,11 @@
 # Fictional identifiers. Replace the to-do list and the notification actions before enabling.
 # Create the list with the Local To-do integration; it cannot be declared in YAML.
 - id: battery_watch_house
-  alias: Surveillance des piles et batteries — maison
+  alias: Battery watch — house
   use_blueprint:
-    path: fbonelle/surveillance_piles.yaml
+    path: fbonelle/battery_watch.yaml
     input:
-      memory: todo.piles_et_batteries
+      memory: todo.batteries
       threshold: 20
       recovery_margin: 5
       unavailable_hours: 6

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
-"""Native Home Assistant 2026.10.4: the lighting blueprints with real lights and timers.
+"""Native Home Assistant: the lighting blueprints with real lights and timers.
 
 The automations are created from the published blueprints. Lights are real light entities
 that record every command and update their state like a ZHA lamp does. Only the Zigbee
@@ -30,10 +30,10 @@ from homeassistant.util.yaml import load_yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 FOLDER = ROOT / 'blueprints/automation/lighting'
-REMOTES = ['telecommande_hue_dimmer.yaml', 'telecommande_hue_tap_dial.yaml',
-           'telecommande_ikea_marche_arret.yaml', 'telecommande_ikea_5_boutons.yaml',
-           'telecommande_ikea_styrbar.yaml', 'bouton_ewelink.yaml', 'bouton_aqara.yaml']
-ALL = REMOTES + ['extinction_automatique.yaml']
+REMOTES = ['hue_dimmer_remote.yaml', 'hue_tap_dial_remote.yaml',
+           'ikea_on_off_switch.yaml', 'ikea_5_button_remote.yaml',
+           'ikea_styrbar_remote.yaml', 'ewelink_button.yaml', 'aqara_button.yaml']
+ALL = REMOTES + ['auto_off.yaml']
 REMOTE = 'a' * 32
 OTHER = 'b' * 32
 
@@ -201,10 +201,10 @@ def test_every_default_action_exists_and_holds_only_on_holds(name):
     labels = {o['value']: o['label'] for spec in choices.values() for o in spec['selector']['select']['options']}
     engine = load_yaml(str(ROOT / 'src/lighting/engine.yaml'))
     assert all(set(row) <= {'value', 'label', 'hold_only'} for row in engine['actions_catalog'])
-    assert labels['toggle_level'] == "Basculer, en allumant au niveau d'allumage"
+    assert labels['toggle_level'] == 'Toggle, turning on at the on level'
     assert len(set(labels.values())) == len(labels)
     palette = inputs['palette']
-    if name == 'telecommande_ikea_styrbar.yaml':
+    if name == 'ikea_styrbar_remote.yaml':
         assert len(palette['default']) == 16 and palette['default'][0] == 'ha_warm'
     else:
         assert len(palette['default']) == 21 and palette['default'][0] == 'default'
@@ -232,7 +232,7 @@ def test_examples_reference_published_blueprints_and_valid_actions():
 # ---------------------------------------------------------------- Philips Hue Dimmer
 
 async def test_hue_dimmer_buttons_and_release_noise(env):
-    await env.automation('telecommande_hue_dimmer.yaml', remote=REMOTE, light='light.plain')
+    await env.automation('hue_dimmer_remote.yaml', remote=REMOTE, light='light.plain')
     await env.press('on_press', settle=None)
     assert env.state('plain').state == 'off'
     # The short release that follows every press is ignored and never re-runs the toggle.
@@ -249,7 +249,7 @@ async def test_hue_dimmer_buttons_and_release_noise(env):
 
 
 async def test_hue_hold_is_one_step_per_repeated_event(env):
-    await env.automation('telecommande_hue_dimmer.yaml', remote=REMOTE, light='light.plain')
+    await env.automation('hue_dimmer_remote.yaml', remote=REMOTE, light='light.plain')
     for _ in range(3):
         await env.press('up_hold', settle=None)
     assert abs(env.pct('plain') - 80) <= 1, 'Three steps of 10 % from about 50 %'
@@ -260,7 +260,7 @@ async def test_hue_hold_is_one_step_per_repeated_event(env):
 
 
 async def test_dimming_stops_at_minimum_and_never_switches_off(env):
-    await env.automation('telecommande_hue_dimmer.yaml', remote=REMOTE, light='light.plain', min_pct=5)
+    await env.automation('hue_dimmer_remote.yaml', remote=REMOTE, light='light.plain', min_pct=5)
     for _ in range(15):
         await env.press('down_press', settle=None)
     assert env.state('plain').state == 'on'
@@ -271,13 +271,13 @@ async def test_dimming_stops_at_minimum_and_never_switches_off(env):
 
 
 async def test_down_on_off_lamp_does_nothing(env):
-    await env.automation('telecommande_hue_dimmer.yaml', remote=REMOTE, light='light.stairs')
+    await env.automation('hue_dimmer_remote.yaml', remote=REMOTE, light='light.stairs')
     await env.press('down_press', settle=None)
     assert env.lamps['stairs'].calls == []
 
 
 async def test_other_remote_and_unknown_events_are_ignored(env):
-    await env.automation('telecommande_hue_dimmer.yaml', remote=REMOTE, light='light.plain')
+    await env.automation('hue_dimmer_remote.yaml', remote=REMOTE, light='light.plain')
     await env.press('on_press', device=OTHER, settle=None)
     await env.press('attribute_updated', args={'attribute_id': 0, 'value': False}, settle=None)
     await env.press('recall', args=[1, 0], settle=None)
@@ -285,7 +285,7 @@ async def test_other_remote_and_unknown_events_are_ignored(env):
 
 
 async def test_unavailable_lamp_receives_nothing(env):
-    await env.automation('telecommande_hue_dimmer.yaml', remote=REMOTE, light='light.plain')
+    await env.automation('hue_dimmer_remote.yaml', remote=REMOTE, light='light.plain')
     env.lamps['plain']._attr_available = False
     env.lamps['plain'].async_write_ha_state()
     await env.press('on_press', settle=None)
@@ -293,7 +293,7 @@ async def test_unavailable_lamp_receives_nothing(env):
 
 
 async def test_custom_action_receives_gesture(env):
-    await env.automation('telecommande_hue_dimmer.yaml', remote=REMOTE, light='light.plain',
+    await env.automation('hue_dimmer_remote.yaml', remote=REMOTE, light='light.plain',
                          hue_hold_action='custom',
                          hue_hold_custom=[{'action': 'input_boolean.turn_on', 'target': {'entity_id': 'input_boolean.flag'}},
                                           {'event': 'custom_seen', 'event_data': {'gesture': '{{ gesture }}'}}])
@@ -306,7 +306,7 @@ async def test_custom_action_receives_gesture(env):
 
 
 async def test_unknown_action_value_is_treated_as_none(env):
-    await env.automation('telecommande_hue_dimmer.yaml', remote=REMOTE, light='light.plain',
+    await env.automation('hue_dimmer_remote.yaml', remote=REMOTE, light='light.plain',
                          power_press_action='explode')
     await env.press('on_press', settle=None)
     assert env.lamps['plain'].calls == []
@@ -315,7 +315,7 @@ async def test_unknown_action_value_is_treated_as_none(env):
 # ---------------------------------------------------------------- IKEA 5 buttons
 
 async def test_ikea_5_buttons_center_and_steps(env):
-    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.color')
+    await env.automation('ikea_5_button_remote.yaml', remote=REMOTE, light='light.color')
     await env.press('toggle', settle=None)
     assert env.state('color').state == 'off'
     await env.press('step_with_on_off', params={'step_mode': 0}, settle=None)
@@ -332,14 +332,14 @@ async def test_ikea_5_buttons_center_and_steps(env):
 
 
 async def test_ikea_old_firmware_center_hold(env):
-    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.plain')
+    await env.automation('ikea_5_button_remote.yaml', remote=REMOTE, light='light.plain')
     await env.press('move_to_level_with_on_off', args=[254, 0], settle=None)
     assert env.pct('plain') == 100
 
 
 async def test_presets_follow_each_lamp_colour(env):
-    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.color')
-    # The lamp shows « Ambre chaud » (index 13): next is « Rose pâle », previous is « Pêche ».
+    await env.automation('ikea_5_button_remote.yaml', remote=REMOTE, light='light.color')
+    # The lamp shows « Warm amber » (index 13): next is « Pale pink », previous is « Peach ».
     await env.lamps['color'].async_turn_on(hs_color=(28.308, 76.471))
     await env.press('press', args=[256, 13, 0], params={'param1': 256, 'param2': 13, 'param3': 0}, settle=None)
     assert env.lamps['color'].calls[-1][1]['xy_color'] == pytest.approx(color_util.color_hs_to_xy(316.957, 18.039), abs=1e-3)
@@ -349,7 +349,7 @@ async def test_presets_follow_each_lamp_colour(env):
 
 
 async def test_preset_from_off_lamp_starts_at_first_and_wraps(env):
-    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.xy',
+    await env.automation('ikea_5_button_remote.yaml', remote=REMOTE, light='light.xy',
                          palette=['blue', 'lime'])
     await env.lamps['xy'].async_turn_off()
     await env.press('press', args=[256, 13, 0], settle=None)
@@ -361,7 +361,7 @@ async def test_preset_from_off_lamp_starts_at_first_and_wraps(env):
 
 
 async def test_hold_loop_is_bounded_and_stopped_by_release(env):
-    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.plain',
+    await env.automation('ikea_5_button_remote.yaml', remote=REMOTE, light='light.plain',
                          hold_interval=0.2, hold_step_pct=2, hold_limit=2)
     await env.press('move_with_on_off', params={'move_mode': 0}, settle=.5)
     # Noise from the same remote never interrupts the hold.
@@ -377,7 +377,7 @@ async def test_hold_loop_is_bounded_and_stopped_by_release(env):
 
 
 async def test_lost_release_ends_at_hold_limit(env):
-    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.plain',
+    await env.automation('ikea_5_button_remote.yaml', remote=REMOTE, light='light.plain',
                          hold_interval=0.2, hold_step_pct=1, hold_limit=2)
     await env.press('move', params={'move_mode': 1}, settle=2.6)
     calls = len(env.lamps['plain'].calls)
@@ -387,7 +387,7 @@ async def test_lost_release_ends_at_hold_limit(env):
 
 
 async def test_hold_stops_at_full_brightness(env):
-    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.plain',
+    await env.automation('ikea_5_button_remote.yaml', remote=REMOTE, light='light.plain',
                          hold_interval=0.2, hold_step_pct=30, hold_limit=10)
     await env.press('move_with_on_off', settle=1.5)
     assert env.pct('plain') == 100
@@ -396,7 +396,7 @@ async def test_hold_stops_at_full_brightness(env):
 
 
 async def test_lateral_hold_cycles_presets(env):
-    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.color',
+    await env.automation('ikea_5_button_remote.yaml', remote=REMOTE, light='light.color',
                          preset_hold_interval=0.2, hold_limit=2, palette=['blue', 'lime', 'yellow'])
     await env.lamps['color'].async_turn_on(hs_color=(247.559, 49.804))
     env.lamps['color'].calls.clear()
@@ -409,7 +409,7 @@ async def test_lateral_hold_cycles_presets(env):
 
 
 async def test_white_lamp_temperature_is_bounded_in_kelvin(env):
-    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.white',
+    await env.automation('ikea_5_button_remote.yaml', remote=REMOTE, light='light.white',
                          left_press_action='warmer', right_press_action='cooler', kelvin_step=500)
     await env.press('press', args=[256, 13, 0], settle=None)
     assert env.state('white').attributes['color_temp_kelvin'] == 3500
@@ -430,7 +430,7 @@ async def test_white_lamp_temperature_is_bounded_in_kelvin(env):
 # ---------------------------------------------------------------- settings and actions without a default use
 
 async def test_level_action_turns_on_at_the_on_level_with_the_fade(env):
-    await env.automation('telecommande_hue_dimmer.yaml', remote=REMOTE, light='light.plain',
+    await env.automation('hue_dimmer_remote.yaml', remote=REMOTE, light='light.plain',
                          power_press_action='level', on_level_pct=30, transition=0.5)
     await env.lamps['plain'].async_turn_off()
     env.lamps['plain'].calls.clear()
@@ -444,7 +444,7 @@ async def test_level_action_turns_on_at_the_on_level_with_the_fade(env):
 
 
 async def test_custom_brightness_step(env):
-    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.plain', step_pct=5)
+    await env.automation('ikea_5_button_remote.yaml', remote=REMOTE, light='light.plain', step_pct=5)
     assert env.pct('plain') == 50
     await env.press('step_with_on_off', args=[0, 43, 5], settle=None)
     assert env.pct('plain') == 55
@@ -453,7 +453,7 @@ async def test_custom_brightness_step(env):
 
 
 async def test_alternate_uses_custom_on_and_high_levels(env):
-    await env.automation('bouton_ewelink.yaml', remote=REMOTE, light='light.plain',
+    await env.automation('ewelink_button.yaml', remote=REMOTE, light='light.plain',
                          on_level_pct=20, high_level_pct=80)
     await env.lamps['plain'].async_turn_off()
     for expected in [20, 80, 20]:
@@ -464,7 +464,7 @@ async def test_alternate_uses_custom_on_and_high_levels(env):
 @pytest.mark.parametrize('hold, action, limit', [(3329, 'warmer_hold', 2202), (3328, 'cooler_hold', 4000)])
 async def test_continuous_white_change_is_bounded_and_stopped_by_release(env, hold, action, limit):
     side = 'left' if hold == 3329 else 'right'
-    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.white',
+    await env.automation('ikea_5_button_remote.yaml', remote=REMOTE, light='light.white',
                          **{f'{side}_hold_action': action}, kelvin_step=250, preset_hold_interval=0.2,
                          hold_limit=2)
     await env.press('hold', args=[hold, 0], params={'param1': hold, 'param2': 0}, settle=.5)
@@ -483,7 +483,7 @@ async def test_continuous_white_change_is_bounded_and_stopped_by_release(env, ho
 
 
 async def test_hold_without_smoothing_sends_steps_without_fade(env):
-    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.plain',
+    await env.automation('ikea_5_button_remote.yaml', remote=REMOTE, light='light.plain',
                          hold_interval=0.2, hold_step_pct=5, hold_limit=2, smooth_dimming=False)
     await env.press('move_with_on_off', params={'move_mode': 0}, settle=.5)
     await env.press('stop_with_on_off', settle=.3)
@@ -495,7 +495,7 @@ async def test_hold_without_smoothing_sends_steps_without_fade(env):
 # ---------------------------------------------------------------- IKEA on/off switch
 
 async def test_ikea_on_off_switch(env):
-    await env.automation('telecommande_ikea_marche_arret.yaml', remote=REMOTE, light='light.plain',
+    await env.automation('ikea_on_off_switch.yaml', remote=REMOTE, light='light.plain',
                          hold_interval=0.2, hold_limit=2)
     await env.press('off', cluster_id=6, endpoint_id=1, settle=None)
     assert env.state('plain').state == 'off'
@@ -513,7 +513,7 @@ async def test_ikea_on_off_switch(env):
 # ---------------------------------------------------------------- eWeLink button
 
 async def test_ewelink_single_and_double_click(env):
-    await env.automation('bouton_ewelink.yaml', remote=REMOTE, light='light.plain')
+    await env.automation('ewelink_button.yaml', remote=REMOTE, light='light.plain')
     await env.press('toggle', settle=None)
     assert env.state('plain').state == 'off'
     await env.press('toggle', settle=None)
@@ -528,7 +528,7 @@ async def test_ewelink_single_and_double_click(env):
 
 
 async def test_ewelink_state_reports_never_switch_the_garden(env):
-    await env.automation('bouton_ewelink.yaml', remote=REMOTE, light='light.plain')
+    await env.automation('ewelink_button.yaml', remote=REMOTE, light='light.plain')
     for value in [False, 1, True, 0]:
         await env.press('attribute_updated', args={'attribute_id': 0, 'attribute_name': 'on_off', 'value': value},
                         cluster_id=6, settle=None)
@@ -547,7 +547,7 @@ AQARA_RELEASE = dict(command='release', args={'value': 255}, cluster_id=18, endp
 
 
 async def test_aqara_single_press_toggles_and_double_press_needs_no_memory(env):
-    await env.automation('bouton_aqara.yaml', remote=REMOTE, light='light.plain',
+    await env.automation('aqara_button.yaml', remote=REMOTE, light='light.plain',
                          double_press_action='full')
     await env.press(**AQARA_SINGLE, settle=None)
     assert env.state('plain').state == 'off'
@@ -559,7 +559,7 @@ async def test_aqara_single_press_toggles_and_double_press_needs_no_memory(env):
 
 
 async def test_aqara_defaults_leave_double_press_and_hold_unused(env):
-    await env.automation('bouton_aqara.yaml', remote=REMOTE, light='light.plain')
+    await env.automation('aqara_button.yaml', remote=REMOTE, light='light.plain')
     await env.press(**AQARA_DOUBLE, settle=None)
     await env.press(**AQARA_HOLD, settle=.3)
     await env.press(**AQARA_RELEASE, settle=None)
@@ -568,7 +568,7 @@ async def test_aqara_defaults_leave_double_press_and_hold_unused(env):
 
 
 async def test_aqara_hold_runs_until_release(env):
-    await env.automation('bouton_aqara.yaml', remote=REMOTE, light='light.plain',
+    await env.automation('aqara_button.yaml', remote=REMOTE, light='light.plain',
                          button_hold_action='brighter_hold', hold_interval=0.2, hold_step_pct=2, hold_limit=2)
     await env.press(**AQARA_HOLD, settle=.5)
     running = len(env.lamps['plain'].calls)
@@ -581,7 +581,7 @@ async def test_aqara_hold_runs_until_release(env):
 
 
 async def test_aqara_lost_release_ends_at_hold_limit(env):
-    await env.automation('bouton_aqara.yaml', remote=REMOTE, light='light.plain',
+    await env.automation('aqara_button.yaml', remote=REMOTE, light='light.plain',
                          button_hold_action='dimmer_hold', hold_interval=0.2, hold_step_pct=1, hold_limit=1)
     await env.press(**AQARA_HOLD, settle=1.6)
     calls = len(env.lamps['plain'].calls)
@@ -591,7 +591,7 @@ async def test_aqara_lost_release_ends_at_hold_limit(env):
 
 
 async def test_aqara_unknown_values_and_other_devices_are_ignored(env):
-    await env.automation('bouton_aqara.yaml', remote=REMOTE, light='light.plain')
+    await env.automation('aqara_button.yaml', remote=REMOTE, light='light.plain')
     # A shake (other Aqara model), an attribute report and another device's press do nothing.
     await env.press('shake', args={'value': 18}, cluster_id=18, settle=None)
     await env.press('attribute_updated', args={'attribute_id': 85, 'value': 1}, cluster_id=18, settle=None)
@@ -602,7 +602,7 @@ async def test_aqara_unknown_values_and_other_devices_are_ignored(env):
 # ---------------------------------------------------------------- Philips Hue Tap Dial
 
 async def test_tap_dial_buttons_and_duplicate_scene_events(env):
-    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
+    await env.automation('hue_tap_dial_remote.yaml', remote=REMOTE, light_1='light.one',
                          light_2='light.two', light_3='light.three')
     await env.press('button_2_press', args={'button': 'button_2', 'press_type': 'press'}, cluster_id=64512, settle=None)
     await env.press('recall', args=[40057, 0], params={'group_id': 40057, 'scene_id': 0}, cluster_id=5, settle=None)
@@ -615,7 +615,7 @@ async def test_tap_dial_buttons_and_duplicate_scene_events(env):
 
 
 async def test_tap_dial_rotation_follows_last_lamp_switched_on(env):
-    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
+    await env.automation('hue_tap_dial_remote.yaml', remote=REMOTE, light_1='light.one',
                          light_2='light.two', light_3='light.three', dial_scale=1)
     # Each gesture is fully processed before the next one (a following event would restart the
     # run), then followed by a real 0.15 s gap: the 100 ms duplicate filter is time-based.
@@ -638,7 +638,7 @@ async def test_tap_dial_rotation_follows_last_lamp_switched_on(env):
 
 
 async def test_tap_dial_with_all_lamps_off_wakes_last_used(env):
-    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
+    await env.automation('hue_tap_dial_remote.yaml', remote=REMOTE, light_1='light.one',
                          light_2='light.two')
     await env.press('button_2_press', settle=None, spacing=.15)
     await env.press('button_2_press', settle=None, spacing=.15)
@@ -649,7 +649,7 @@ async def test_tap_dial_with_all_lamps_off_wakes_last_used(env):
 # ---------------------------------------------------------------- Automatic switch-off
 
 async def test_auto_off_with_timer(env):
-    await env.automation('extinction_automatique.yaml', entities=['light.stairs'], timer='timer.corridor')
+    await env.automation('auto_off.yaml', entities=['light.stairs'], timer='timer.corridor')
     await env.lamps['stairs'].async_turn_on()
     await env.hass.async_block_till_done()
     timer = env.hass.states.get('timer.corridor')
@@ -660,7 +660,7 @@ async def test_auto_off_with_timer(env):
 
 
 async def test_auto_off_manual_off_cancels_timer(env):
-    await env.automation('extinction_automatique.yaml', entities=['light.stairs'], timer='timer.corridor')
+    await env.automation('auto_off.yaml', entities=['light.stairs'], timer='timer.corridor')
     await env.lamps['stairs'].async_turn_on()
     await env.hass.async_block_till_done()
     await env.lamps['stairs'].async_turn_off()
@@ -669,7 +669,7 @@ async def test_auto_off_manual_off_cancels_timer(env):
 
 
 async def test_auto_off_ignores_other_timers(env):
-    await env.automation('extinction_automatique.yaml', entities=['light.stairs'], timer='timer.corridor')
+    await env.automation('auto_off.yaml', entities=['light.stairs'], timer='timer.corridor')
     await env.lamps['stairs'].async_turn_on()
     await env.hass.async_block_till_done()
     env.hass.bus.async_fire('timer.finished', {'entity_id': 'timer.other'})
@@ -678,7 +678,7 @@ async def test_auto_off_ignores_other_timers(env):
 
 
 async def test_auto_off_without_timer_and_partial_off(env):
-    await env.automation('extinction_automatique.yaml', entities=['light.stairs', 'light.one'],
+    await env.automation('auto_off.yaml', entities=['light.stairs', 'light.one'],
                          duration={'hours': 0, 'minutes': 0, 'seconds': 1})
     await env.lamps['stairs'].async_turn_on()
     await env.lamps['one'].async_turn_on()
@@ -690,7 +690,7 @@ async def test_auto_off_without_timer_and_partial_off(env):
 
 
 async def test_auto_off_without_timer_manual_off_cancels(env):
-    await env.automation('extinction_automatique.yaml', entities=['light.stairs'],
+    await env.automation('auto_off.yaml', entities=['light.stairs'],
                          duration={'hours': 0, 'minutes': 0, 'seconds': 1})
     await env.lamps['stairs'].async_turn_on()
     await asyncio.sleep(.2)
@@ -706,7 +706,7 @@ async def test_auto_off_without_timer_manual_off_cancels(env):
 async def test_auto_off_start_rearms_forgotten_light(tmp_path):
     env = await Env().setup(tmp_path, start=False)
     try:
-        await env.automation('extinction_automatique.yaml', entities=['light.stairs'], timer='timer.corridor')
+        await env.automation('auto_off.yaml', entities=['light.stairs'], timer='timer.corridor')
         env.lamps['stairs']._attr_is_on = True
         env.lamps['stairs'].async_write_ha_state()
         await env.hass.async_start()
@@ -742,7 +742,7 @@ class MoveMode(ZigpyEnum):
 
 async def test_tap_dial_reads_zigpy_enum_params(env):
     """Real Hue Tap Dial event: step_mode is an enum and options are None."""
-    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
+    await env.automation('hue_tap_dial_remote.yaml', remote=REMOTE, light_1='light.one',
                          light_2='light.two')
     await env.press('button_2_press', settle=None, spacing=.15)
     before = env.pct('two')
@@ -755,7 +755,7 @@ async def test_tap_dial_reads_zigpy_enum_params(env):
 
 
 async def test_ikea_reads_zigpy_enum_params(env):
-    await env.automation('telecommande_ikea_5_boutons.yaml', remote=REMOTE, light='light.color',
+    await env.automation('ikea_5_button_remote.yaml', remote=REMOTE, light='light.color',
                          palette=['blue', 'lime'])
     await env.press('press', args=[256, 13, 0],
                     params={'param1': 256, 'param2': 13, 'param3': 0, 'extra': MoveMode.Down}, settle=None)
@@ -798,7 +798,7 @@ async def test_event_fields_render_as_plain_literals(env, name):
 async def test_tap_dial_drops_radio_duplicates(env):
     """Recorded on 15 November: button 2 received twice, 50 ms apart; then two rotation
     reports of opposite directions 5 ms apart."""
-    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
+    await env.automation('hue_tap_dial_remote.yaml', remote=REMOTE, light_1='light.one',
                          light_2='light.two')
     await env.press('button_2_press', settle=.05)
     await env.press('button_2_press', settle=None, spacing=.15)
@@ -812,7 +812,7 @@ async def test_tap_dial_drops_radio_duplicates(env):
 
 async def test_dial_amplitude_is_converted_to_percent(env):
     """Recorded range of the dial: 8 (slow notch) to 226 (fast spin)."""
-    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one')
+    await env.automation('hue_tap_dial_remote.yaml', remote=REMOTE, light_1='light.one')
     await env.lamps['one'].async_turn_on(brightness=3)
     await asyncio.sleep(.3)
     await env.press('step_with_on_off', params={'step_mode': StepMode.Up, 'step_size': 8}, settle=None, spacing=.15)
@@ -841,7 +841,7 @@ def follow(env, member, group):
 async def test_tap_dial_prefers_the_member_over_a_following_group(env):
     """Enzo's remote: button 2 drives a group, button 3 one of its members. Switching the
     member on switches the group state on just after; the dial must stay on the member."""
-    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
+    await env.automation('hue_tap_dial_remote.yaml', remote=REMOTE, light_1='light.one',
                          light_2='light.two', light_3='light.three')
     follow(env, 'three', 'two')
     await env.press('button_3_press', settle=None, spacing=.15)
@@ -857,7 +857,7 @@ async def test_tap_dial_prefers_the_member_over_a_following_group(env):
 
 
 async def test_tap_dial_prefers_the_group_when_its_button_was_pressed(env):
-    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
+    await env.automation('hue_tap_dial_remote.yaml', remote=REMOTE, light_1='light.one',
                          light_2='light.two', light_3='light.three')
     follow(env, 'two', 'three')
     await env.press('button_2_press', settle=None, spacing=.15)
@@ -867,7 +867,7 @@ async def test_tap_dial_prefers_the_group_when_its_button_was_pressed(env):
 
 
 async def test_tap_dial_lamp_switched_on_later_elsewhere_comes_first(env):
-    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
+    await env.automation('hue_tap_dial_remote.yaml', remote=REMOTE, light_1='light.one',
                          light_2='light.two')
     await env.press('button_1_press', settle=None, spacing=.15)
     # Lamp two switched on from the app, more than 2 s later.
@@ -879,7 +879,7 @@ async def test_tap_dial_lamp_switched_on_later_elsewhere_comes_first(env):
 
 
 async def test_tap_dial_never_chooses_an_unavailable_lamp(env):
-    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one',
+    await env.automation('hue_tap_dial_remote.yaml', remote=REMOTE, light_1='light.one',
                          light_2='light.two')
     await env.press('button_1_press', settle=None, spacing=.15)
     await env.press('button_1_press', settle=None, spacing=.15)
@@ -892,7 +892,7 @@ async def test_tap_dial_never_chooses_an_unavailable_lamp(env):
 
 
 async def test_tap_dial_ignores_unknown_direction(env):
-    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one')
+    await env.automation('hue_tap_dial_remote.yaml', remote=REMOTE, light_1='light.one')
     await env.lamps['one'].async_turn_on(brightness=128)
     for mode in [None, 7, 'sideways']:
         await env.press('step_with_on_off', params={'step_mode': mode, 'step_size': 51}, settle=None, spacing=.15)
@@ -902,7 +902,7 @@ async def test_tap_dial_ignores_unknown_direction(env):
 
 async def test_debounce_without_memory_tolerates_late_bookkeeping(env):
     """The second report fired before the first run was recorded (Home Assistant busy)."""
-    await env.automation('telecommande_hue_tap_dial.yaml', remote=REMOTE, light_1='light.one')
+    await env.automation('hue_tap_dial_remote.yaml', remote=REMOTE, light_1='light.one')
     await env.lamps['one'].async_turn_on(brightness=round(20 * 2.55))
     await asyncio.sleep(.3)
     # Both reports were radioed 50 ms ago, 5 ms apart; the first run is recorded only now.
@@ -919,7 +919,7 @@ async def test_logging_sets_its_own_level_and_never_blocks_the_command(env, capl
     """INFO is hidden by default: the automation sets the level of its own logger."""
     logger = logging.getLogger('lighting_remote')
     logger.setLevel(logging.WARNING)
-    await env.automation('telecommande_hue_dimmer.yaml', remote=REMOTE, light='light.plain', logging=True)
+    await env.automation('hue_dimmer_remote.yaml', remote=REMOTE, light='light.plain', logging=True)
     with caplog.at_level(logging.NOTSET):
         logger.setLevel(logging.WARNING)
         await env.press('on_press', settle=.6)

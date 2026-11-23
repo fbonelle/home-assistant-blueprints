@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
-"""Native Home Assistant 2026.10.4 tests of the self-contained integration watchdog.
+"""Native Home Assistant tests of the self-contained integration watchdog.
 
 The blueprint is expanded by Home Assistant itself and run either as a native Script
 (with an injected clock) or as real automation entities. Only the integration reload
@@ -32,7 +32,7 @@ from homeassistant.util.yaml import load_yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLES = ROOT / 'examples' / 'integration_watchdog'
-BLUEPRINT = ROOT / 'blueprints' / 'automation' / 'integration_watchdog' / 'surveillance_integrations.yaml'
+BLUEPRINT = ROOT / 'blueprints' / 'automation' / 'integration_watchdog' / 'integration_watchdog.yaml'
 
 
 class Env:
@@ -64,7 +64,7 @@ class Env:
         self.modes = {}
         self.gates = {}
         self.monitors = []
-        self.presets = load_yaml(str(EXAMPLES / 'automatisations_netatmo_overkiz.yaml'))
+        self.presets = load_yaml(str(EXAMPLES / 'netatmo_overkiz_automations.yaml'))
         self.rows = [dict(a['use_blueprint']['input']) for a in self.presets]
         self.entries = {}
         registry = er.async_get(self.hass)
@@ -78,7 +78,7 @@ class Env:
                 self.set(entity, '20')
         self.set('sensor.uptime', datetime.fromtimestamp(self.now - 10000, UTC).isoformat())
         self.bp = Blueprint(load_yaml(str(BLUEPRINT)), expected_domain='automation', schema=AUTOMATION_BLUEPRINT_SCHEMA)
-        helpers = load_yaml(str(EXAMPLES / 'memoires_surveillance_integrations.yaml'))
+        helpers = load_yaml(str(EXAMPLES / 'watchdog_memories.yaml'))
         TEXT_SCHEMA(helpers)
         assert await async_setup_component(self.hass, 'input_text', helpers)
         assert await async_setup_component(self.hass, 'persistent_notification', {})
@@ -132,7 +132,7 @@ class Env:
                 self.set(entity, '20')
 
     async def add_automations(self, path):
-        target = path / 'blueprints' / 'automation' / 'local' / 'surveillance_integrations.yaml'
+        target = path / 'blueprints' / 'automation' / 'local' / 'integration_watchdog.yaml'
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(BLUEPRINT.read_text())
         if 'automation' in self.hass.config.components:
@@ -282,7 +282,7 @@ async def add_supervision(env, slug, domain='overkiz'):
     row = {'name': slug, 'entry_id': eid, 'entities': [entity], 'memory': helper.entity_id,
            'uptime_entity': 'sensor.uptime', 'max_age': 0, 'stagger_seconds': 0}
     env.rows.append(row)
-    env.presets.append({'id': slug, 'alias': slug, 'use_blueprint': {'path': 'local/surveillance_integrations.yaml', 'input': row}})
+    env.presets.append({'id': slug, 'alias': slug, 'use_blueprint': {'path': 'local/integration_watchdog.yaml', 'input': row}})
     return len(env.rows) - 1
 
 
@@ -298,14 +298,14 @@ async def test_blueprint_is_self_contained(env):
     data = env.bp.data
     assert data['mode'] == 'queued' and data['max_exceeded'] == 'silent'
     assert [t['id'] for t in data['triggers']] == ['scan', 'availability', 'start']
-    form = data['blueprint']['input']['surveillance']['input']
+    form = data['blueprint']['input']['monitoring']['input']
     assert all(k in form for k in ['entry_id', 'entities', 'memory'])
     assert all(k not in form for k in ['worker', 'integrations'])
 
 
 @pytest.mark.asyncio
 async def test_fourth_unlisted_integration_needs_only_helper_and_form_inputs(env):
-    index = await add_supervision(env, 'surveillance_quatrieme', 'tuya')
+    index = await add_supervision(env, 'watchdog_fourth', 'tuya')
     env.bad(index)
     data = await env.tick(index)
     assert env.calls == [env.rows[index]['entry_id']] and data['i'] == 1
@@ -600,8 +600,8 @@ async def test_stuck_reload_alerts_after_delay_without_cancelling_it(env):
         assert notice not in env.notices()
         env.now += 61
         await clock.advance(61)
-        assert notice in env.notices() and 'ne s’est' not in str(env.notices()[notice])
-        assert '60 secondes' in str(env.notices()[notice])
+        assert notice in env.notices() and 'did not' not in str(env.notices()[notice])
+        assert '60 seconds' in str(env.notices()[notice])
         # The reload is not cancelled: its end is still recorded and verified.
         assert not task.done() and env.record()['f'] == 2
         env.gates[eid].set()
@@ -712,7 +712,7 @@ async def test_exclusion_preserves_closing_and_budget(env):
 @pytest.mark.asyncio
 async def test_fifty_one_simultaneous_requests_admit_fifty_and_defer_one(env):
     for number in range(48):
-        await add_supervision(env, 'surveillance_stress_' + str(number))
+        await add_supervision(env, 'watchdog_stress_' + str(number))
     for index, row in enumerate(env.rows):
         env.bad(index)
         env.modes[row['entry_id']] = 'hold'
@@ -736,7 +736,7 @@ async def test_full_pool_defers_and_stale_reservations_are_ignored(env):
     running = {'v': 3, 'o': 'w_other', 'a': [], 'i': 1, 'n': 0, 'p': env.now * 1000000, 'f': 2, 'h': 0,
                't': env.now, 's': 'running', 'k': ''}
     for number in range(50):
-        helper = add_helper(env, 'surveillance_busy_' + str(number))
+        helper = add_helper(env, 'watchdog_busy_' + str(number))
         await env.hass.data[DATA_INSTANCES]['input_text'].async_add_entities([helper])
         await env.write_record(0, dict(running, o='w_busy' + str(number), e='e_busy' + str(number)), helper.entity_id)
     index = 1
@@ -752,7 +752,7 @@ async def test_full_pool_defers_and_stale_reservations_are_ignored(env):
 @pytest.mark.asyncio
 async def test_duplicate_supervisor_is_detected_and_never_admitted_twice(env):
     from homeassistant.helpers.entity_component import DATA_INSTANCES
-    helper = add_helper(env, 'surveillance_copie')
+    helper = add_helper(env, 'watchdog_copy')
     await env.hass.data[DATA_INSTANCES]['input_text'].async_add_entities([helper])
     env.bad()
     env.modes[env.rows[0]['entry_id']] = 'hold'

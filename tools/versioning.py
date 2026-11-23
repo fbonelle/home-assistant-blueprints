@@ -5,7 +5,7 @@ Every family carries the full version of the Home Assistant release it was last 
 against (the version pinned in requirements-test.txt), followed by a counter of the
 project's own changes made since that validation: 2026.11.2.0, then 2026.11.2.1, … When a
 newer public Home Assistant release passes the whole test suite, every family moves to
-<new version>.0 (tools/ha_release.py, run by the « Suivi des versions de Home Assistant »
+<new version>.0 (tools/ha_release.py, run by the « Follow Home Assistant releases »
 workflow).
 
 The version appears in src/<family>/VERSION (read by the generators), in the README tables
@@ -136,7 +136,7 @@ if __name__ == '__main__':
     elif len(sys.argv) == 2 and sys.argv[1] == 'min':
         print(MIN_HA)
     elif len(sys.argv) == 2 and sys.argv[1] == 'show':
-        print(f'Home Assistant testé : {tested_ha()} ; minimum : {MIN_HA}')
+        print(f'Tested Home Assistant: {tested_ha()}; minimum: {MIN_HA}')
         for name in FAMILIES:
             print(f'{name} : {read(name)}')
     else:

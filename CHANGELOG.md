@@ -6,7 +6,7 @@
 
 Première version publiée, validée avec Home Assistant 2026.11.2.
 
-- Surveillance et relance des intégrations : 2026.11.2.0.
-- Surveillance des piles et batteries : 2026.11.2.0.
-- Système de notifications : 2026.11.2.0.
-- Télécommandes d’éclairage : 2026.11.2.0.
+- Battery watch : 2026.11.2.0.
+- Integration watchdog : 2026.11.2.0.
+- Lighting remotes and automatic switch-off : 2026.11.2.0.
+- Notification system : 2026.11.2.0.

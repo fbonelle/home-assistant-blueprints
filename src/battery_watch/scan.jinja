@@ -1,15 +1,15 @@
-{#- Analyse des piles et batteries, comparée à la liste de tâches mémoire.
-    Entrée : listed, les éléments de la liste (todo.get_items) ; seuls ceux dont la
-    description commence par « battery_watch: » appartiennent à cette automatisation.
-    Résultat : dict(items, acknowledged, new, renames, removals).
-      items : appareils en alerte non cochés, dict(e=entité, n=nom, r=raison, v=niveau, h=heures).
-      acknowledged : appareils en alerte dont l’élément a été coché (pris en compte).
-      new : appareils en alerte sans élément : à ajouter et à signaler tout de suite.
-      renames : dict(uid, summary) des éléments dont le libellé doit être actualisé.
-      removals : uid des éléments à retirer (appareil revenu à un état sûr, exclu ou disparu).
-    Un élément est conservé tant que l’appareil n’est pas revenu à un état sûr (niveau au
-    moins égal au seuil plus la marge, alerte binaire à « off ») : un appareil muet ou
-    inconnu n’est donc jamais signalé deux fois. -#}
+{#- Battery scan, compared with the to-do list used as memory.
+    Input: listed, the items of the list (todo.get_items); only those whose description
+    starts with « battery_watch: » belong to this automation.
+    Result: dict(items, acknowledged, new, renames, removals).
+      items: unchecked devices in alert, dict(e=entity, n=name, r=reason, v=level, h=hours).
+      acknowledged: devices in alert whose item has been checked (being handled).
+      new: devices in alert without an item: to add and to report at once.
+      renames: dict(uid, summary) of the items whose label must be refreshed.
+      removals: uid of the items to remove (device back to a safe state, excluded or gone).
+    An item is kept until the device is back to a safe state (level at least equal to the
+    threshold plus the margin, binary alert « off »): a silent or unknown device is
+    therefore never reported twice. -#}
 {%- set prefix = 'battery_watch:' -%}
 {%- set mine = namespace(by_entity={}, orphans=[]) -%}
 {%- for i in listed if (i.description | default('', true)).startswith(prefix) -%}
@@ -41,7 +41,7 @@
       {%- set alert = s.state == 'on' -%}
       {%- set safe = s.state == 'off' -%}
       {%- set item = dict(e=s.entity_id, n=s.name, r='alert', v=none, h=none) -%}
-      {%- set detail = 'alerte pile faible' -%}
+      {%- set detail = 'low battery alert' -%}
     {%- else -%}
       {%- set number = s.state | is_number -%}
       {%- set value = s.state | float(0) -%}
@@ -52,7 +52,7 @@
       {%- set hours = ((now() - s.last_changed).total_seconds() // 3600) | int -%}
       {%- set item = dict(e=s.entity_id, n=s.name, r=('level' if low else 'silent'),
            v=(value | round(0) | int if low else none), h=(hours if silent and not low else none)) -%}
-      {%- set detail = (item.v ~ ' %') if low else ('muet depuis ' ~ hours ~ ' h') -%}
+      {%- set detail = (item.v ~ ' %') if low else ('silent for ' ~ hours ~ ' h') -%}
     {%- endif -%}
     {%- set existing = mine.by_entity.get(s.entity_id) -%}
     {%- if alert -%}

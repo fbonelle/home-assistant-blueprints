@@ -1,0 +1,16 @@
+input_text:
+  watchdog_netatmo:
+    name: Watchdog — Netatmo memory
+    max: 255
+    mode: text
+    icon: mdi:clipboard-pulse
+  watchdog_tahoma:
+    name: Watchdog — Overkiz — TaHoma memory
+    max: 255
+    mode: text
+    icon: mdi:clipboard-pulse
+  watchdog_cozytouch:
+    name: Watchdog — Overkiz — Cozytouch memory
+    max: 255
+    mode: text
+    icon: mdi:clipboard-pulse
