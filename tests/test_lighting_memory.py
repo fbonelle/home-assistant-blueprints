@@ -254,9 +254,12 @@ async def test_unavailable_lamp_ends_the_hold(env):
 async def test_colour_change_during_a_fade_keeps_the_reached_level(env):
     await env.automation(STYRBAR, remote=REMOTE, light='light.color', memory='input_text.memory', hold_interval=0.4)
     await env.press('move_with_on_off', settle=.2)
+    before = len(env.lamps['color'].calls)
     await env.press('press', **RIGHT, settle=.1)
-    colour = env.lamps['color'].calls[-1][1]
-    assert 'xy_color' in colour and 52 < colour['brightness'] / 2.55 < 63
+    # On a slow runner, a hold step already sent when the press arrives can be recorded
+    # after the colour command: the colour command is looked up among the new calls.
+    [colour] = [data for _, data in env.lamps['color'].calls[before:] if 'xy_color' in data]
+    assert 52 < colour['brightness'] / 2.55 < 63
 
 
 async def test_lost_lateral_release_stops_at_the_limit(env):
