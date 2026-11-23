@@ -1,4 +1,4 @@
-# Integration monitoring and reload — 2026.11.2.0
+# Integration watchdog — 2026.11.2.0
 
 [Français](integration_watchdog.md) · **English** · [Home](../README.en.md)
 
@@ -28,16 +28,16 @@ The automation fills this helper. It keeps the retry count and reload state acro
 
 ### Fill in the form
 
-Create an automation using **Surveillance et relance des intégrations — 2026.11.2.0**, then select:
+Create an automation using **Integration watchdog — 2026.11.2.0**, then select, in the **Integration and entities to watch** section:
 
-| French field label | What to select |
+| Field | What to select |
 |---|---|
-| Configuration de l’intégration à surveiller | The account or gateway to monitor. |
-| Entités à surveiller | Active entities from that integration, such as a temperature sensor or thermostat. |
-| Assistant Texte pour conserver l’historique | The Text helper you just created. |
-| Capteur Uptime de Home Assistant | The sensor provided by the Uptime integration. |
+| Configuration of the integration to watch | The account or gateway to monitor. |
+| Entities to watch | Active entities from that integration, such as a temperature sensor or thermostat. |
+| Text helper that keeps the history | The Text helper you just created. |
+| Home Assistant Uptime sensor | The sensor provided by the Uptime integration. |
 
-Name the automation, adjust settings if needed and save. You can start with **Observer sans relancer l’intégration** (observe without reloading) and check the logs.
+Give the watchdog a name (**Name in notifications**), adjust settings if needed and save. You can start with **Observe without reloading the integration** and check the logs.
 
 Create one monitoring automation per integration configuration. Separate accounts or gateways of the same integration need separate monitoring: TaHoma and Cozytouch, for example, are two separate Overkiz configurations.
 
@@ -53,30 +53,30 @@ The [Netatmo, TaHoma and Cozytouch examples](../examples/integration_watchdog/) 
 
 | Setting | Default |
 |---|---|
-| Check interval | Every minute |
-| Minimum outage duration before a retry | 5 minutes |
-| Wait after Home Assistant starts | 10 minutes |
-| Maximum retries for the same outage | 3 |
-| Maximum retries in the last 24 hours | 6 |
-| Time allowed to recover after a reload | 10 minutes |
-| Normal operation required before confirming recovery | 3 minutes |
-| Normal operation required before resetting the outage retry count | 30 minutes |
-| Wait between retries | From 5 minutes to 1 hour, depending on previous failures |
-| Alert if a reload has not finished | After 3 minutes |
+| Check frequency | Every minute |
+| Minimum failure duration before a reload (seconds) | 5 minutes |
+| Wait after Home Assistant start-up (seconds) | 10 minutes |
+| Maximum number of attempts for one failure | 3 |
+| Maximum number of attempts over the last 24 hours | 6 |
+| Time given to the integration to recover after a reload (seconds) | 10 minutes |
+| Normal operation time before confirmation (seconds) | 3 minutes |
+| Normal operation time before the attempts are reset (seconds) | 30 minutes |
+| Wait before a new attempt (seconds) · Maximum wait between two attempts (seconds) | From 5 minutes to 1 hour, depending on previous failures |
+| Delay before an alert when a reload does not finish (seconds) | 3 minutes |
 
 Delays are evaluated during checks, so an action may wait until the next check. Resetting the outage retry count does not reset the limit for the last 24 hours.
 
-**Entities in error.** You can wait until all selected entities are in error, or act when at least one has been in error long enough. `unavailable` means the entity cannot be reached. `unknown` means Home Assistant does not know its value: it triggers a retry only when the corresponding option is enabled, and never confirms recovery.
+**Entities in error.** With **When should the integration be reloaded?**, you can wait until all selected entities are in error (*When every entity is failing*), or act when at least one has been in error long enough (*When at least one entity is failing*). `unavailable` means the entity cannot be reached. `unknown` means Home Assistant does not know its value: it triggers a retry only when **Count the « unknown » state as a failure** is enabled, and never confirms recovery.
 
-**Missing new data.** This check is off by default: its delay is **0**. Enable it for measurements sent regularly. Keep it at 0 for stationary covers or thermostats with infrequent changes, unless the integration provides a reliable measurement timestamp. Without that timestamp, the check measures reports received by Home Assistant rather than the actual age of the provider’s data.
+**Missing new data.** This check is off by default: its delay, **Maximum delay without new data (seconds)**, is **0**. Enable it for measurements sent regularly. Keep it at 0 for stationary covers or thermostats with infrequent changes, unless the integration provides a reliable measurement timestamp (**Entity giving the date of the last measurement (optional)**). Without that timestamp, the check measures reports received by Home Assistant rather than the actual age of the provider’s data.
 
 **Recovery.** All monitored entities must work for the confirmation period, even when one entity in error is enough to trigger a retry. A brief improvement does not reset the retry count.
 
 ## Notifications and logs
 
-By default, Home Assistant displays a notification when intervention is required and removes it after confirmed recovery. You can replace these actions with your preferred notifications in the form.
+By default, Home Assistant displays a notification when intervention is required and removes it after confirmed recovery. You can replace these actions with your preferred notifications in the **Notifications** section of the form (**Actions when an intervention is needed**, **Actions after recovery**).
 
-Useful events are written to the `integration_watchdog` logger. The monitoring sets its level itself (info, or debug with detailed logging): no configuration is needed. Detailed logging adds routine checks and can help diagnose a problem. Alerts are sent before logging, so a logging failure cannot block them.
+Useful events are written to the `integration_watchdog` logger. The monitoring sets its level itself (info, or debug with **Enable detailed logs**): no configuration is needed. Detailed logging adds routine checks and can help diagnose a problem. Alerts are sent before logging, so a logging failure cannot block them.
 
 Exclusions, observation mode and additional conditions prevent new retries. They do not cancel a reload already in progress.
 

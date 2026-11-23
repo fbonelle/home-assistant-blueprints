@@ -41,11 +41,12 @@ MONTHS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', '
              'octobre', 'novembre', 'décembre']
 MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September',
              'October', 'November', 'December']
+# Family names in the changelog, the same in both languages, listed in alphabetical order.
 LABELS = {
-    'integration_watchdog': ('Surveillance et relance des intégrations', 'Integration monitoring and reload'),
-    'battery_watch': ('Surveillance des piles et batteries', 'Battery monitoring'),
-    'notification_system': ('Système de notifications', 'Notification system'),
-    'lighting': ('Télécommandes d’éclairage', 'Lighting remotes'),
+    'battery_watch': 'Battery watch',
+    'integration_watchdog': 'Integration watchdog',
+    'lighting': 'Lighting remotes and automatic switch-off',
+    'notification_system': 'Notification system',
 }
 assert set(LABELS) == set(versioning.FAMILIES)
 # Integrations with requirements that the tests load (local_todo: memory of the battery watch).
@@ -98,9 +99,10 @@ def changelog_entry(release, versions, today):
           f'- Tous les tests réussissent avec Home Assistant {release} : nouvelles versions des blueprints.']
     en = [f'## Home Assistant {release} — {en_date}', '',
           f'- The whole test suite passes with Home Assistant {release}: new blueprint versions.']
-    for family, (old, new) in versions.items():
-        fr.append(f'- {LABELS[family][0]} : {new} (précédemment {old}).')
-        en.append(f'- {LABELS[family][1]}: {new} (previously {old}).')
+    for family in sorted(versions, key=lambda f: LABELS[f].casefold()):
+        old, new = versions[family]
+        fr.append(f'- {LABELS[family]} : {new} (précédemment {old}).')
+        en.append(f'- {LABELS[family]}: {new} (previously {old}).')
     for name, lines in [('CHANGELOG.md', fr), ('CHANGELOG.en.md', en)]:
         path = ROOT / name
         text = path.read_text()

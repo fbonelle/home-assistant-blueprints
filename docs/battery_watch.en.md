@@ -1,4 +1,4 @@
-# Battery monitoring
+# Battery watch
 
 [Français](battery_watch.md) · **English** · [Home](../README.en.md)
 
@@ -19,12 +19,12 @@ The [automation example](../examples/battery_watch/automations.yaml) only uses f
 | Situation | Message |
 |---|---|
 | Battery level strictly below the threshold (20 % by default) | `• Living room remote — 18 %` |
-| Device unavailable for longer than the configured delay (6 hours by default) | `• Smoke detector — muet depuis 7 h` |
-| “Battery low” alert raised by the device (battery binary sensor `on`) | `• Leak sensor — alerte pile faible` |
+| Device unavailable for longer than the configured delay (6 hours by default) | `• Smoke detector — silent for 7 h` |
+| “Battery low” alert raised by the device (battery binary sensor `on`) | `• Leak sensor — low battery alert` |
 
 An empty battery often makes the device silent instead of reporting a low level, which is why a long unavailability is reported. The delay ignores short outages of a gateway or cloud service, which make all its devices unavailable at the same time. The `unknown` state, transient at startup, is ignored. Setting the delay to 0 disables this rule.
 
-Only entities of the **battery** device class are examined: sensors (`sensor`) and, when the option is enabled, binary sensors (`binary_sensor`). Messages are written in French.
+Only entities of the **battery** device class are examined: sensors (`sensor`) and, when the option is enabled, binary sensors (`binary_sensor`).
 
 ## Devices excluded by default
 
@@ -40,7 +40,7 @@ The integration is read from the configuration entry each entity belongs to. An 
 The check runs every 5 minutes by default. Each device that **enters** the list of batteries to check triggers the **Immediate alert actions**, once, and becomes an item of the to-do list: `Living room remote — 18 %`. The list acts as memory, including across restarts, and has no size limit:
 
 - a battery that keeps dropping (18 %, 15 %, 9 %…) is not reported again; the item label is simply updated;
-- a reported device is only considered fixed above the **threshold plus the recovery margin** (5 points by default), or when its binary alert returns to `off`; its item is then removed automatically. A battery oscillating around the threshold therefore does not produce new alerts;
+- a reported device is only considered fixed above the **Low battery threshold** plus the **Recovery margin** (5 points by default), or when its binary alert returns to `off`; its item is then removed automatically. A battery oscillating around the threshold therefore does not produce new alerts;
 - a reported device that becomes silent or unknown, for example during a restart, stays in the list and is not reported a second time;
 - a battery that was replaced and later becomes low again is reported again.
 
@@ -56,13 +56,13 @@ At the selected time and days, the **Summary actions** receive the full list of 
 
 A Home Assistant persistent notification, specific to this automation, is updated whenever the list changes and removed when nothing needs attention. It can be disabled.
 
-**Additional conditions** (for example: someone is home) apply to the alerts and the summary. The memory and the persistent notification stay up to date even when these conditions fail; a device detected meanwhile is added to the list and not reported a second time.
+**Extra conditions for sending the alerts and the summary** (for example: someone is home) apply to the alerts and the summary. The memory and the persistent notification stay up to date even when these conditions fail; a device detected meanwhile is added to the list and not reported a second time.
 
 ## Variables available in the actions
 
 | Variable | Content |
 |---|---|
-| `battery_title` | Ready-to-use title: `🔋 Pile ou batterie à remplacer (2)` or `Piles et batteries à vérifier (3)`. |
+| `battery_title` | Ready-to-use title: `🔋 Battery to replace (2)` or `Batteries to check (3)`. |
 | `battery_message` | One line per device, sorted by name: new devices for the alert, all devices for the summary. |
 | `battery_new` | List of new devices. |
 | `battery_all` | List of devices to check, excluding checked items. |

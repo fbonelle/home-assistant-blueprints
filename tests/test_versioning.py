@@ -102,7 +102,10 @@ def test_apply_moves_every_family_to_the_new_release(copy):
     # The new entry comes first, right after the title and the language links.
     assert fr.split('\n## ')[1].startswith(f'Home Assistant {release} — 3 décembre 2026\n')
     assert en.split('\n## ')[1].startswith(f'Home Assistant {release} — 3 December 2026\n')
-    assert f'Télécommandes d’éclairage : {release}.0 (précédemment {before["lighting"]}).' in fr
+    assert f'Lighting remotes and automatic switch-off : {release}.0 (précédemment {before["lighting"]}).' in fr
+    # Families are listed in alphabetical order of their names.
+    assert fr.index('- Battery watch :') < fr.index('- Integration watchdog :') < fr.index('- Lighting remotes') \
+        < fr.index('- Notification system :')
 
 
 def test_apply_refuses_an_older_release_or_a_prerelease(copy):
