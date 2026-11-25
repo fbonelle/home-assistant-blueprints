@@ -127,7 +127,7 @@ Une configuration incohérente (minimum au-dessus du maximum, palette inconnue, 
 | Automatisation Aqara sur le déclencheur d’appareil « appui simple » | Valeurs par défaut du blueprint Aqara ; reprendre le fondu de l’ancienne automatisation dans *Brightness transition*. |
 | Automatisation eWeLink sur `attribute_updated` | Clic simple : basculer au niveau d’allumage 25 % ; double clic : alterner 25 % / 100 %. |
 | Hue Dimmer : Power → `light.toggle` · Up/Down → `brightness_increase`/`decrease` · Hue → 100 % | Valeurs par défaut du blueprint Hue Dimmer. Bouton Hue sans action : *Short press* = *No action*. |
-| IKEA 5 boutons « blancs » | Gauche : blanc plus chaud, Droite : blanc plus froid (appui et maintien), blanc de référence 2 500 K. L’ancien blueprint utilisait le paramètre `color_temp` en mireds, que Home Assistant 2026.10 n’accepte plus. |
+| IKEA 5 boutons « blancs » | Gauche : blanc plus chaud, Droite : blanc plus froid (appui et maintien), blanc de référence 2 500 K. L’ancien blueprint utilisait le paramètre `color_temp` en mireds, remplacé ici par `color_temp_kelvin`. |
 | IKEA 5 boutons « préréglages » + `input_select` | Valeurs par défaut ; la palette remplace l’`input_select`. |
 | IKEA marche/arrêt : fondu 1 s, maintien 10 × 10 % par seconde | Fondu 1 s, cadence 1 s, pas 10 %, durée maximale 10 s. |
 | Minuterie d’éclairage (manual light) | *Lighting automatic switch-off* avec le même assistant Minuteur et la même durée. |

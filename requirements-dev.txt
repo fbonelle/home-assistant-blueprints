@@ -1,2 +1,1 @@
 -r requirements-test.txt
-PyYAML==6.0.3

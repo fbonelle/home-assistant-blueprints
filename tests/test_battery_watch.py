@@ -417,3 +417,18 @@ async def test_summary_disabled_and_no_actions_configured(tmp_path):
         assert e.sent == [] and 'Remote battery — 5 %' in e.notice()['message']
     finally:
         await e.close()
+
+
+async def test_failed_immediate_alert_is_retried(env):
+    env.hass.services.async_remove('notify', 'mobile_app_example_phone')
+    env.battery('sensor.remote_battery', 18)
+    await env.run()
+    assert await env.items() == []
+
+    async def record(call):
+        env.sent.append(dict(call.data))
+
+    env.hass.services.async_register('notify', 'mobile_app_example_phone', record)
+    await env.run()
+    await env.run()
+    assert len(env.sent) == len(await env.items()) == 1

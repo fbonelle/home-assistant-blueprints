@@ -11,7 +11,7 @@ blueprint:
     Guide: https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/notification_system.en.md
   domain: automation
   homeassistant:
-    min_version: '@min_version'  # tools/versioning.py (MIN_HA)
+    min_version: '@min_version'  # tools/versioning.py (minimum_ha)
   source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/automation/notification_system/mobile_relay.yaml
   author: fbonelle
   input:

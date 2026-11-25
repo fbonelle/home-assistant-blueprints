@@ -23,7 +23,7 @@ blueprint:
     remaining time.
   domain: automation
   homeassistant:
-    min_version: '@min_version'  # tools/versioning.py (MIN_HA)
+    min_version: '@min_version'  # tools/versioning.py (minimum_ha)
   input:
     entities:
       name: Lighting to switch off
@@ -85,7 +85,9 @@ actions:
 - choose:
   # Switched on, or start-up with lighting left on.
   - conditions: >-
-      {{ trigger.id == 'turned_on' or
+      {{ (trigger.id == 'turned_on' and
+          (not use_timer or not is_state(timer_entity, 'active') or
+           (trigger.from_state is not none and trigger.from_state.state == 'off'))) or
          (trigger.id == 'started' and lit | count > 0 and
           (not use_timer or not is_state(timer_entity, 'active'))) }}
     sequence:

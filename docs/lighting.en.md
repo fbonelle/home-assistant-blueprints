@@ -126,7 +126,7 @@ An inconsistent configuration (minimum above maximum, unknown preset, black reca
 | eWeLink automation on `attribute_updated` | Single press: toggle at a 25 % on level; double press: alternate 25 % / 100 %. |
 | Hue Dimmer: Power → `light.toggle` · Up/Down → `brightness_increase`/`decrease` · Hue → 100 % | Hue Dimmer defaults. Hue button with no action: *Short press* = *No action*. |
 | IKEA 5 buttons “presets” + `input_select` | Defaults; the palette replaces the `input_select`. |
-| IKEA 5 buttons “whites” | Left: warmer, Right: cooler (press and hold), reference white 2,500 K. The former blueprint used the `color_temp` parameter in mireds, which Home Assistant 2026.10 no longer accepts. |
+| IKEA 5 buttons “whites” | Left: warmer, Right: cooler (press and hold), reference white 2,500 K. The former blueprint used the `color_temp` parameter in mireds, replaced here by `color_temp_kelvin`. |
 | IKEA on/off: 1 s fade, hold of 10 × 10 % per second | 1 s fade, 1 s interval, 10 % step, 10 s maximum. |
 | Lighting timer (manual light) | *Lighting automatic switch-off* with the same Timer helper and duration. |
 | STYRBAR: Text helper, `styrbar_maintiens` script | Same defaults. Keep the same helper for the double press: its former content is replaced at the first gesture. Disable the former automation first. The script is no longer needed. *Recall on right / left hold*: pick *Recall color (brightness kept)* for that hold. *Brightness forced on Up*: action *Turn on at the on level*. |

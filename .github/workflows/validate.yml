@@ -12,8 +12,7 @@ concurrency:
 jobs:
   native-tests:
     # « tested »: version pinned in requirements-test.txt, the one of the blueprint versions.
-    # « minimum »: latest patch of the homeassistant.min_version month (tools/versioning.py),
-    # so that the stated requirement stays true.
+    # « minimum »: exact homeassistant.min_version release (tools/versioning.py).
     name: Native tests (${{ matrix.release }})
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -30,17 +29,20 @@ jobs:
           cache-dependency-path: |
             requirements-dev.txt
             requirements-test.txt
+            requirements-tooling.txt
       - name: Install the development dependencies
+        if: matrix.release == 'tested'
         run: python -m pip install -r requirements-dev.txt
       - name: Install the minimum Home Assistant version and the dependencies of its integrations
         if: matrix.release == 'minimum'
         run: |
-          python -m pip install "homeassistant~=$(python tools/versioning.py min)"
+          python -m pip install -r requirements-tooling.txt "homeassistant==$(python tools/versioning.py min)"
           python -m pip install $(python tools/ha_release.py integration-requirements)
+          python -m pip check
       - name: Check the YAML build
         if: matrix.release == 'tested'
         run: |
           python tools/build.py
-          git diff --exit-code -- blueprints examples
+          git diff --exit-code -- blueprints examples README.md README.en.md docs
       - name: Run the isolated native tests
         run: python -m pytest -q

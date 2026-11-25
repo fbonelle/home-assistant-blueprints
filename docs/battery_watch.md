@@ -2,11 +2,11 @@
 
 **Français** · [English](battery_watch.en.md) · [Accueil](../README.md)
 
-Version **2026.11.3.0**. Un blueprint autonome qui signale tout de suite chaque pile ou batterie à remplacer, puis envoie un récapitulatif à l’heure choisie. Aucun fichier commun ni composant personnalisé n’est nécessaire. Le formulaire et les messages du blueprint sont en anglais ; ce guide cite ses libellés tels qu’ils apparaissent.
+Version **2026.11.3.1**. Un blueprint autonome qui signale tout de suite chaque pile ou batterie à remplacer, puis envoie un récapitulatif à l’heure choisie. Aucun fichier commun ni composant personnalisé n’est nécessaire. Le formulaire et les messages du blueprint sont en anglais ; ce guide cite ses libellés tels qu’ils apparaissent.
 
 ## Installation
 
-1. Utiliser Home Assistant **2026.10 ou plus récent**.
+1. Utiliser Home Assistant **2026.8 ou plus récent**.
 2. [Importer le blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ffbonelle%2Fhome-assistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fbattery_watch%2Fbattery_watch.yaml).
 3. Dans **Paramètres → Appareils et services → Ajouter une intégration**, ajouter **Liste de tâches locale** et créer une liste dédiée, par exemple « Piles et batteries ». La réserver à cette automatisation.
 4. Créer une automatisation depuis le blueprint, choisir la liste (**To-do list used by this automation only**), puis renseigner les **Immediate alert actions** et les **Summary actions** (par exemple une notification sur un téléphone ou un script de notification existant).

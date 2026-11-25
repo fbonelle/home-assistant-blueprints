@@ -16,7 +16,7 @@ agreement.
 Command line:
     python tools/versioning.py bump <family>   # counter + 1 after a change of the family
     python tools/versioning.py show            # versions and tested Home Assistant release
-    python tools/versioning.py min             # minimum Home Assistant release (MIN_HA)
+    python tools/versioning.py min             # tested release minus three calendar months
 """
 from pathlib import Path
 import re
@@ -28,10 +28,8 @@ ROOT = Path(__file__).resolve().parent.parent
 HA_VERSION = r'20\d{2}\.(?:[1-9]|1[0-2])\.(?:0|[1-9]\d*)'
 VERSION = re.compile(rf'(?P<ha>{HA_VERSION})\.(?P<counter>0|[1-9]\d*)')
 
-# Minimum Home Assistant release of every blueprint (homeassistant.min_version). It stays the
-# minimum actually required: the validation workflow also runs the test suite on the latest
-# patch release of that month. Sources write the placeholder '@min_version'.
-MIN_HA = '2026.10.0'
+# Compatibility starts three calendar months before the tested Home Assistant release.
+# CI tests the first release of that month. Sources use the '@min_version' placeholder.
 MIN_PLACEHOLDER = '@min_version'
 
 # Families: guides that quote the version (both languages), and the guide each README row
@@ -57,12 +55,34 @@ FAMILIES = {
 READMES = ['README.md', 'README.en.md']
 
 
-def tested_ha():
+def tested_ha(root=None):
     """The Home Assistant release the test suite runs against (requirements-test.txt)."""
-    text = (ROOT / 'requirements-test.txt').read_text()
+    text = ((root or ROOT) / 'requirements-test.txt').read_text()
     found = re.findall(rf'^homeassistant==({HA_VERSION})$', text, flags=re.M)
     assert len(found) == 1, 'requirements-test.txt must pin exactly one homeassistant release'
     return found[0]
+
+
+def minimum_ha(release=None):
+    """First release of the month three months before the tested (or supplied) release."""
+    release = tested_ha() if release is None else release
+    assert re.fullmatch(HA_VERSION, release), f'Invalid Home Assistant release: {release!r}'
+    year, month, _ = map(int, release.split('.'))
+    year, month = divmod(year * 12 + month - 1 - 3, 12)
+    return f'{year}.{month + 1}.0'
+
+
+def sync_minimum_docs(root=None):
+    """Keep the prerequisite statements in both languages aligned with the sliding window."""
+    root = root or ROOT
+    month = minimum_ha(tested_ha(root)).rsplit('.', 1)[0]
+    paths = [root / name for name in READMES] + list((root / 'docs').glob('*.md'))
+    pattern = r'(Home Assistant[ *]*)20\d{2}\.\d+(?=[ *]*(?:minimum|or later|ou plus récent))'
+    for path in paths:
+        original = path.read_text()
+        text = re.sub(pattern, lambda match: match[1] + month, original)
+        if text != original:
+            path.write_text(text)
 
 
 def check(version):
@@ -78,10 +98,10 @@ def read(family):
 
 
 def with_min_version(blueprint):
-    """A loaded blueprint source with its '@min_version' placeholder replaced by MIN_HA."""
+    """A loaded blueprint source with its '@min_version' placeholder replaced."""
     meta = blueprint['blueprint'].get('homeassistant', {})
     assert meta.get('min_version') == MIN_PLACEHOLDER, blueprint['blueprint'].get('name')
-    meta['min_version'] = MIN_HA
+    meta['min_version'] = minimum_ha()
     return blueprint
 
 
@@ -90,22 +110,23 @@ def _replace_token(text, old, new):
     return re.subn(rf'(?<![\d.]){re.escape(old)}(?![\d]|\.\d)', new, text)
 
 
-def set_version(family, new):
+def set_version(family, new, root=None):
     """Write a family version everywhere it is quoted: VERSION, README rows, guides.
 
     Every location must contain the previous version: a location that no longer quotes it
     means the documentation drifted, and the change is refused before anything is written.
     The previous version is read without validation: replacing it is what repairs it.
     """
+    root = root or ROOT
     assert family in FAMILIES, family
-    old = (ROOT / 'src' / family / 'VERSION').read_text().strip()
+    old = (root / 'src' / family / 'VERSION').read_text().strip()
     check(new)
     if old == new:
         return old
     spec = FAMILIES[family]
-    writes = {ROOT / 'src' / family / 'VERSION': new + '\n'}
+    writes = {root / 'src' / family / 'VERSION': new + '\n'}
     for readme in READMES:
-        path = ROOT / readme
+        path = root / readme
         lines = path.read_text().split('\n')
         rows = [i for i, line in enumerate(lines) if line.startswith('|') and spec['readme_link'] in line]
         assert len(rows) == 1, (readme, family)
@@ -113,7 +134,7 @@ def set_version(family, new):
         assert count == 1, (readme, family, old)
         writes[path] = '\n'.join(lines)
     for guide in spec['guides']:
-        path = ROOT / guide
+        path = root / guide
         text, count = _replace_token(path.read_text(), old, new)
         assert count >= 1, (guide, old)
         writes[path] = text
@@ -134,9 +155,9 @@ if __name__ == '__main__':
     if len(sys.argv) == 3 and sys.argv[1] == 'bump':
         print(bump(sys.argv[2]))
     elif len(sys.argv) == 2 and sys.argv[1] == 'min':
-        print(MIN_HA)
+        print(minimum_ha())
     elif len(sys.argv) == 2 and sys.argv[1] == 'show':
-        print(f'Tested Home Assistant: {tested_ha()}; minimum: {MIN_HA}')
+        print(f'Tested Home Assistant: {tested_ha()}; minimum: {minimum_ha()}')
         for name in FAMILIES:
             print(f'{name} : {read(name)}')
     else:

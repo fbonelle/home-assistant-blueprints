@@ -13,7 +13,7 @@ blueprint:
     Guide: https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/notification_system.en.md
   domain: script
   homeassistant:
-    min_version: '@min_version'  # tools/versioning.py (MIN_HA)
+    min_version: '@min_version'  # tools/versioning.py (minimum_ha)
   source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/script/notification_system/dispatcher.yaml
   author: fbonelle
   input:
@@ -375,12 +375,6 @@ sequence:
         {% endfor %}
         {{ ns.age }}
       is_duplicate: "{{ (dedup_match_age | int(-1)) >= 0 }}"
-      # New slot first, older ones kept, purged and capped. The window is FIXED: the
-      # timestamp of a duplicate is not refreshed, otherwise a source that keeps flapping
-      # would stay silent forever; it gets through once per window, which shows it is still
-      # failing.
-      dedup_next_state: >
-        {{ ([dedup_now | string ~ ':' ~ dedup_fp] + dedup_fresh)[:dedup_max_slots | int(10)] | join('|') }}
       notif_uid_in: "{{ sdata.get('notif_id', '') }}"
   # Immediate exit on a duplicate, BEFORE any send and before any persistent
   # notification: no channel is used.
@@ -403,18 +397,13 @@ sequence:
             [Dispatcher] Duplicate dropped after {{ dedup_match_age }} s (window
             {{ dedup_window_s }} s) — level {{ level }}: {{ title }}
       - stop: Duplicate dropped
-  # Memory updated only once a duplicate has been ruled out.
-  - action: input_text.set_value
-    target:
-      entity_id: "{{ dedup_memory }}"
-    data:
-      value: "{{ dedup_next_state }}"
   - if:
       - condition: template
         value_template: "{{ level in logbook_levels }}"
     then:
-      - action: logbook.log
-        data:
+      # Same event as logbook.log; delivery also works when Logbook is disabled.
+      - event: logbook_entry
+        event_data:
           name: "Notification {{ level | upper }}"
           message: "{{ title }} - {{ message }}"
           entity_id: "{{ this.entity_id }}"
@@ -431,7 +420,7 @@ sequence:
           # continue_on_error catches it here. A missing « success » signals the failure.
           - action: "{{ sender_script }}"
             continue_on_error: true
-            response_variable: res_ntfy
+            response_variable: ntfy_result
             data:
               channel: ntfy
               title: "{{ title }}"
@@ -442,11 +431,30 @@ sequence:
               priority: "{{ sdata.get('priority', 3) | int(3) }}"
               tags: "{{ sdata.get('tags', ntfy_tags) }}"
               actions: "{{ actions }}"
+          - if: "{{ ntfy_result is mapping and ntfy_result.status == 'success' }}"
+            then:
+            - &remember_delivery
+              action: input_text.set_value
+              continue_on_error: true
+              target: {entity_id: "{{ dedup_memory }}"}
+              data:
+                # Re-read after delivery: slow channels must preserve newer successful sends.
+                value: >-
+                  {% set now_s = as_timestamp(now()) | int %}
+                  {% set ns = namespace(slots=[now_s | string ~ ':' ~ dedup_fp]) %}
+                  {% for item in states(dedup_memory).split('|') %}
+                    {% set parts = item.split(':') %}
+                    {% if parts | length == 2 and parts[1] != dedup_fp and
+                          0 <= now_s - (parts[0] | int(0)) < dedup_window_s | int %}
+                      {% set ns.slots = ns.slots + [item] %}
+                    {% endif %}
+                  {% endfor %}
+                  {{ ns.slots[:dedup_max_slots | int] | join('|') }}
           - if:
               - condition: template
                 value_template: >
-                  {% if res_ntfy is defined and res_ntfy %}
-                    {{ res_ntfy.status | default('error', true) != 'success' }}
+                  {% if ntfy_result is defined and ntfy_result %}
+                    {{ ntfy_result.status | default('error', true) != 'success' }}
                   {% else %}true{% endif %}
             then:
               - action: system_log.write
@@ -461,6 +469,7 @@ sequence:
                 then:
                   - action: "{{ sender_script }}"
                     continue_on_error: true
+                    response_variable: fallback_result
                     data:
                       channel: mobile
                       target: "{{ target }}"
@@ -476,6 +485,9 @@ sequence:
                       skip_trace: "{{ skip_trace }}"
                       notif_id: "{{ notif_uid_in }}"
                       actions: "{{ actions }}"
+                  - if: "{{ fallback_result is mapping and fallback_result.status == 'success' }}"
+                    then:
+                    - *remember_delivery
       # ======================================================================
       # MOBILE APP
       # ======================================================================
@@ -485,6 +497,7 @@ sequence:
         then:
           - action: "{{ sender_script }}"
             continue_on_error: true
+            response_variable: mobile_result
             data:
               channel: mobile
               target: "{{ target }}"
@@ -500,6 +513,9 @@ sequence:
               skip_trace: "{{ skip_trace }}"
               notif_id: "{{ notif_uid_in }}"
               actions: "{{ actions }}"
+          - if: "{{ mobile_result is mapping and mobile_result.status == 'success' }}"
+            then:
+            - *remember_delivery
       # ======================================================================
       # E-MAIL
       # ======================================================================
@@ -509,7 +525,7 @@ sequence:
         then:
           - action: "{{ sender_script }}"
             continue_on_error: true
-            response_variable: res_email
+            response_variable: email_result
             data:
               channel: email
               title: "{{ title }}"
@@ -518,11 +534,14 @@ sequence:
               color_hex: "{{ color_hex }}"
               attach_file: "{{ attach_media }}"
               extra_html: "{{ sdata.get('html', '') }}"
+          - if: "{{ email_result is mapping and email_result.status == 'success' }}"
+            then:
+            - *remember_delivery
           - if:
               - condition: template
                 value_template: >
-                  {% if res_email is defined and res_email %}
-                    {{ res_email.status | default('error', true) != 'success' }}
+                  {% if email_result is defined and email_result %}
+                    {{ email_result.status | default('error', true) != 'success' }}
                   {% else %}true{% endif %}
             then:
               - action: system_log.write

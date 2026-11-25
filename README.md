@@ -8,12 +8,12 @@ Une collection de blueprints pour automatiser Home Assistant avec ses fonctions 
 
 | Blueprint | Fonction | Version | Prérequis |
 |---|---|---|---|
-| [Battery watch](docs/battery_watch.md) | Signaler tout de suite chaque pile ou batterie à remplacer et chaque appareil muet, puis envoyer un récapitulatif à heure fixe. | **2026.11.3.0** | Home Assistant 2026.10 minimum |
-| [Integration watchdog](docs/integration_watchdog.md) | Détecter une panne à partir d’entités choisies, tenter une relance et prévenir si une intervention est nécessaire. | **2026.11.3.0** | Home Assistant 2026.10 minimum |
-| [Lighting remotes and automatic switch-off](docs/lighting.md) | Une action au choix pour chaque geste des télécommandes Aqara, eWeLink, Hue Dimmer, Hue Tap Dial, IKEA 5 boutons, IKEA marche/arrêt et IKEA STYRBAR ; extinction après une durée d’allumage. | **2026.11.3.0** | Home Assistant 2026.10 minimum, ZHA ; assistant facultatif |
-| [Notification system](docs/notification_system.md) | Un point d’entrée unique : canaux par niveau (mobile, ntfy, e-mail), anti-doublon, nuit, bascule de secours, lecture vocale et relais des notifications persistantes. | **2026.11.3.0** | Home Assistant 2026.10 minimum, quatre blueprints |
+| [Battery watch](docs/battery_watch.md) | Signaler tout de suite chaque pile ou batterie à remplacer et chaque appareil muet, puis envoyer un récapitulatif à heure fixe. | **2026.11.3.1** | Home Assistant 2026.8 minimum |
+| [Integration watchdog](docs/integration_watchdog.md) | Détecter une panne à partir d’entités choisies, tenter une relance et prévenir si une intervention est nécessaire. | **2026.11.3.1** | Home Assistant 2026.8 minimum |
+| [Lighting remotes and automatic switch-off](docs/lighting.md) | Une action au choix pour chaque geste des télécommandes Aqara, eWeLink, Hue Dimmer, Hue Tap Dial, IKEA 5 boutons, IKEA marche/arrêt et IKEA STYRBAR ; extinction après une durée d’allumage. | **2026.11.3.1** | Home Assistant 2026.8 minimum, ZHA ; assistant facultatif |
+| [Notification system](docs/notification_system.md) | Un point d’entrée unique : canaux par niveau (mobile, ntfy, e-mail), anti-doublon, nuit, bascule de secours, lecture vocale et relais des notifications persistantes. | **2026.11.3.1** | Home Assistant 2026.8 minimum, quatre blueprints |
 
-Chaque version est celle de Home Assistant avec laquelle le blueprint a été validé, suivie d’un compteur de modifications du projet : **2026.11.3.0** a réussi tous les tests avec Home Assistant 2026.11.3. À chaque nouvelle version publique de Home Assistant, les tests sont relancés automatiquement ; s’ils réussissent, tous les blueprints passent à la nouvelle version. Le prérequis indique la version minimale réellement nécessaire.
+Chaque version est celle de Home Assistant avec laquelle le blueprint a été validé, suivie d’un compteur de modifications du projet : **2026.11.3.0** a réussi tous les tests avec Home Assistant 2026.11.3. À chaque nouvelle version publique de Home Assistant, les tests sont relancés automatiquement ; s’ils réussissent, tous les blueprints passent à la nouvelle version. Le prérequis indique la version minimale prise en charge : le mois de la version courante validée moins trois mois calendaires (version `.0` de ce mois, testée en CI).
 
 ## Battery watch
 
@@ -59,6 +59,6 @@ python3.14 -m venv .venv
 .venv/bin/python -m pytest -q
 ```
 
-La suite tourne sur deux versions de Home Assistant : la version testée, qui forme le début du numéro de version des blueprints, et la version minimale annoncée (dernier correctif de ce mois). Elle couvre tous les blueprints avec ses schémas, automatisations et services natifs. Les fournisseurs et la radio sont simulés ; aucun identifiant de production n’est nécessaire. Home Assistant n’installe aucun paquet pendant les tests. GitHub Actions vérifie aussi que les fichiers générés sont à jour. Chaque blueprint conserve sa propre version dans `src/<nom>/VERSION`.
+La suite tourne sur deux versions de Home Assistant : la version testée, qui forme le début du numéro de version des blueprints, et la version minimale annoncée (`.0`). Elle couvre tous les blueprints avec ses schémas, automatisations et services natifs. Les fournisseurs et la radio sont simulés ; aucun identifiant de production n’est nécessaire. Home Assistant n’installe aucun paquet pendant les tests. GitHub Actions vérifie aussi que les fichiers générés sont à jour. Chaque blueprint conserve sa propre version dans `src/<nom>/VERSION`.
 
 [Contribuer](CONTRIBUTING.md) · [Historique](CHANGELOG.md) · [Origine et licence](NOTICE.md)

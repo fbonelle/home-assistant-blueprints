@@ -6,14 +6,14 @@
 # restart a running hold. The actions form the shared engine, identical for every
 # remote; its detailed comments are in src/lighting/engine.yaml.
 blueprint:
-  name: IKEA TRÅDFRI on/off switch — ZHA — 2026.11.3.0
+  name: IKEA TRÅDFRI on/off switch — ZHA — 2026.11.3.1
   description: 'Two buttons (I and O). Short press and hold can be set; a hold stops on release or, when the radio
     release is lost, after the maximum duration. Actions and settings shared by every remote of the family; continuous
     changes are bounded. Optional memory helper, required for the double press. Menu → Run actions shows a diagnostic
     without commanding the lamp. Guide: https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/lighting.en.md'
   domain: automation
   homeassistant:
-    min_version: 2026.10.0
+    min_version: 2026.8.0
   author: fbonelle
   source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/automation/lighting/ikea_on_off_switch.yaml
   input:
@@ -1154,10 +1154,9 @@ actions:
     lamp_on: '{{ is_state(lamp, ''on'') }}'
     level: '{{ ((state_attr(lamp, ''brightness'') | float(0)) / 2.55) | round(1) if is_state(lamp, ''on'') else
       0 }}'
-    color_modes: '{{ state_attr(lamp, ''supported_color_modes'') or [] }}'
-    has_color: '{{ color_modes | select(''in'', [''hs'', ''xy'', ''rgb'', ''rgbw'', ''rgbww'']) | list | count >
-      0 }}'
-    has_kelvin: '{{ ''color_temp'' in color_modes }}'
+    has_color: '{% set modes = state_attr(lamp, ''supported_color_modes'') or [] %} {{ modes | select(''in'', [''hs'',
+      ''xy'', ''rgb'', ''rgbw'', ''rgbww'']) | list | count > 0 }}'
+    has_kelvin: '{{ ''color_temp'' in (state_attr(lamp, ''supported_color_modes'') or []) }}'
     kelvin_min: '{{ state_attr(lamp, ''min_color_temp_kelvin'') | int(2000) }}'
     kelvin_max: '{{ state_attr(lamp, ''max_color_temp_kelvin'') | int(6500) }}'
     fade: '{{ {''transition'': transition} if transition > 0 else {} }}'

@@ -1,10 +1,10 @@
-# Integration watchdog — surveillance et relance des intégrations — 2026.11.3.0
+# Integration watchdog — surveillance et relance des intégrations — 2026.11.3.1
 
 **Français** · [English](integration_watchdog.en.md) · [Accueil](../README.md)
 
 Ce blueprint vérifie les entités que vous choisissez et tente de relancer leur intégration lorsqu’une panne est détectée. Si les tentatives ne suffisent pas, il envoie une notification pour demander une intervention. Le formulaire et les messages du blueprint sont en anglais ; ce guide cite ses libellés tels qu’ils apparaissent.
 
-Il utilise l’action standard `homeassistant.reload_config_entry`. L’intégration doit prendre en charge cette action. Home Assistant **2026.10 minimum** est requis ; les tests tournent sur la version testée et sur cette version minimale (voir le [README](../README.md#développement)).
+Il utilise l’action standard `homeassistant.reload_config_entry`. L’intégration doit prendre en charge cette action. Home Assistant **2026.8 minimum** est requis ; les tests tournent sur la version testée et sur cette version minimale (voir le [README](../README.md#développement)).
 
 ## 1. Importer le blueprint
 
@@ -28,7 +28,7 @@ L’automatisation remplit cet assistant. Il conserve le nombre de tentatives et
 
 ### Remplir le formulaire
 
-Créez une automatisation à partir du blueprint **Integration watchdog — 2026.11.3.0**, puis renseignez, dans la section **Integration and entities to watch** :
+Créez une automatisation à partir du blueprint **Integration watchdog — 2026.11.3.1**, puis renseignez, dans la section **Integration and entities to watch** :
 
 | Champ | Ce qu’il faut choisir |
 |---|---|

@@ -11,7 +11,7 @@ blueprint:
     Guide: https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/battery_watch.en.md
   domain: automation
   homeassistant:
-    min_version: '@min_version'  # tools/versioning.py (MIN_HA)
+    min_version: '@min_version'  # tools/versioning.py (minimum_ha)
   source_url: https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/automation/battery_watch/battery_watch.yaml
   author: fbonelle
   input:
@@ -247,14 +247,6 @@ actions:
     target: {entity_id: '{{ memory_entity }}'}
     data: {item: '{{ scan.removals }}'}
 - repeat:
-    for_each: '{{ scan.new }}'
-    sequence:
-    - action: todo.add_item
-      target: {entity_id: '{{ memory_entity }}'}
-      data:
-        item: '{{ repeat.item.summary }}'
-        description: 'battery_watch:{{ repeat.item.e }}'
-- repeat:
     for_each: '{{ scan.renames }}'
     sequence:
     - action: todo.update_item
@@ -305,6 +297,15 @@ actions:
       battery_title: '🔋 Battery to replace ({{ battery_new | count }})'
       battery_message: '{{ new_text }}'
   - sequence: !input alert_actions
+# Commit new detections after the alert so a failed action is retried on the next scan.
+- repeat:
+    for_each: '{{ scan.new }}'
+    sequence:
+    - action: todo.add_item
+      target: {entity_id: '{{ memory_entity }}'}
+      data:
+        item: '{{ repeat.item.summary }}'
+        description: 'battery_watch:{{ repeat.item.e }}'
 - if:
   - condition: template
     value_template: >-

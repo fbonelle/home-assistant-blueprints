@@ -29,6 +29,7 @@ import os
 from pathlib import Path
 import re
 import sys
+import tempfile
 import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -91,7 +92,7 @@ def replace_once(path, pattern, replacement):
     path.write_text(text)
 
 
-def changelog_entry(release, versions, today):
+def changelog_entry(root, release, versions, today):
     """One entry per release, in both languages, placed above the previous entries."""
     fr_date = f'{today.day} {MONTHS_FR[today.month - 1]} {today.year}'
     en_date = f'{today.day} {MONTHS_EN[today.month - 1]} {today.year}'
@@ -104,7 +105,7 @@ def changelog_entry(release, versions, today):
         fr.append(f'- {LABELS[family]} : {new} (précédemment {old}).')
         en.append(f'- {LABELS[family]}: {new} (previously {old}).')
     for name, lines in [('CHANGELOG.md', fr), ('CHANGELOG.en.md', en)]:
-        path = ROOT / name
+        path = root / name
         text = path.read_text()
         # The entries start after the title and the language links.
         head, sep, rest = text.partition('\n## ')
@@ -113,26 +114,48 @@ def changelog_entry(release, versions, today):
 
 
 def apply(release, python=None, today=None):
+    # Prepare the release on copies so a late validation error leaves a retryable checkout.
+    paths = [ROOT / name for name in [*versioning.READMES, 'CHANGELOG.md', 'CHANGELOG.en.md',
+                                      'requirements-test.txt', '.github/workflows/validate.yml']]
+    paths.extend(ROOT.glob('docs/*.md'))
+    paths.extend(ROOT / 'src' / family / 'VERSION' for family in versioning.FAMILIES)
+    with tempfile.TemporaryDirectory() as directory:
+        stage = Path(directory)
+        copies = {path: stage / path.relative_to(ROOT) for path in paths}
+        for path, staged in copies.items():
+            staged.parent.mkdir(parents=True, exist_ok=True)
+            staged.write_bytes(path.read_bytes())
+        versions = _apply(stage, release, python, today)
+        # Commit the version pin last so validation failures never advance the baseline.
+        for path in sorted(paths, key=lambda path: path.name == 'requirements-test.txt'):
+            data = copies[path].read_bytes()
+            if path.read_bytes() != data:
+                path.write_bytes(data)
+    return versions
+
+
+def _apply(root, release, python, today):
     assert PUBLIC.fullmatch(release), f'Not a public release: {release!r}'
-    tested = versioning.tested_ha()
+    tested = versioning.tested_ha(root)
     assert key(release) > key(tested), f'{release} is not newer than the tested {tested}'
-    replace_once(ROOT / 'requirements-test.txt', r'^homeassistant==.*$', f'homeassistant=={release}')
+    replace_once(root / 'requirements-test.txt', r'^homeassistant==.*$', f'homeassistant=={release}')
     if python:
-        replace_once(ROOT / '.github/workflows/validate.yml', r"^(\s*python-version: )'[\d.]+'$",
+        replace_once(root / '.github/workflows/validate.yml', r"^(\s*python-version: )'[\d.]+'$",
                      rf"\g<1>'{python}'")
     versions = {}
     for family in versioning.FAMILIES:
         new = f'{release}.0'
-        versions[family] = (versioning.set_version(family, new), new)
+        versions[family] = (versioning.set_version(family, new, root), new)
     # Family versions update table rows and guides; the README explanation also quotes
     # the tested release and an example blueprint version outside those rows.
     for readme in versioning.READMES:
-        path = ROOT / readme
+        path = root / readme
         text = path.read_text()
         pattern = rf'(?<![\d.]){re.escape(tested)}(?P<counter>\.\d+)?(?!\d|\.\d)'
         text = re.sub(pattern, lambda match: release + ('.0' if match['counter'] else ''), text)
         path.write_text(text)
-    changelog_entry(release, versions, today or date.today())
+    versioning.sync_minimum_docs(root)
+    changelog_entry(root, release, versions, today or date.today())
     return versions
 
 

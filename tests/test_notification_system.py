@@ -41,7 +41,7 @@ OUTBOUND = {
     'ntfy': ['publish'],
     'smtp': ['send_message'],
     'tts': ['speak'],
-    'media_player': ['volume_set'],
+    'media_player': ['volume_set', 'play_media'],
     'scene': ['create', 'turn_on'],
     'logbook': ['log'],
 }
@@ -214,6 +214,8 @@ async def test_family_falls_back_to_main_phone_when_not_configured(tmp_path):
 
 
 async def test_critical_pierces_silence_emails_and_speaks(env):
+    entries = []
+    env.hass.bus.async_listen('logbook_entry', lambda event: entries.append(event.data))
     env.now = datetime(2026, 11, 11, 23, 0, tzinfo=UTC)  # midnight: critical still speaks
     await env.notify(title='Leak', message="Water detected in the cellar", level='critical',
                      entity_id='binary_sensor.fuite_cave')
@@ -226,18 +228,12 @@ async def test_critical_pierces_silence_emails_and_speaks(env):
     assert mail['entity_id'] == ['notify.smtp_alerts'] and mail['title'] == '🚨 ALERT: Leak'
     assert 'href="https://ha.example.org/history?entity_id=binary_sensor.fuite_cave"' in mail['html']
     assert 'attachments' not in mail
-    [log] = env.sent('logbook.log')
+    [log] = entries
     assert log['name'] == 'Notification CRITICAL' and log['entity_id'] == f'script.{DISPATCH}'
     speakers = sorted(c['media_player_entity_id'] for c in env.sent('tts.speak'))
     assert speakers == ['media_player.cuisine', 'media_player.salon']
     assert env.sent('tts.speak')[0]['message'] == 'Leak. Water detected in the cellar'
-    assert sorted(c['entity_id'][0] for c in env.sent('media_player.volume_set')) == speakers
-    assert all(c['volume_level'] == 0.8 for c in env.sent('media_player.volume_set'))
-    [snapshot] = env.sent('scene.create')
-    assert snapshot['scene_id'] == 'tts_restore_tts_engine' and sorted(snapshot['snapshot_entities']) == speakers
-    await asyncio.sleep(len('Leak. Water detected in the cellar') / 12 + 2.5)
-    await env.drain()
-    assert env.sent('scene.turn_on') == [{'entity_id': ['scene.tts_restore_tts_engine']}]
+    assert env.sent('media_player.volume_set') == [] and env.sent('scene.create') == []
 
 
 async def test_warning_speaks_by_day_only_when_someone_is_home(env):
@@ -489,3 +485,36 @@ async def test_relay_never_replays_notifications_present_at_startup(tmp_path):
         assert 'other_old' in e.notifications() and e.sent('notify.mobile_app_my_phone') == []
     finally:
         await e.close()
+
+
+async def test_failed_mobile_delivery_can_be_retried(env):
+    env.failing.add('notify.mobile_app_my_phone')
+    await env.notify(title='Door', message='Open')
+    env.failing.clear()
+    await env.notify(advance=1, title='Door', message='Open')
+    await env.notify(advance=1, title='Door', message='Open')
+    assert len(env.sent('notify.mobile_app_my_phone')) == 2
+
+
+async def test_missing_logbook_does_not_block_critical_delivery(env):
+    env.hass.services.async_remove('logbook', 'log')
+    await env.notify(title='Leak', message='Water', level='critical')
+    assert len(env.sent('notify.mobile_app_my_phone')) == len(env.sent('smtp.send_message')) == 1
+    assert len(env.sent('tts.speak')) == 2
+
+
+async def test_critical_sonos_volume_is_scoped_to_clip(env):
+    from urllib.parse import parse_qs, urlsplit
+    from homeassistant.components.media_player import MediaPlayerEntityFeature
+    from homeassistant.helpers.entity import entity_sources
+
+    player = 'media_player.salon'
+    entity_sources(env.hass)[player] = {'domain': 'sonos'}
+    env.hass.states.async_set(player, 'playing', {'supported_features': MediaPlayerEntityFeature.MEDIA_ANNOUNCE})
+    await env.notify(title='Door', message='A & B?', level='critical')
+    [clip] = env.sent('media_player.play_media')
+    assert clip['announce'] and clip['extra']['volume'] == 80 and clip['entity_id'] == [player]
+    uri = urlsplit(clip['media_content_id'])
+    assert (uri.scheme, uri.netloc, uri.path) == ('media-source', 'tts', '/tts.piper')
+    assert parse_qs(uri.query)['message'] == ['Door. A & B?']
+    assert not env.sent('media_player.volume_set')

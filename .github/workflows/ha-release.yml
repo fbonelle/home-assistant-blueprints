@@ -58,6 +58,14 @@ jobs:
       - name: Run the isolated native tests
         if: steps.check.outputs.new == 'true'
         run: python -m pytest -q
+      - name: Validate the sliding minimum before publishing
+        if: steps.check.outputs.new == 'true'
+        run: |
+          python -m venv "$RUNNER_TEMP/ha-minimum"
+          "$RUNNER_TEMP/ha-minimum/bin/python" -m pip install -r requirements-tooling.txt "homeassistant==$(python tools/versioning.py min)"
+          "$RUNNER_TEMP/ha-minimum/bin/python" -m pip install $("$RUNNER_TEMP/ha-minimum/bin/python" tools/ha_release.py integration-requirements)
+          "$RUNNER_TEMP/ha-minimum/bin/python" -m pip check
+          "$RUNNER_TEMP/ha-minimum/bin/python" -m pytest -q
       - name: Publish on main
         if: steps.check.outputs.new == 'true'
         env:

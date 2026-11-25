@@ -256,7 +256,7 @@ def build_remote(key, model, engine, palette, version):
                             'Menu → Run actions shows a diagnostic without commanding the lamp. '
                             f'Guide: {DOCS}'),
             'domain': 'automation',
-            'homeassistant': {'min_version': versioning.MIN_HA},
+            'homeassistant': {'min_version': versioning.minimum_ha()},
             'author': 'fbonelle',
             'source_url': SOURCE + model['file'],
             'input': inputs,
@@ -286,8 +286,8 @@ def build():
          f"  name: Lighting automatic switch-off — {version}\n"),
         ("    remaining time.\n",
          f"    remaining time.\n    Guide: {DOCS}\n"),
-        (f"    min_version: '{versioning.MIN_PLACEHOLDER}'  # tools/versioning.py (MIN_HA)\n",
-         f'    min_version: {versioning.MIN_HA}\n'),
+        (f"    min_version: '{versioning.MIN_PLACEHOLDER}'  # tools/versioning.py (minimum_ha)\n",
+         f'    min_version: {versioning.minimum_ha()}\n'),
         ('  domain: automation\n',
          f"  domain: automation\n  author: fbonelle\n  source_url: {SOURCE}auto_off.yaml\n"),
     ]

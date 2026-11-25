@@ -177,10 +177,13 @@ async def env(tmp_path):
 
 @pytest.mark.parametrize('name', ALL)
 def test_published_blueprints_pass_native_schema(name):
+    import sys
+    sys.path.insert(0, str(ROOT / 'tools'))
+    import versioning
     data = load_yaml(str(FOLDER / name))
     BLUEPRINT_SCHEMA(data)
     blueprint = Blueprint(data, expected_domain='automation', schema=BLUEPRINT_SCHEMA)
-    assert blueprint.metadata['homeassistant']['min_version'] == '2026.10.0'
+    assert blueprint.metadata['homeassistant']['min_version'] == versioning.minimum_ha()
     version = (ROOT / 'src/lighting/VERSION').read_text().strip()
     assert blueprint.metadata['name'].endswith(f'— {version}')
     assert blueprint.metadata['source_url'].endswith(name)
@@ -934,3 +937,18 @@ async def test_logging_sets_its_own_level_and_never_blocks_the_command(env, capl
     env.hass.services.async_register('system_log', 'write', broken)
     await env.press('on_press', settle=.6)
     assert env.state('plain').state == 'on'
+
+
+async def test_returning_lamp_preserves_active_timer(env):
+    await env.automation('auto_off.yaml', entities=['light.stairs'], timer='timer.corridor')
+    lamp = env.lamps['stairs']
+    lamp._attr_available = False
+    lamp.async_write_ha_state()
+    await env.hass.services.async_call('timer', 'start', {
+        'entity_id': 'timer.corridor', 'duration': 15,
+    }, blocking=True)
+    deadline = env.hass.states.get('timer.corridor').attributes['finishes_at']
+    lamp._attr_available = True
+    await lamp.async_turn_on()
+    await env.hass.async_block_till_done()
+    assert env.hass.states.get('timer.corridor').attributes['finishes_at'] == deadline

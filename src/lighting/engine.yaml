@@ -502,9 +502,11 @@ actions:
 - variables:
     lamp_on: "{{ is_state(lamp, 'on') }}"
     level: "{{ ((state_attr(lamp, 'brightness') | float(0)) / 2.55) | round(1) if is_state(lamp, 'on') else 0 }}"
-    color_modes: "{{ state_attr(lamp, 'supported_color_modes') or [] }}"
-    has_color: "{{ color_modes | select('in', ['hs', 'xy', 'rgb', 'rgbw', 'rgbww']) | list | count > 0 }}"
-    has_kelvin: "{{ 'color_temp' in color_modes }}"
+    # Evaluate native color modes here: older HA can stringify the enum list between templates.
+    has_color: >-
+      {% set modes = state_attr(lamp, 'supported_color_modes') or [] %}
+      {{ modes | select('in', ['hs', 'xy', 'rgb', 'rgbw', 'rgbww']) | list | count > 0 }}
+    has_kelvin: "{{ 'color_temp' in (state_attr(lamp, 'supported_color_modes') or []) }}"
     kelvin_min: "{{ state_attr(lamp, 'min_color_temp_kelvin') | int(2000) }}"
     kelvin_max: "{{ state_attr(lamp, 'max_color_temp_kelvin') | int(6500) }}"
     fade: "{{ {'transition': transition} if transition > 0 else {} }}"

@@ -120,7 +120,7 @@ def test_apply_updates_readme_explanations_on_successive_releases(copy, release)
             assert f'Home Assistant {target}' in prose, readme
             assert f'{target}.0' in prose, readme
             assert previous not in text, readme
-            assert f'Home Assistant {MIN_MONTH}' in text, readme
+            assert f"Home Assistant {versioning.minimum_ha(target).rsplit('.', 1)[0]}" in text, readme
 
 
 def test_apply_refuses_an_older_release_or_a_prerelease(copy):
@@ -170,17 +170,43 @@ def test_check_ignores_prereleases(monkeypatch, tmp_path):
 
 # ---------------------------------------------------------------- minimum Home Assistant release
 
-MIN_MONTH = '.'.join(versioning.MIN_HA.split('.')[:2])
-# Guides that state the minimum release, as « Home Assistant **2026.10 …** ».
+MIN_MONTH = '.'.join(versioning.minimum_ha().split('.')[:2])
+# Guides that state the minimum release in their prerequisites.
 MIN_GUIDES = ['docs/battery_watch.md', 'docs/battery_watch.en.md',
               'docs/integration_watchdog.md', 'docs/integration_watchdog.en.md']
+
+
+@pytest.mark.parametrize('release, expected', [
+    ('2026.11.3', '2026.8.0'), ('2026.12.0', '2026.9.0'),
+    ('2027.1.0', '2026.10.0'), ('2027.2.12', '2026.11.0'),
+    ('2027.3.1', '2026.12.0'), ('2027.4.0', '2027.1.0'),
+])
+def test_minimum_is_three_calendar_months_before_the_release(release, expected):
+    assert versioning.minimum_ha(release) == expected
+
+
+def test_minimum_follows_the_pin_without_reimporting(copy):
+    for release in ['2027.1.0', '2027.2.3']:
+        path = copy / 'requirements-test.txt'
+        import re
+        path.write_text(re.sub(r'^homeassistant==.*$', f'homeassistant=={release}',
+                               path.read_text(), flags=re.M))
+        assert versioning.minimum_ha() == versioning.minimum_ha(release)
+        versioning.sync_minimum_docs()
+        month = versioning.minimum_ha().rsplit('.', 1)[0]
+        for name in versioning.READMES + MIN_GUIDES:
+            assert f'Home Assistant **{month} ' in (copy / name).read_text() or \
+                f'Home Assistant {month} ' in (copy / name).read_text(), name
+    before = {path: path.read_bytes() for path in copy.rglob('*.md')}
+    versioning.sync_minimum_docs()
+    assert all(path.read_bytes() == text for path, text in before.items())
 
 
 def test_every_published_blueprint_requires_the_minimum_release():
     files = sorted((ROOT / 'blueprints').rglob('*.yaml'))
     assert len(files) >= 14
     for path in files:
-        assert load_yaml(str(path))['blueprint']['homeassistant']['min_version'] == versioning.MIN_HA, path
+        assert load_yaml(str(path))['blueprint']['homeassistant']['min_version'] == versioning.minimum_ha(), path
 
 
 def test_readmes_and_guides_state_the_minimum_release():
@@ -197,7 +223,7 @@ def test_markdown_never_quotes_another_home_assistant_release():
     """Only the minimum (prerequisites) and the tested release (version scheme, changelog)
     may be quoted: any other number is a statement that went out of date."""
     import re
-    allowed = {MIN_MONTH, versioning.MIN_HA, versioning.tested_ha()}
+    allowed = {MIN_MONTH, versioning.minimum_ha(), versioning.tested_ha()}
     for path in ROOT.glob('**/*.md'):
         if '.venv' in path.parts or 'node_modules' in path.parts:
             continue
@@ -222,3 +248,17 @@ def test_integration_requirements_come_from_the_installed_manifests():
     import json
     manifest = json.loads((Path(local_todo.__file__).parent / 'manifest.json').read_text())
     assert ha_release.integration_requirements() == manifest['requirements']
+
+
+def test_failed_release_can_be_retried(copy):
+    readme = copy / 'README.md'
+    original = readme.read_text()
+    readme.write_text(original.replace('docs/lighting.md', 'missing.md'))
+    before = {path: path.read_bytes() for path in copy.rglob('*') if path.is_file()}
+    release = next_release()
+    with pytest.raises(AssertionError):
+        ha_release.apply(release)
+    assert all(path.read_bytes() == content for path, content in before.items())
+    readme.write_text(original)
+    ha_release.apply(release)
+    assert versioning.tested_ha() == release

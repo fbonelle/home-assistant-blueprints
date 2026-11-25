@@ -261,18 +261,19 @@ class LoopClock:
         del self.loop.time
 
 
-def add_helper(env, slug):
-    from homeassistant.components.input_text import InputText, STORAGE_FIELDS
-    import probatio
-    cfg = probatio.Schema(STORAGE_FIELDS)({'name': slug, 'max': 255})
-    helper = InputText.from_storage(dict(cfg, id=slug))
+def add_helper(slug):
+    from homeassistant.components.input_text import InputText
+
+    helper = InputText.from_storage({
+        'id': slug, 'name': slug, 'min': 0, 'max': 255, 'mode': 'text', 'initial': '',
+    })
     helper.entity_id = 'input_text.' + slug
     return helper
 
 
 async def add_supervision(env, slug, domain='overkiz'):
     from homeassistant.helpers.entity_component import DATA_INSTANCES
-    helper = add_helper(env, slug)
+    helper = add_helper(slug)
     await env.hass.data[DATA_INSTANCES]['input_text'].async_add_entities([helper])
     eid = slug + '_entry'
     entity = 'sensor.' + slug
@@ -736,7 +737,7 @@ async def test_full_pool_defers_and_stale_reservations_are_ignored(env):
     running = {'v': 3, 'o': 'w_other', 'a': [], 'i': 1, 'n': 0, 'p': env.now * 1000000, 'f': 2, 'h': 0,
                't': env.now, 's': 'running', 'k': ''}
     for number in range(50):
-        helper = add_helper(env, 'watchdog_busy_' + str(number))
+        helper = add_helper('watchdog_busy_' + str(number))
         await env.hass.data[DATA_INSTANCES]['input_text'].async_add_entities([helper])
         await env.write_record(0, dict(running, o='w_busy' + str(number), e='e_busy' + str(number)), helper.entity_id)
     index = 1
@@ -752,7 +753,7 @@ async def test_full_pool_defers_and_stale_reservations_are_ignored(env):
 @pytest.mark.asyncio
 async def test_duplicate_supervisor_is_detected_and_never_admitted_twice(env):
     from homeassistant.helpers.entity_component import DATA_INSTANCES
-    helper = add_helper(env, 'watchdog_copy')
+    helper = add_helper('watchdog_copy')
     await env.hass.data[DATA_INSTANCES]['input_text'].async_add_entities([helper])
     env.bad()
     env.modes[env.rows[0]['entry_id']] = 'hold'

@@ -289,7 +289,7 @@ blueprint = {
         'name': f'Integration watchdog — {VERSION}',
         'description': DESCRIPTION,
         'domain': 'automation',
-        'homeassistant': {'min_version': versioning.MIN_HA},
+        'homeassistant': {'min_version': versioning.minimum_ha()},
         'input': inputs,
         'source_url': 'https://github.com/fbonelle/home-assistant-blueprints/blob/main/blueprints/automation/'
                       'integration_watchdog/integration_watchdog.yaml',
