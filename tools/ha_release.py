@@ -129,7 +129,7 @@ def apply(release, python=None, today=None):
     for readme in versioning.READMES:
         path = ROOT / readme
         text = path.read_text()
-        pattern = rf'(?<![\d.]){re.escape(tested)}(?P<counter>\.\d+)?(?![\d.])'
+        pattern = rf'(?<![\d.]){re.escape(tested)}(?P<counter>\.\d+)?(?!\d|\.\d)'
         text = re.sub(pattern, lambda match: release + ('.0' if match['counter'] else ''), text)
         path.write_text(text)
     changelog_entry(release, versions, today or date.today())
