@@ -108,6 +108,21 @@ def test_apply_moves_every_family_to_the_new_release(copy):
         < fr.index('- Notification system :')
 
 
+@pytest.mark.parametrize('release', ['2099.1.0', '2099.1.10'])
+def test_apply_updates_readme_explanations_on_successive_releases(copy, release):
+    # Exercise both a normal patch upgrade and a change of month/year.
+    for target in [next_release(), release]:
+        previous = versioning.tested_ha()
+        ha_release.apply(target)
+        for readme in versioning.READMES:
+            text = (copy / readme).read_text()
+            prose = '\n'.join(line for line in text.splitlines() if not line.startswith('|'))
+            assert f'Home Assistant {target}' in prose, readme
+            assert f'{target}.0' in prose, readme
+            assert previous not in text, readme
+            assert f'Home Assistant {MIN_MONTH}' in text, readme
+
+
 def test_apply_refuses_an_older_release_or_a_prerelease(copy):
     with pytest.raises(AssertionError):
         ha_release.apply(versioning.tested_ha())
