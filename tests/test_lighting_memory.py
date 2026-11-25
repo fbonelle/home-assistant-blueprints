@@ -255,7 +255,9 @@ async def test_colour_change_during_a_fade_keeps_the_reached_level(env):
     await env.automation(STYRBAR, remote=REMOTE, light='light.color', memory='input_text.memory', hold_interval=0.4)
     await env.press('move_with_on_off', settle=.2)
     before = len(env.lamps['color'].calls)
-    await env.press('press', **RIGHT, settle=.1)
+    # Wait for the colour action to finish; 100 ms is not enough on a busy runner.
+    async with asyncio.timeout(5):
+        await env.press('press', **RIGHT, settle=None)
     # On a slow runner, a hold step already sent when the press arrives can be recorded
     # after the colour command: the colour command is looked up among the new calls.
     [colour] = [data for _, data in env.lamps['color'].calls[before:] if 'xy_color' in data]
