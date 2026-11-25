@@ -1,4 +1,4 @@
-# Integration watchdog — 2026.11.2.0
+# Integration watchdog — 2026.11.3.0
 
 [Français](integration_watchdog.md) · **English** · [Home](../README.en.md)
 
@@ -28,7 +28,7 @@ The automation fills this helper. It keeps the retry count and reload state acro
 
 ### Fill in the form
 
-Create an automation using **Integration watchdog — 2026.11.2.0**, then select, in the **Integration and entities to watch** section:
+Create an automation using **Integration watchdog — 2026.11.3.0**, then select, in the **Integration and entities to watch** section:
 
 | Field | What to select |
 |---|---|

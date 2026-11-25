@@ -6,7 +6,7 @@
 # restart a running hold. The actions form the shared engine, identical for every
 # remote; its detailed comments are in src/lighting/engine.yaml.
 blueprint:
-  name: Aqara wireless button (WXKG11LM, lumi.remote.b1acn01) — ZHA — 2026.11.2.0
+  name: Aqara wireless button (WXKG11LM, lumi.remote.b1acn01) — ZHA — 2026.11.3.0
   description: 'One button: single press, double press and hold, all three reported by the button itself. A hold
     stops on release or, when the radio release is lost, after the maximum duration. Actions and settings shared
     by every remote of the family; continuous changes are bounded. Optional memory helper. Menu → Run actions shows

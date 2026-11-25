@@ -2,7 +2,7 @@
 
 [Français](battery_watch.md) · **English** · [Home](../README.en.md)
 
-Version **2026.11.2.0**. A standalone blueprint that reports each battery to replace as soon as it is detected, then sends a summary at the time you choose. No shared file or custom component is required.
+Version **2026.11.3.0**. A standalone blueprint that reports each battery to replace as soon as it is detected, then sends a summary at the time you choose. No shared file or custom component is required.
 
 ## Installation
 

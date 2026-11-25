@@ -1,4 +1,4 @@
-# Integration watchdog — surveillance et relance des intégrations — 2026.11.2.0
+# Integration watchdog — surveillance et relance des intégrations — 2026.11.3.0
 
 **Français** · [English](integration_watchdog.en.md) · [Accueil](../README.md)
 
@@ -28,7 +28,7 @@ L’automatisation remplit cet assistant. Il conserve le nombre de tentatives et
 
 ### Remplir le formulaire
 
-Créez une automatisation à partir du blueprint **Integration watchdog — 2026.11.2.0**, puis renseignez, dans la section **Integration and entities to watch** :
+Créez une automatisation à partir du blueprint **Integration watchdog — 2026.11.3.0**, puis renseignez, dans la section **Integration and entities to watch** :
 
 | Champ | Ce qu’il faut choisir |
 |---|---|

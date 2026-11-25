@@ -8,12 +8,12 @@ A collection of blueprints built with standard Home Assistant features. Each blu
 
 | Blueprint | Purpose | Version | Requirements |
 |---|---|---|---|
-| [Battery watch](docs/battery_watch.en.md) | Report each battery to replace or silent device as soon as it is detected, then send a summary at a fixed time. | **2026.11.2.0** | Home Assistant 2026.10 or later |
-| [Integration watchdog](docs/integration_watchdog.en.md) | Detect a problem using selected entities, try reloading the integration and notify you when intervention is needed. | **2026.11.2.0** | Home Assistant 2026.10 or later |
-| [Lighting remotes and automatic switch-off](docs/lighting.en.md) | One chosen action for each gesture of Aqara, eWeLink, Hue Dimmer, Hue Tap Dial, IKEA 5-button, IKEA on/off and IKEA STYRBAR remotes; switch-off after an on time. | **2026.11.2.0** | Home Assistant 2026.10 or later, ZHA; optional helper |
-| [Notification system](docs/notification_system.en.md) | One entry point: channels by level (mobile, ntfy, e-mail), duplicate filter, night time, fallback, text-to-speech and persistent notification relay. | **2026.11.2.0** | Home Assistant 2026.10 or later, four blueprints |
+| [Battery watch](docs/battery_watch.en.md) | Report each battery to replace or silent device as soon as it is detected, then send a summary at a fixed time. | **2026.11.3.0** | Home Assistant 2026.10 or later |
+| [Integration watchdog](docs/integration_watchdog.en.md) | Detect a problem using selected entities, try reloading the integration and notify you when intervention is needed. | **2026.11.3.0** | Home Assistant 2026.10 or later |
+| [Lighting remotes and automatic switch-off](docs/lighting.en.md) | One chosen action for each gesture of Aqara, eWeLink, Hue Dimmer, Hue Tap Dial, IKEA 5-button, IKEA on/off and IKEA STYRBAR remotes; switch-off after an on time. | **2026.11.3.0** | Home Assistant 2026.10 or later, ZHA; optional helper |
+| [Notification system](docs/notification_system.en.md) | One entry point: channels by level (mobile, ntfy, e-mail), duplicate filter, night time, fallback, text-to-speech and persistent notification relay. | **2026.11.3.0** | Home Assistant 2026.10 or later, four blueprints |
 
-Each version is the Home Assistant release the blueprint was validated against, followed by a counter of the project's own changes: **2026.11.2.0** passed the whole test suite with Home Assistant 2026.11.2. With each new public Home Assistant release, the tests run again automatically; when they pass, every blueprint moves to the new version. The prerequisite gives the minimum version actually required.
+Each version is the Home Assistant release the blueprint was validated against, followed by a counter of the project's own changes: **2026.11.3.0** passed the whole test suite with Home Assistant 2026.11.3. With each new public Home Assistant release, the tests run again automatically; when they pass, every blueprint moves to the new version. The prerequisite gives the minimum version actually required.
 
 ## Battery watch
 

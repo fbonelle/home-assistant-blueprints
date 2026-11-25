@@ -6,7 +6,7 @@
 # restart a running hold. The actions form the shared engine, identical for every
 # remote; its detailed comments are in src/lighting/engine.yaml.
 blueprint:
-  name: IKEA TRÅDFRI 5-button remote — ZHA — 2026.11.2.0
+  name: IKEA TRÅDFRI 5-button remote — ZHA — 2026.11.3.0
   description: 'Center, Up, Down, Left and Right buttons. Replaces the former « whites » and « presets » variants:
     choose the white temperature or the color palette for Left and Right. Actions and settings shared by every remote
     of the family; continuous changes are bounded. Optional memory helper, required for the double press. Menu →

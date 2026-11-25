@@ -6,7 +6,7 @@
 # restart a running hold. The actions form the shared engine, identical for every
 # remote; its detailed comments are in src/lighting/engine.yaml.
 blueprint:
-  name: IKEA TRÅDFRI on/off switch — ZHA — 2026.11.2.0
+  name: IKEA TRÅDFRI on/off switch — ZHA — 2026.11.3.0
   description: 'Two buttons (I and O). Short press and hold can be set; a hold stops on release or, when the radio
     release is lost, after the maximum duration. Actions and settings shared by every remote of the family; continuous
     changes are bounded. Optional memory helper, required for the double press. Menu → Run actions shows a diagnostic

@@ -8,12 +8,12 @@ Une collection de blueprints pour automatiser Home Assistant avec ses fonctions 
 
 | Blueprint | Fonction | Version | Prérequis |
 |---|---|---|---|
-| [Battery watch](docs/battery_watch.md) | Signaler tout de suite chaque pile ou batterie à remplacer et chaque appareil muet, puis envoyer un récapitulatif à heure fixe. | **2026.11.2.0** | Home Assistant 2026.10 minimum |
-| [Integration watchdog](docs/integration_watchdog.md) | Détecter une panne à partir d’entités choisies, tenter une relance et prévenir si une intervention est nécessaire. | **2026.11.2.0** | Home Assistant 2026.10 minimum |
-| [Lighting remotes and automatic switch-off](docs/lighting.md) | Une action au choix pour chaque geste des télécommandes Aqara, eWeLink, Hue Dimmer, Hue Tap Dial, IKEA 5 boutons, IKEA marche/arrêt et IKEA STYRBAR ; extinction après une durée d’allumage. | **2026.11.2.0** | Home Assistant 2026.10 minimum, ZHA ; assistant facultatif |
-| [Notification system](docs/notification_system.md) | Un point d’entrée unique : canaux par niveau (mobile, ntfy, e-mail), anti-doublon, nuit, bascule de secours, lecture vocale et relais des notifications persistantes. | **2026.11.2.0** | Home Assistant 2026.10 minimum, quatre blueprints |
+| [Battery watch](docs/battery_watch.md) | Signaler tout de suite chaque pile ou batterie à remplacer et chaque appareil muet, puis envoyer un récapitulatif à heure fixe. | **2026.11.3.0** | Home Assistant 2026.10 minimum |
+| [Integration watchdog](docs/integration_watchdog.md) | Détecter une panne à partir d’entités choisies, tenter une relance et prévenir si une intervention est nécessaire. | **2026.11.3.0** | Home Assistant 2026.10 minimum |
+| [Lighting remotes and automatic switch-off](docs/lighting.md) | Une action au choix pour chaque geste des télécommandes Aqara, eWeLink, Hue Dimmer, Hue Tap Dial, IKEA 5 boutons, IKEA marche/arrêt et IKEA STYRBAR ; extinction après une durée d’allumage. | **2026.11.3.0** | Home Assistant 2026.10 minimum, ZHA ; assistant facultatif |
+| [Notification system](docs/notification_system.md) | Un point d’entrée unique : canaux par niveau (mobile, ntfy, e-mail), anti-doublon, nuit, bascule de secours, lecture vocale et relais des notifications persistantes. | **2026.11.3.0** | Home Assistant 2026.10 minimum, quatre blueprints |
 
-Chaque version est celle de Home Assistant avec laquelle le blueprint a été validé, suivie d’un compteur de modifications du projet : **2026.11.2.0** a réussi tous les tests avec Home Assistant 2026.11.2. À chaque nouvelle version publique de Home Assistant, les tests sont relancés automatiquement ; s’ils réussissent, tous les blueprints passent à la nouvelle version. Le prérequis indique la version minimale réellement nécessaire.
+Chaque version est celle de Home Assistant avec laquelle le blueprint a été validé, suivie d’un compteur de modifications du projet : **2026.11.3.0** a réussi tous les tests avec Home Assistant 2026.11.3. À chaque nouvelle version publique de Home Assistant, les tests sont relancés automatiquement ; s’ils réussissent, tous les blueprints passent à la nouvelle version. Le prérequis indique la version minimale réellement nécessaire.
 
 ## Battery watch
 

@@ -6,7 +6,7 @@
 # restart a running hold. The actions form the shared engine, identical for every
 # remote; its detailed comments are in src/lighting/engine.yaml.
 blueprint:
-  name: IKEA STYRBAR remote — ZHA — 2026.11.2.0
+  name: IKEA STYRBAR remote — ZHA — 2026.11.3.0
   description: 'Up, Down, Left and Right, short press and hold. With the memory helper, a double press on Up recalls
     the chosen color, like the former STYRBAR blueprint. Actions and settings shared by every remote of the family;
     continuous changes are bounded. Optional memory helper, required for the double press. Menu → Run actions shows

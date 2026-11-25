@@ -6,7 +6,7 @@
 # restart a running hold. The actions form the shared engine, identical for every
 # remote; its detailed comments are in src/lighting/engine.yaml.
 blueprint:
-  name: Philips Hue Tap Dial remote (RDM002) — ZHA — 2026.11.2.0
+  name: Philips Hue Tap Dial remote (RDM002) — ZHA — 2026.11.3.0
   description: 'Four buttons, one lamp per button, and a dial. The dial acts on the lamp switched on most recently
     among the four (or, when all are off, on the one used most recently), with no memory helper. When a group and
     its members change together, it acts on the lamp the remote commanded. Actions and settings shared by every

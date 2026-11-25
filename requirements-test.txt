@@ -1,4 +1,4 @@
-homeassistant==2026.11.2
+homeassistant==2026.11.3
 # Requirement of the Local To-do integration used as memory by the battery watch tests.
 # Kept equal to its manifest by « python tools/ha_release.py sync-requirements ».
 ical==14.3.1

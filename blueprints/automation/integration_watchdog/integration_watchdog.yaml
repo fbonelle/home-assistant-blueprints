@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# Version 2026.11.2.0 — self-contained blueprint: no shared configuration file.
+# Version 2026.11.3.0 — self-contained blueprint: no shared configuration file.
 # Memory: p reservation, f 0 reserved, 1-2 admitted or started, >2 end of the reload.
 blueprint:
-  name: Integration watchdog — 2026.11.2.0
+  name: Integration watchdog — 2026.11.3.0
   description: 'Watches the entities of an integration and tries to reload it when it fails. The number of attempts,
     the delays, the notifications and the logs can be set. Create a Text helper, then one automation per integration
     configuration; no other file is needed. Guide: https://github.com/fbonelle/home-assistant-blueprints/blob/main/docs/integration_watchdog.en.md'
